@@ -1,0 +1,8 @@
+# STE rule 5.1 / 6.1: procedural sentences max. 20 words, descriptive sentences max. 25 words.
+extends: occurrence
+message: "Make the sentence shorter. STE permits a maximum of 25 words in a descriptive sentence and 20 in a procedural sentence."
+level: error
+scope: sentence
+ignorecase: false
+max: 25
+token: \b(\w+)\b

@@ -1,0 +1,22 @@
+# Labels for issues and pull requests. The "Labels" workflow applies this file.
+- { name: "type/feature",       color: "0E8A16", description: "New function for users" }
+- { name: "type/bug",           color: "D73A4A", description: "Function that does not operate correctly" }
+- { name: "type/docs",          color: "0075CA", description: "Change to documentation only" }
+- { name: "type/chore",         color: "C5DEF5", description: "Maintenance, dependencies, tooling" }
+- { name: "type/refactor",      color: "BFD4F2", description: "Change to code structure without change to behavior" }
+- { name: "area/ui",            color: "FBCA04", description: "Tool windows, actions, user interface" }
+- { name: "area/cli",           color: "FBCA04", description: "Integration with the moon CLI" }
+- { name: "area/run",           color: "FBCA04", description: "Run configurations for moon tasks" }
+- { name: "area/settings",      color: "FBCA04", description: "Plugin settings" }
+- { name: "area/build",         color: "FBCA04", description: "Gradle build and CI" }
+- { name: "area/ai-harness",    color: "FBCA04", description: "AGENTS.md, CLAUDE.md, skills, subagents" }
+- { name: "status/blocked",     color: "000000", description: "Work cannot continue" }
+- { name: "status/needs-info",  color: "D876E3", description: "More information is necessary" }
+- { name: "status/needs-design",color: "D876E3", description: "A design decision is necessary" }
+- { name: "priority/high",      color: "B60205", description: "" }
+- { name: "priority/medium",    color: "FF9F1C", description: "" }
+- { name: "priority/low",       color: "C2E0C6", description: "" }
+- { name: "good first issue",   color: "7057FF", description: "Good for new contributors" }
+- { name: "help wanted",        color: "008672", description: "Extra attention is necessary" }
+- { name: "dependencies",       color: "0366D6", description: "Dependency update" }
+- { name: "release changelog",  color: "EDEDED", description: "Pull requests with release changelog update" }

@@ -1,0 +1,47 @@
+# STE dictionary: words that are not approved, with approved alternatives.
+# Technical names and technical verbs of this project are permitted (refer to docs/ste/guide.md).
+extends: substitution
+message: "'%[2]s' is not an approved STE word. Use %[1]s."
+level: error
+ignorecase: true
+action:
+  name: replace
+swap:
+  ensures?: make sure
+  ensured: made sure
+  utili[sz]es?|leverages?: use
+  please: (delete 'please')
+  requires?: must have|is necessary
+  required: necessary
+  allows?|enables?: lets
+  allowed|enabled: let
+  performs?: does
+  performed: done
+  obtains?|fetch(es)?: gets
+  additional: more
+  prior to: before
+  in order to: to
+  easily|easy: (delete the word or be specific)
+  just: (delete the word)
+  appropriate: correct|applicable
+  facilitates?: helps
+  verify|verifies: make sure|do a check of
+  approximately: about
+  assist: help
+  commence|initiate: start
+  terminate: stop
+  sufficient: enough
+  numerous: many
+  subsequently: then
+  regarding: about
+  therefore: thus
+  however: but
+  whether: if
+  provides?: gives
+  provided: given
+  located: found|in
+  currently: now
+  is able to|are able to: can
+  a number of: some
+  in addition: also
+  due to: because of

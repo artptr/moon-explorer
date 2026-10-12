@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a function that does not operate correctly.
+labels: [ "type/bug" ]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Tell what occurs. Write short and clear sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a moon workspace.
+        2. Open the Moon tool window.
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: input
+    id: ide
+    attributes:
+      label: IDE and version
+      placeholder: IntelliJ IDEA 2025.3.1
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Moon Explorer version
+    validations:
+      required: true
+  - type: input
+    id: moon
+    attributes:
+      label: moon version
+      description: Output of `moon --version`.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: Copy the applicable lines from Help | Show Log.
+      render: text

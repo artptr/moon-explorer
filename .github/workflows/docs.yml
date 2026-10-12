@@ -1,0 +1,27 @@
+# Lint Markdown documentation against the STE rules in .vale/styles/STE.
+# The allowlist in .vale.ini (refer to docs/ste/allowlist.md) excludes README.md and third-party texts.
+name: Docs
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vale:
+    name: STE check (Vale)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      - name: Run Vale
+        uses: errata-ai/vale-action@v3.0.0
+        with:
+          version: 3.24.0
+          files: all
+          fail_on_error: true
+          filter_mode: nofilter

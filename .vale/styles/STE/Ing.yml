@@ -1,0 +1,13 @@
+# STE rule 3.6: do not use the -ing form as a verb after "is", "are", "was", "were".
+extends: existence
+message: "Do not use the progressive tense '%s'. Use a simple tense."
+level: warning
+ignorecase: true
+raw:
+  - \b(am|is|are|was|were|be|been)\s+\w+ing\b
+exceptions:
+  - is nothing
+  - is missing
+  - are missing
+  - is something
+  - is during

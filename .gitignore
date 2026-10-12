@@ -1,0 +1,15 @@
+.DS_Store
+.gradle
+.idea
+.intellijPlatform
+.kotlin
+build
+
+# Claude Code: personal, not shared
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Vale: downloaded packages
+.vale/styles/*
+!.vale/styles/STE/
+!.vale/styles/config/

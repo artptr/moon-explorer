@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a new function.
+labels: [ "type/feature" ]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Tell the problem that the function solves.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Tell how the function operates.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Give a list of conditions. Each condition must be easy to test.
+      placeholder: |
+        - [ ] ...
+  - type: textarea
+    id: nx-console
+    attributes:
+      label: Equivalent in Nx Console
+      description: If Nx Console has a similar function, tell or show it.

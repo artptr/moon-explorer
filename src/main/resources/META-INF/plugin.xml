@@ -1,0 +1,22 @@
+<!-- Plugin Configuration File: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>io.github.artptr.moonexplorer</id>
+    <name>Moon Explorer</name>
+    <vendor url="https://github.com/artptr/moon-explorer">Artem Petrenkov</vendor>
+    <description><![CDATA[
+        <p><b>Moon Explorer</b> brings the <a href="https://moonrepo.dev">moon</a> build system into IntelliJ-based IDEs.</p>
+        <p>Explore projects and tasks of a moon workspace and run them from the IDE.</p>
+        <p>The plugin is in early development.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <resource-bundle>messages.MoonExplorerBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Moon"
+                    anchor="right"
+                    icon="AllIcons.Toolwindows.ToolWindowHierarchy"
+                    factoryClass="io.github.artptr.moonexplorer.toolWindow.MoonToolWindowFactory"/>
+    </extensions>
+</idea-plugin>

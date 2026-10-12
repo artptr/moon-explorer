@@ -1,0 +1,15 @@
+# STE: do not use contractions.
+extends: existence
+message: "Do not use the contraction '%s'. Write the full words."
+level: error
+ignorecase: true
+tokens:
+  - \w+n't
+  - \w+'ll
+  - \w+'re
+  - \w+'ve
+  - it's
+  - that's
+  - there's
+  - what's
+  - let's

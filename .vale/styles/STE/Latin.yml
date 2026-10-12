@@ -1,0 +1,12 @@
+# STE: do not use Latin abbreviations.
+extends: substitution
+message: "Use '%s' instead of '%s'."
+level: error
+ignorecase: true
+nonword: true
+swap:
+  '\be\.g\.': for example
+  '\bi\.e\.': that is
+  '\betc\.': (give the full list)
+  '\bvia\b': through
+  '\bvs\.': against

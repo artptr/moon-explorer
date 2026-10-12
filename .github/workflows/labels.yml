@@ -1,0 +1,23 @@
+# Sync the repository labels with .github/labels.yml.
+name: Labels
+on:
+  push:
+    branches: [ main ]
+    paths: [ .github/labels.yml ]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync labels
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      - name: Sync labels
+        uses: EndBug/label-sync@v2.3.3
+        with:
+          config-file: .github/labels.yml
+          delete-other-labels: false

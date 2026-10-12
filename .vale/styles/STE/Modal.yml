@@ -1,0 +1,12 @@
+# STE rule 3.10 / 5.1: give clear instructions. Do not use modal verbs that are not clear.
+extends: existence
+message: "Do not use '%s'. Use 'must' for a rule, or use the imperative for an instruction."
+level: error
+ignorecase: true
+tokens:
+  - should
+  - would
+  - might
+  - shall
+  - ought to
+  - could

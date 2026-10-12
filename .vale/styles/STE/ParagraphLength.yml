@@ -1,0 +1,7 @@
+# STE rule 6.6: max. six sentences in a paragraph.
+extends: occurrence
+message: "Make the paragraph shorter. STE permits a maximum of six sentences in a paragraph."
+level: warning
+scope: paragraph
+max: 6
+token: '[^.!?]+[.!?](\s|$)'

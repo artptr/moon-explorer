@@ -1,0 +1,48 @@
+# STE rule 3.1: use the active voice.
+extends: existence
+message: "'%s' can be passive voice. Use the active voice."
+level: warning
+ignorecase: true
+raw:
+  - \b(am|are|were|being|is|been|was|be)\b\s*
+tokens:
+  - '[\w]+ed'
+  - become
+  - been
+  - begun
+  - brought
+  - built
+  - chosen
+  - done
+  - found
+  - given
+  - gone
+  - kept
+  - known
+  - made
+  - put
+  - read
+  - run
+  - seen
+  - sent
+  - set
+  - shown
+  - taken
+  - written
+exceptions:
+  - installed
+  - connected
+  - closed
+  - opened
+  - approved
+  - enabled
+  - disabled
+  - required
+  - supported
+  - blocked
+  - based
+  - located
+  - used
+  - released
+  - unreleased
+  - signed
