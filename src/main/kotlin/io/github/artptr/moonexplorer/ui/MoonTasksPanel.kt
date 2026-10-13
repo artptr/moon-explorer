@@ -102,7 +102,9 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
         // Keep the expanded nodes and the selected nodes after a refresh. The nodes are found by ID,
         // thus a change of a description does not collapse a node.
         val expanded = projectNodes().filter { tree.isExpanded(TreePath(it.path)) }.map { it.project.id }.toSet()
-        val selected = tree.selectionPaths.orEmpty().map { it.lastPathComponent.toString() }.toSet()
+        val selectedNodes = tree.selectionPaths.orEmpty().map { it.lastPathComponent }
+        val selectedProjects = selectedNodes.filterIsInstance<ProjectNode>().map { it.project.id }.toSet()
+        val selectedTasks = selectedNodes.filterIsInstance<TaskNode>().map { it.task.target }.toSet()
 
         val root = buildTaskTree(state.tasks)
         (tree.model as DefaultTreeModel).setRoot(root)
@@ -110,9 +112,10 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
         val selectedPaths = mutableListOf<TreePath>()
         for (projectNode in projectNodes()) {
             if (projectNode.project.id in expanded) tree.expandPath(TreePath(projectNode.path))
-            if (projectNode.toString() in selected) selectedPaths += TreePath(projectNode.path)
-            projectNode.children().asSequence().filter { it.toString() in selected }
-                .forEach { selectedPaths += TreePath((it as TaskNode).path) }
+            if (projectNode.project.id in selectedProjects) selectedPaths += TreePath(projectNode.path)
+            projectNode.children().toList().filterIsInstance<TaskNode>()
+                .filter { it.task.target in selectedTasks }
+                .forEach { selectedPaths += TreePath(it.path) }
         }
         tree.selectionPaths = selectedPaths.toTypedArray()
         showCard(TREE_CARD)

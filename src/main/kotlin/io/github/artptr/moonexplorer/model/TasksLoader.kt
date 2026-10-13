@@ -25,7 +25,7 @@ object TasksLoader {
             TasksState.InvalidOutput(e.message.orEmpty())
         } catch (e: CancellationException) {
             throw e
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             // An unexpected error must not keep the tool window in the Loading state.
             thisLogger().warn("Cannot get the moon tasks", e)
             TasksState.InvalidOutput(e.message ?: e.javaClass.name)

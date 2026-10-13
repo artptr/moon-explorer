@@ -1,5 +1,6 @@
 package io.github.artptr.moonexplorer.model
 
+import com.intellij.execution.ExecutionException
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
@@ -64,5 +65,13 @@ class TasksLoaderTest {
     fun unexpectedErrorGivesInvalidOutput() {
         val state = runBlocking { TasksLoader.loadTasks(workspace) { throw IllegalStateException("unexpected") } }
         assertEquals(TasksState.InvalidOutput("unexpected"), state)
+    }
+
+    @Test
+    fun checkedExceptionGivesInvalidOutput() {
+        val state = runBlocking {
+            TasksLoader.loadTasks(workspace) { throw ExecutionException("cannot start") }
+        }
+        assertEquals(TasksState.InvalidOutput("cannot start"), state)
     }
 }

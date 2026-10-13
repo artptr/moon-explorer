@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.model
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.cli.MoonCli
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
@@ -26,7 +27,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             service.projectDir = { project.basePath?.let(Path::of) }
-            service.queryTasks = io.github.artptr.moonexplorer.cli.MoonCli::queryTasks
+            service.queryTasks = MoonCli::queryTasks
         } finally {
             super.tearDown()
         }

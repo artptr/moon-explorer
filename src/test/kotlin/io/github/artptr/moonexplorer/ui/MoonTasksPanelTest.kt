@@ -8,6 +8,8 @@ import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.testData.LargeQueryTasksJson
 import io.github.artptr.moonexplorer.testData.TestData
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.TreePath
 import kotlin.system.measureTimeMillis
 
 class MoonTasksPanelTest : BasePlatformTestCase() {
@@ -73,18 +75,31 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue("The tree loaded in $millis ms", millis < 2_000)
     }
 
+    private fun projectNode(id: String): ProjectNode {
+        val root = panel.tree.model.root as DefaultMutableTreeNode
+        return root.children().toList().filterIsInstance<ProjectNode>().single { it.project.id == id }
+    }
+
+    private fun projectPath(id: String) = TreePath(projectNode(id).path)
+
+    private fun taskPath(target: String): TreePath {
+        val task = projectNode(target.substringBefore(':')).children().toList()
+            .filterIsInstance<TaskNode>().single { it.task.target == target }
+        return TreePath(task.path)
+    }
+
     fun testRefreshKeepsExpandedNodesWhenADescriptionChanges() {
         val tasks = QueryTasksParser.parse(TestData.recorded("query-tasks.json"))
         panel.render(TasksState.Loaded(tasks))
-        panel.tree.expandRow(5) // web
-        assertTrue(panel.tree.isExpanded(5))
+        panel.tree.expandPath(projectPath("web"))
+        assertTrue(panel.tree.isExpanded(projectPath("web")))
 
         val changed = tasks.copy(projects = tasks.projects.map { project ->
             project.copy(tasks = project.tasks.map { it.copy(description = "Changed") })
         })
-        panel.tree.setSelectionRow(6) // web:build
+        panel.tree.selectionPath = taskPath("web:build")
         panel.render(TasksState.Loaded(changed))
-        assertTrue("The web node must stay expanded", panel.tree.isExpanded(5))
+        assertTrue("The web node must stay expanded", panel.tree.isExpanded(projectPath("web")))
         assertEquals("web:build", panel.tree.selectionPath?.lastPathComponent.toString())
     }
 }
