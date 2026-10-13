@@ -16,6 +16,7 @@ The main user is a TypeScript developer who uses WebStorm.
 The developer uses a moon v2 workspace with many projects and more than 100 tasks.
 
 Example workspace: 7 application projects, 10 library projects, and more than 10 tasks in each project.
+The example workspace is a workspace that the maintainer uses at work. Its data cannot be in this repository.
 
 ### 2.2 Other users
 
@@ -27,7 +28,7 @@ Example workspace: 7 application projects, 10 library projects, and more than 10
 
 In a large workspace, the user cannot see which tasks are in the workspace.
 moon shows the tasks only through CLI commands, and the output is long.
-For the example workspace, the maintainer counted about 16,000 lines in the output of `moon query tasks --json`.
+For the example workspace, the output of `moon query tasks` has about 16,000 lines. The maintainer counted the lines.
 
 The user also cannot hide the tasks that are not applicable to the work of the user.
 For example, a frontend developer sees the backend tasks in the same list.
@@ -122,6 +123,6 @@ Target 1 is a test that the team can measure. Targets 2 and 3 do not have number
 The team got this information in a planning meeting on 2026-10-13:
 
 - The maintainer uses moon in an IntelliJ-based IDE every day. Users in the community also asked for the plugin.
-- The commands `moon query tasks --json` and `moon task <project>:<task> --json` give the source of each task. Thus the plugin can use the moon CLI as the only source of data.
+- The commands `moon query tasks` and `moon task <project>:<task> --json` give the source of each task. Thus the plugin can use the moon CLI as the only source of data.
 - The moon VS Code extension (moon console) shows a tree of projects and tasks. It does not put tasks into groups by task name and does not have saved scopes.
 - A web search found no moon plugin for IntelliJ-based IDEs. Issue [#5](https://github.com/artptr/moon-explorer/issues/5) records a manual check of JetBrains Marketplace.
