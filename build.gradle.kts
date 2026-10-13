@@ -64,3 +64,15 @@ changelog {
     groups.empty()
     repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
 }
+
+// Runs the plugin in the local WebStorm installation. Set the path with the property `webStormPath`.
+intellijPlatformTesting {
+    runIde {
+        register("runWebStorm") {
+            localPath = file(
+                providers.gradleProperty("webStormPath")
+                    .getOrElse("${System.getProperty("user.home")}/Applications/WebStorm.app"),
+            )
+        }
+    }
+}
