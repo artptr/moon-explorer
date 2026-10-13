@@ -17,6 +17,15 @@
         <toolWindow id="Moon"
                     anchor="right"
                     icon="AllIcons.Toolwindows.ToolWindowHierarchy"
-                    factoryClass="io.github.artptr.moonexplorer.toolWindow.MoonToolWindowFactory"/>
+                    factoryClass="io.github.artptr.moonexplorer.ui.MoonToolWindowFactory"/>
+        <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
     </extensions>
+
+    <actions>
+        <group id="MoonExplorer.TasksToolbar">
+            <action id="MoonExplorer.RefreshTasks"
+                    class="io.github.artptr.moonexplorer.ui.RefreshTasksAction"
+                    icon="AllIcons.Actions.Refresh"/>
+        </group>
+    </actions>
 </idea-plugin>

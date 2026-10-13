@@ -7,4 +7,4 @@
 ### Added
 
 - Project structure for the IntelliJ Platform plugin
-- Placeholder **Moon** tool window
+- **Moon** tool window with a tree of the projects and tasks of the moon workspace, and a **Refresh** action

@@ -22,6 +22,8 @@ To run only the tests, use `./gradlew test`.
 
 ## 3. Run the plugin in a sandbox IDE
 
+The plugin uses `moon` from `PATH`. Before you start the sandbox IDE, make sure that `moon --version` shows moon 2.2.3 or later.
+
 1. Run `./gradlew runIde`.
 2. In the sandbox IDE, open a moon workspace.
 3. Open the **Moon** tool window.
@@ -30,6 +32,22 @@ To open the test workspace in the sandbox IDE, do these steps:
 
 1. Run `./gradlew runIde`.
 2. In the sandbox IDE, open the directory `src/test/testData/workspace/`.
+3. Open the **Moon** tool window.
+
+### 3.1 Run the plugin in a local WebStorm
+
+The task `runWebStorm` starts the plugin in a WebStorm that is installed on your computer.
+The default path is `~/Applications/WebStorm.app`. To use a different path, set the Gradle property `webStormPath`.
+
+To use the moon version of the test workspace, do these steps:
+
+1. In `src/test/testData/workspace/`, run `npm ci`.
+2. In the root directory of the repository, run this command:
+
+   ```bash
+   PATH="$PWD/src/test/testData/workspace/node_modules/.bin:$PATH" ./gradlew runWebStorm --args="$PWD/src/test/testData/workspace"
+   ```
+
 3. Open the **Moon** tool window.
 
 ## 4. Test data
