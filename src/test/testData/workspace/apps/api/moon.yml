@@ -1,0 +1,19 @@
+language: 'typescript'
+layer: 'application'
+stack: 'backend'
+tags: ['node', 'public']
+project:
+  title: 'Shop API'
+  description: 'The HTTP API of the shop.'
+tasks:
+  start:
+    command: 'echo start api'
+    description: 'Start the API server.'
+    deps: ['db:migrate']
+    options:
+      persistent: true
+      cache: false
+  build:
+    command: 'echo build api'
+    deps: ['db:build', 'utils:build']
+    outputs: ['dist']

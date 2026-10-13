@@ -1,0 +1,8 @@
+{
+  "name": "moon-explorer-test-workspace",
+  "private": true,
+  "description": "Test workspace for Moon Explorer. It contains sample data only.",
+  "devDependencies": {
+    "@moonrepo/cli": "2.2.3"
+  }
+}

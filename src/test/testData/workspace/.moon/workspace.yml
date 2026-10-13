@@ -1,0 +1,4 @@
+# Test workspace for Moon Explorer. It contains sample data only.
+projects:
+  - 'apps/*'
+  - 'packages/*'

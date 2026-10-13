@@ -1,0 +1,16 @@
+language: 'typescript'
+layer: 'library'
+stack: 'backend'
+tags: ['node', 'shared']
+project:
+  title: 'Database'
+  description: 'The database schema and the database client.'
+tasks:
+  build:
+    command: 'echo build db'
+    outputs: ['dist']
+  migrate:
+    command: 'echo migrate'
+    description: 'Run the database migrations.'
+    options:
+      cache: false

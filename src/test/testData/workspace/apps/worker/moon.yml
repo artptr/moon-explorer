@@ -1,0 +1,18 @@
+language: 'typescript'
+layer: 'application'
+stack: 'backend'
+tags: ['node', 'internal']
+project:
+  title: 'Job worker'
+  description: 'The worker that runs background jobs.'
+tasks:
+  start:
+    command: 'echo start worker'
+    options:
+      persistent: true
+      cache: false
+  build:
+    command: 'echo build worker'
+    description: 'Compile the worker.'
+    deps: ['db:build']
+    outputs: ['dist']

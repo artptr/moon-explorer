@@ -1,0 +1,17 @@
+language: 'typescript'
+layer: 'library'
+stack: 'frontend'
+tags: ['react']
+project:
+  title: 'UI components'
+  description: 'Shared React components.'
+tasks:
+  build:
+    command: 'echo build ui'
+    outputs: ['dist']
+  storybook:
+    command: 'echo storybook'
+    description: 'Start Storybook for the components.'
+    options:
+      persistent: true
+      cache: false

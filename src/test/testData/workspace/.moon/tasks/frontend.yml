@@ -1,0 +1,9 @@
+# Only frontend projects inherit these tasks.
+inheritedBy:
+  stacks: ['frontend']
+tasks:
+  test:
+    command: 'echo test frontend'
+    description: 'Run the unit tests in a browser environment.'
+  typecheck:
+    command: 'echo typecheck'
