@@ -12,12 +12,15 @@ Think of it as [Nx Console](https://nx.dev/getting-started/editor-setup), but fo
 
 ## What's planned
 
-The exact feature list will come out of an upcoming brainstorm, but the direction looks like this:
+The goal: in a big moon workspace, find any task and run it without the terminal or digging through YAML.
+The first release focuses on that:
 
-- A tool window with your moon projects and their tasks
-- One-click run configurations for moon tasks
-- A visual project graph
-- Smarter editing for `moon.yml` and `.moon/*.yml`
+- A task tree in the **Moon** tool window, grouped by project, by task name, or by `stack`, `layer`, or tag
+- Filters and saved scopes, so frontend folks don't have to wade through backend tasks (and vice versa)
+- Search across task names and descriptions
+- Double-click a task to run it as a regular IDE run configuration
+
+It targets moon v2, works fully offline, and sends no telemetry.
 
 See [docs/product/vision.md](docs/product/vision.md) for more.
 
