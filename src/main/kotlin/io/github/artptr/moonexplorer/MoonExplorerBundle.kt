@@ -7,7 +7,7 @@ import org.jetbrains.annotations.PropertyKey
 @NonNls
 private const val BUNDLE = "messages.MoonExplorerBundle"
 
-object MoonExplorerBundle : DynamicBundle(BUNDLE) {
+object MoonExplorerBundle : DynamicBundle(MoonExplorerBundle::class.java, BUNDLE) {
 
     @JvmStatic
     fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any) =
