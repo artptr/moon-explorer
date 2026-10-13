@@ -9,6 +9,8 @@ import com.google.gson.JsonParser
  *
  * The function copies the tasks of the recorded output and gives them new project IDs and task IDs.
  * Thus the output has the same structure as the output of moon.
+ * The function changes only `id` and `target`. Other values, for example `deps`, `inputGlobs`, and `outputFiles`,
+ * stay the same as in the recorded task. Use this output for tests of size and speed, not for tests of these values.
  * The default values make output for a workspace with the same size as the example workspace in the product vision:
  * 17 projects, 14 tasks in each project, and about 16,000 lines.
  */

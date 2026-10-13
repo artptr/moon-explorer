@@ -4,7 +4,8 @@ import java.io.File
 
 /** Paths to the test data in `src/test/testData/`. Refer to `docs/development.md`. */
 object TestData {
-    private val root = File("src/test/testData")
+    /** Gradle sets the property `moonExplorer.testData`. Without it, the path is relative to the repository root. */
+    private val root = File(System.getProperty("moonExplorer.testData") ?: "src/test/testData")
 
     /** The test workspace with sample data. */
     val workspace = File(root, "workspace")
