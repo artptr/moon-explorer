@@ -27,7 +27,7 @@ Example workspace: 7 application projects, 10 library projects, and more than 10
 
 In a large workspace, the user cannot see which tasks are in the workspace.
 moon shows the tasks only through CLI commands, and the output is long.
-For the example workspace, the JSON output of `moon query tasks` has about 16,000 lines.
+For the example workspace, the maintainer counted about 16,000 lines in the output of `moon query tasks --json`.
 
 The user also cannot hide the tasks that are not applicable to the work of the user.
 For example, a frontend developer sees the backend tasks in the same list.
@@ -53,7 +53,7 @@ The user selects how the tree puts the tasks into groups:
 
 The user hides the tasks that are not applicable to the work of the user.
 
-- The user sets a filter, for example `stack: frontend`.
+- The user sets a filter on project metadata, for example only the projects that have `stack` set to `frontend`.
 - The user saves a filter as a scope. The plugin keeps the scope for the next session.
 - The user searches for a task by its name or its description.
 
@@ -62,13 +62,19 @@ The user hides the tasks that are not applicable to the work of the user.
 The user runs a task from the tree.
 The plugin runs the task as a run configuration of the IDE.
 
+### 4.4 Settings
+
+The user sets the path to the `moon` executable.
+The plugin uses this path for all moon CLI commands.
+The other functions do not operate without a correct path.
+
 ## 5. Principles
 
 1. The moon CLI is the only source of data about the workspace. The plugin does not calculate task inheritance itself.
 2. The plugin operates without a network connection. It does not send telemetry.
-3. The plugin operates with moon v2. The team tests the plugin with moon 2.2.3.
+3. The plugin operates with moon v2. The minimum version that the team tests is moon 2.2.3.
 4. The plugin uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are not necessary.
-5. The plugin uses the standard functions of the IDE, for example tool windows, run configurations, and Search Everywhere.
+5. The plugin uses the standard functions of the IDE, for example tool windows and run configurations.
 6. The repository contains a test workspace with sample data. Tests and examples use this workspace. They do not use data from a company.
 
 ## 6. First release
@@ -82,7 +88,7 @@ The first release contains these functions:
 5. A run of a task from the tree. The user double-clicks a task, and the plugin runs it.
 6. A setting for the path to the `moon` executable
 
-Each function will have a GitHub issue with the label `type/feature`.
+Each function will have a GitHub issue. Refer to the GitHub workflow in [AGENTS.md](../../AGENTS.md) for the labels and the project board.
 
 ## 7. Later releases
 
@@ -105,6 +111,8 @@ These functions are possible for a later release. The team did not approve them.
 
 ## 9. Targets
 
+Target 1 is a test that the team can measure. Targets 2 and 3 do not have numbers yet. The team will set numbers for them after the first release.
+
 1. In the example workspace, the user finds and runs a task in about 10 seconds. The user does not use the terminal.
 2. Users install the plugin from JetBrains Marketplace.
 3. Users other than the maintainer open issues and give comments.
@@ -116,4 +124,4 @@ The team got this information in a planning meeting on 2026-10-13:
 - The maintainer uses moon in an IntelliJ-based IDE every day. Users in the community also asked for the plugin.
 - The commands `moon query tasks --json` and `moon task <project>:<task> --json` give the source of each task. Thus the plugin can use the moon CLI as the only source of data.
 - The moon VS Code extension (moon console) shows a tree of projects and tasks. It does not put tasks into groups by task name and does not have saved scopes.
-- The team did not find a moon plugin for IntelliJ-based IDEs. Do a manual check of JetBrains Marketplace before the first release.
+- A web search found no moon plugin for IntelliJ-based IDEs. Issue [#5](https://github.com/artptr/moon-explorer/issues/5) records a manual check of JetBrains Marketplace.
