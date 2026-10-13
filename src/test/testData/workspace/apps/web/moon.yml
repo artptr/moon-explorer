@@ -1,0 +1,25 @@
+language: 'typescript'
+layer: 'application'
+stack: 'frontend'
+tags: ['react', 'public']
+project:
+  title: 'Web shop'
+  description: 'The public web shop.'
+tasks:
+  dev:
+    command: 'echo dev web'
+    description: 'Start the development server.'
+    options:
+      persistent: true
+      cache: false
+  build:
+    command: 'echo build web'
+    description: 'Make the production bundle.'
+    deps: ['ui:build', 'utils:build']
+    outputs: ['dist']
+  preview:
+    command: 'echo preview web'
+    deps: ['build']
+  # This project changes the inherited task lint. It adds the option --max-warnings 0.
+  lint:
+    args: ['--max-warnings', '0']

@@ -1,0 +1,12 @@
+language: 'typescript'
+layer: 'library'
+stack: 'frontend'
+tags: ['shared']
+project:
+  title: 'Utilities'
+  description: 'Shared functions for all applications.'
+tasks:
+  build:
+    command: 'echo build utils'
+    description: 'Compile the library.'
+    outputs: ['dist']

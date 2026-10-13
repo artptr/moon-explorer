@@ -1,0 +1,10 @@
+# Only backend projects inherit these tasks.
+inheritedBy:
+  stacks: ['backend']
+tasks:
+  test:
+    command: 'echo test backend'
+    description: 'Run the unit tests in Node.js.'
+  audit:
+    command: 'echo audit'
+    description: 'Do a check of the dependencies for known vulnerabilities.'

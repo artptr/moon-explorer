@@ -1,0 +1,18 @@
+language: 'typescript'
+layer: 'application'
+stack: 'frontend'
+tags: ['react', 'internal']
+project:
+  title: 'Admin panel'
+  description: 'The internal panel for shop administrators.'
+tasks:
+  dev:
+    command: 'echo dev admin'
+    options:
+      persistent: true
+      cache: false
+  build:
+    command: 'echo build admin'
+    description: 'Make the production bundle.'
+    deps: ['ui:build', 'utils:build']
+    outputs: ['dist']

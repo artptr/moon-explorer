@@ -55,6 +55,11 @@ intellijPlatform {
     }
 }
 
+tasks.test {
+    // The tests read the test data with this path. Refer to TestData.kt.
+    systemProperty("moonExplorer.testData", layout.projectDirectory.dir("src/test/testData").asFile.absolutePath)
+}
+
 changelog {
     groups.empty()
     repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")

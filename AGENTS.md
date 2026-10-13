@@ -21,6 +21,8 @@ Refer to [docs/product/vision.md](docs/product/vision.md) for the product scope.
 | `src/main/resources/META-INF/plugin.xml` | Plugin descriptor: ID, extensions, dependencies |
 | `src/main/resources/messages/` | User interface text (resource bundles) |
 | `src/test/kotlin/` | Tests |
+| `src/test/testData/` | Test workspace and recorded moon CLI output. Refer to [docs/development.md](docs/development.md). |
+| `scripts/` | Shell scripts for development |
 | `docs/` | Technical documentation (STE) |
 | `docs/adr/` | Architecture decision records |
 | `.claude/` | Claude Code configuration: settings, skills, subagents |

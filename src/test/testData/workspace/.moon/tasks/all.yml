@@ -1,0 +1,9 @@
+# All projects inherit these tasks.
+tasks:
+  lint:
+    command: 'echo lint'
+    description: 'Do a check of the source code with the linter.'
+    inputs: ['src/**/*']
+  format:
+    command: 'echo format'
+    inputs: ['src/**/*']

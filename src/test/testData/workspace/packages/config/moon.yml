@@ -1,0 +1,9 @@
+# This project has no tasks. It does not inherit tasks.
+layer: 'configuration'
+tags: ['shared']
+project:
+  title: 'Shared configuration'
+  description: 'Configuration files for the linter and the formatter.'
+workspace:
+  inheritedTasks:
+    include: []
