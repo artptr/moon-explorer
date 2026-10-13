@@ -125,4 +125,9 @@ The team got this information in a planning meeting on 2026-10-13:
 - The maintainer uses moon in an IntelliJ-based IDE every day. Users in the community also asked for the plugin.
 - The commands `moon query tasks` and `moon task <project>:<task> --json` give the source of each task. Thus the plugin can use the moon CLI as the only source of data.
 - The moon VS Code extension (moon console) shows a tree of projects and tasks. It does not put tasks into groups by task name and does not have saved scopes.
-- A web search found no moon plugin for IntelliJ-based IDEs. Issue [#5](https://github.com/artptr/moon-explorer/issues/5) records a manual check of JetBrains Marketplace.
+- A manual check of JetBrains Marketplace on 2026-10-13 found one moon plugin. Issue [#5](https://github.com/artptr/moon-explorer/issues/5) records the check.
+  - The search for `moonrepo` gave one result. The search for `moon` gave 28 results. Only one of the 28 results is for moon.
+  - The plugin is [Moonrepo](https://plugins.jetbrains.com/plugin/32442) (unofficial, source: [mteterel/intellij-moon-plugin](https://github.com/mteterel/intellij-moon-plugin), MIT license).
+  - It is at an early stage: version 0.0.1, 52 downloads, and one maintainer.
+  - It shows projects, tasks, and templates, and it has a run configuration type, a graph editor, and a report of the last run.
+  - Its scope is close to the scope of Moon Explorer. The team must compare the two plugins before it decides the final feature list.
