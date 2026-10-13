@@ -22,6 +22,8 @@ To run only the tests, use `./gradlew test`.
 
 ## 3. Run the plugin in a sandbox IDE
 
+The plugin uses `moon` from `PATH`. Before you start the sandbox IDE, make sure that `moon --version` shows moon 2.2.3 or later.
+
 1. Run `./gradlew runIde`.
 2. In the sandbox IDE, open a moon workspace.
 3. Open the **Moon** tool window.
