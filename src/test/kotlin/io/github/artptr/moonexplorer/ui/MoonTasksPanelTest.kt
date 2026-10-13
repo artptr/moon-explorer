@@ -72,4 +72,19 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(17, panel.tree.model.getChildCount(panel.tree.model.root))
         assertTrue("The tree loaded in $millis ms", millis < 2_000)
     }
+
+    fun testRefreshKeepsExpandedNodesWhenADescriptionChanges() {
+        val tasks = QueryTasksParser.parse(TestData.recorded("query-tasks.json"))
+        panel.render(TasksState.Loaded(tasks))
+        panel.tree.expandRow(5) // web
+        assertTrue(panel.tree.isExpanded(5))
+
+        val changed = tasks.copy(projects = tasks.projects.map { project ->
+            project.copy(tasks = project.tasks.map { it.copy(description = "Changed") })
+        })
+        panel.tree.setSelectionRow(6) // web:build
+        panel.render(TasksState.Loaded(changed))
+        assertTrue("The web node must stay expanded", panel.tree.isExpanded(5))
+        assertEquals("web:build", panel.tree.selectionPath?.lastPathComponent.toString())
+    }
 }

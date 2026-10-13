@@ -32,4 +32,14 @@ class MoonCliTest {
     fun cancelledProcessIsNotSuccess() {
         assertEquals(CliResult.Failed("partial"), MoonCli.toResult(ProcessOutput("partial", "", 0, false, true)))
     }
+
+    @Test
+    fun errorWithoutTextGivesTheExitCode() {
+        assertEquals(CliResult.Failed("The moon process stopped with exit code 3."), MoonCli.toResult(ProcessOutput("", " ", 3, false, false)))
+    }
+
+    @Test
+    fun timeoutWithoutTextTellsTheCause() {
+        assertEquals(CliResult.Failed("The moon process did not complete in time."), MoonCli.toResult(ProcessOutput("", "", -1, true, false)))
+    }
 }

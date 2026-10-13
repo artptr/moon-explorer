@@ -23,7 +23,7 @@ object QueryTasksParser {
         val tasks = root.objectOrNull()?.get("tasks")?.objectOrNull()
             ?: throw MoonOutputException("The output does not contain the object \"tasks\"")
 
-        val projects = tasks.entrySet().map { (projectId, projectTasks) ->
+        val projects = tasks.entrySet().mapNotNull { (projectId, projectTasks) ->
             val taskList = projectTasks.objectOrNull()?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null
                 val id = task.string("id") ?: key
@@ -33,6 +33,7 @@ object QueryTasksParser {
                     description = task.string("description")?.takeIf { it.isNotBlank() },
                 )
             }
+            if (taskList.isEmpty()) return@mapNotNull null
             MoonProject(projectId, taskList.sortedWith(compareBy(BY_ID) { it.id }))
         }
         return WorkspaceTasks(projects.sortedWith(compareBy(BY_ID) { it.id }))
@@ -42,6 +43,6 @@ object QueryTasksParser {
 
     private fun JsonObject.string(name: String): String? {
         val value = get(name) ?: return null
-        return if (value.isJsonPrimitive) value.asString else null
+        return if (value.isJsonPrimitive && value.asJsonPrimitive.isString) value.asString else null
     }
 }

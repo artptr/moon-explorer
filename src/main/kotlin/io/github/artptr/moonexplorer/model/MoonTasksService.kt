@@ -2,11 +2,11 @@ package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonCli
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,16 +28,22 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
 
     private var job: Job? = null
 
+    /** Gives the IDE project directory. Tests change this value. */
+    internal var projectDir: () -> Path? = { project.basePath?.let(Path::of) }
+
+    /** Runs `moon query tasks`. Tests change this value to a fake. */
+    internal var queryTasks: suspend (Path) -> CliResult = MoonCli::queryTasks
+
     /** Runs `moon query tasks` again. If a load runs now, the function cancels it and starts a new load. */
     @Synchronized
     fun refresh() {
         val previous = job
+        // Cancel the previous load now. Thus two moon processes do not run at the same time for long.
+        previous?.cancel()
         job = cs.launch {
-            previous?.cancelAndJoin()
+            previous?.join()
             _state.value = TasksState.Loading
-            _state.value = withContext(Dispatchers.IO) {
-                TasksLoader.loadTasks(project.basePath?.let(Path::of), MoonCli::queryTasks)
-            }
+            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDir(), queryTasks) }
         }
     }
 }

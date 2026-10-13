@@ -1,6 +1,5 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.ide.util.treeView.TreeState
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
@@ -23,7 +22,9 @@ import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import javax.swing.JPanel
+import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreePath
 
 /** The content of the "Moon" tool window: a toolbar, and a tree of tasks or a message. */
 class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disposable {
@@ -61,7 +62,8 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
     private val job: Job
 
     init {
-        val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as ActionGroup
+        val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
+            ?: error("plugin.xml must register the action group $TOOLBAR_GROUP_ID")
         val toolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, group, true)
         toolbar.targetComponent = this
         setToolbar(toolbar.component)
@@ -97,11 +99,28 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
     }
 
     private fun showTree(state: TasksState.Loaded) {
-        // Keep the expanded nodes and the selected nodes after a refresh.
-        val treeState = TreeState.createOn(tree)
-        (tree.model as DefaultTreeModel).setRoot(buildTaskTree(state.tasks))
-        treeState.applyTo(tree)
+        // Keep the expanded nodes and the selected nodes after a refresh. The nodes are found by ID,
+        // thus a change of a description does not collapse a node.
+        val expanded = projectNodes().filter { tree.isExpanded(TreePath(it.path)) }.map { it.project.id }.toSet()
+        val selected = tree.selectionPaths.orEmpty().map { it.lastPathComponent.toString() }.toSet()
+
+        val root = buildTaskTree(state.tasks)
+        (tree.model as DefaultTreeModel).setRoot(root)
+
+        val selectedPaths = mutableListOf<TreePath>()
+        for (projectNode in projectNodes()) {
+            if (projectNode.project.id in expanded) tree.expandPath(TreePath(projectNode.path))
+            if (projectNode.toString() in selected) selectedPaths += TreePath(projectNode.path)
+            projectNode.children().asSequence().filter { it.toString() in selected }
+                .forEach { selectedPaths += TreePath((it as TaskNode).path) }
+        }
+        tree.selectionPaths = selectedPaths.toTypedArray()
         showCard(TREE_CARD)
+    }
+
+    private fun projectNodes(): List<ProjectNode> {
+        val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyList()
+        return root.children().toList().filterIsInstance<ProjectNode>()
     }
 
     private fun showMessage(text: String) {

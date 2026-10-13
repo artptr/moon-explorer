@@ -59,4 +59,10 @@ class TasksLoaderTest {
     fun outputThatIsNotJsonGivesInvalidOutput() {
         assertTrue(load(workspace, CliResult.Success("not JSON")) is TasksState.InvalidOutput)
     }
+
+    @Test
+    fun unexpectedErrorGivesInvalidOutput() {
+        val state = runBlocking { TasksLoader.loadTasks(workspace) { throw IllegalStateException("unexpected") } }
+        assertEquals(TasksState.InvalidOutput("unexpected"), state)
+    }
 }

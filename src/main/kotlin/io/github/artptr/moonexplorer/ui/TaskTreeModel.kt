@@ -13,11 +13,21 @@ import javax.swing.tree.DefaultMutableTreeNode
 fun buildTaskTree(tasks: WorkspaceTasks): DefaultMutableTreeNode {
     val root = DefaultMutableTreeNode()
     for (project in tasks.projects) {
-        val projectNode = DefaultMutableTreeNode(project)
-        project.tasks.forEach { projectNode.add(DefaultMutableTreeNode(it, false)) }
+        val projectNode = ProjectNode(project)
+        project.tasks.forEach { projectNode.add(TaskNode(it)) }
         root.add(projectNode)
     }
     return root
+}
+
+/** A tree node for a project. [toString] gives the project ID. */
+class ProjectNode(val project: MoonProject) : DefaultMutableTreeNode(project) {
+    override fun toString(): String = project.id
+}
+
+/** A tree node for a task. [toString] gives the task target. */
+class TaskNode(val task: MoonTask) : DefaultMutableTreeNode(task, false) {
+    override fun toString(): String = task.target
 }
 
 /** Shows a project node with its ID, and a task node with its ID and its description in gray text. */

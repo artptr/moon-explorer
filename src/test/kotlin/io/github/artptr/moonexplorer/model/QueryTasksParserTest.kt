@@ -67,4 +67,18 @@ class QueryTasksParserTest {
     fun outputWithoutTasksThrows() {
         QueryTasksParser.parse("""{"projects": []}""")
     }
+
+    @Test
+    fun valuesThatAreNotStringsAreIgnored() {
+        val task = QueryTasksParser.parse("""{"tasks": {"p": {"t": {"id": 5, "description": true}}}}""").projects.single().tasks.single()
+        assertEquals("t", task.id)
+        assertEquals("p:t", task.target)
+        assertNull(task.description)
+    }
+
+    @Test
+    fun projectsWithoutTasksAreNotInTheResult() {
+        val parsed = QueryTasksParser.parse("""{"tasks": {"a": {}, "b": null, "c": {"t": {"id": "t"}}}}""")
+        assertEquals(listOf("c"), parsed.projects.map { it.id })
+    }
 }

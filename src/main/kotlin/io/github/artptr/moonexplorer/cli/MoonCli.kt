@@ -32,6 +32,7 @@ object MoonCli {
      * Runs `moon query tasks` in [workspaceRoot].
      * In moon v2, the output of this command is always JSON.
      * If the caller cancels the coroutine, the function stops the moon process.
+     * Call this function on a background thread.
      */
     suspend fun queryTasks(workspaceRoot: Path): CliResult = run(workspaceRoot, "query", "tasks")
 
@@ -55,7 +56,14 @@ object MoonCli {
     /** Converts the output of a moon process to a [CliResult]. */
     internal fun toResult(output: ProcessOutput): CliResult {
         if (output.exitCode == 0 && !output.isTimeout && !output.isCancelled) return CliResult.Success(output.stdout)
-        val text = output.stderr.ifBlank { output.stdout }
-        return CliResult.Failed(text.replace(ANSI_ESCAPE, "").trim())
+        val text = output.stderr.ifBlank { output.stdout }.replace(ANSI_ESCAPE, "").trim()
+        return CliResult.Failed(text.ifEmpty { statusText(output) })
+    }
+
+    /** Tells why the process stopped, if moon did not write an error text. */
+    private fun statusText(output: ProcessOutput): String = when {
+        output.isTimeout -> "The moon process did not complete in time."
+        output.isCancelled -> "The moon process was stopped."
+        else -> "The moon process stopped with exit code ${output.exitCode}."
     }
 }

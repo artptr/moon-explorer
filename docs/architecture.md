@@ -27,7 +27,7 @@ The parser of the moon JSON output is in the model layer. Thus the CLI layer doe
 | Tool window **Moon** | `ui.MoonToolWindowFactory`, `ui.MoonTasksPanel` | `plugin.xml` |
 | Tree nodes and renderer | `ui.TaskTreeModel.kt` | None |
 | Action **Refresh** in the group `MoonExplorer.TasksToolbar` | `ui.RefreshTasksAction` | `plugin.xml` |
-| State of the tasks for the IDE project | `model.MoonTasksService` | Light service |
+| State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
 | Load of the tasks when the IDE project opens | `model.MoonTasksStartupActivity` | `plugin.xml` |
 | Load of the tasks and the result state | `model.TasksLoader`, `model.TasksState` | None |
 | Parser of `moon query tasks` | `model.QueryTasksParser` | None |
@@ -35,7 +35,7 @@ The parser of the moon JSON output is in the model layer. Thus the CLI layer doe
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
 
-**NOTE:** Record each change to the layers in an ADR in [adr/](adr/).
+**NOTE:** The layers come from the proposal in the first version of this file. Record each later change to the layers in an ADR in [adr/](adr/).
 
 ## 3. Data flow
 
