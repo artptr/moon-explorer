@@ -8,6 +8,10 @@ plugins {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        // Do not add bridge methods for the default methods of platform interfaces.
+        jvmDefault.set(org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY)
+    }
 }
 
 dependencies {
