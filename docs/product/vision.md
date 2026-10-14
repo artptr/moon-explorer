@@ -56,7 +56,7 @@ The user hides the tasks that are not applicable to the work of the user.
 
 - The user sets a filter on project metadata, for example only the projects that have `stack` set to `frontend`.
 - The user saves a filter as a scope. The plugin keeps the scope for the next session.
-- The user searches for a task by its name or its description.
+- The user searches for a task by its ID or its description.
 
 ### 4.3 Run a task
 
@@ -70,7 +70,7 @@ In a TypeScript workspace, moon is normally an npm development dependency (in `d
 Thus the plugin first tries to find `moon` in `node_modules/.bin/` of the workspace root.
 Then the plugin tries to find `moon` in the directories of [proto](https://moonrepo.dev/proto) and in `PATH`.
 
-The user can set a different path in the settings.
+The user can set a different path in the settings. The plugin uses this path before the automatic search.
 The plugin uses the same executable for all moon CLI commands.
 The other functions do not operate without the `moon` executable.
 
@@ -93,12 +93,12 @@ The first release is a minimum viable product (MVP). The MVP is a test of this s
 In a large moon workspace, a WebStorm user finds and runs tasks in the **Moon** tool window each day. The user does not use the terminal or an AI agent for this work.
 
 The plugin helps the user most when the user does not know the task IDs.
-For example, the user is new to the workspace. Another example is a change to a part of the workspace that is new to the user.
+For example, the user is new to the workspace. Another example is work in a part of the workspace that is new to the user.
 When the user knows the task IDs, the terminal is also a good method.
 
 ### 6.2 Functions
 
-The MVP contains these functions:
+The MVP contains these functions. The functions with the priority **Medium** do not prevent the release of version 0.1.
 
 | Priority | Function | Issue |
 |----------|----------|-------|
@@ -131,13 +131,13 @@ These functions are possible for a later release. The team did not approve them.
 - A view of the tasks that moon runs before a selected task
 - An inspection that finds tasks without a description
 - Debug of a task and more options for run configurations
-- Filters and saved scopes (section 4.2). The team removed them from the MVP in the meeting on 2026-10-14. The groups by `stack` and the search can be satisfactory for most users.
+- Filters and saved scopes (section 4.2). The team removed them from the MVP in the meeting on 2026-10-14. The groups by `stack` and the search can be satisfactory.
 - Groups by `layer` and by tag in the tree
 - The automatic selection of the project when the user opens a different file
-- An icon for the language of each project in the tree
-- A notification when the version of moon is older than the minimum version
+- An icon for the language of each project in the tree. The Moonrepo plugin has this function.
+- A notification when the version of moon is older than the minimum version. The Moonrepo plugin shows a similar notification for problems in the workspace.
 - A report of the last run
-- Run icons in the gutter of `moon.yml`
+- Run icons in the gutter of `moon.yml`. WebStorm has the same function for scripts in `package.json`.
 - Test results in the test runner of the IDE
 
 ## 8. Out of scope
@@ -152,7 +152,7 @@ These functions are possible for a later release. The team did not approve them.
 Targets 1 and 2 are tests that the team can measure. Targets 3 and 4 do not have numbers yet. The team will set numbers for them after the MVP.
 
 1. In the example workspace, the user finds and runs a task in about 10 seconds. The user does not use the terminal.
-2. The maintainer uses the plugin each day for two weeks. During this period, the maintainer does not use the `moon run` command in the terminal. The maintainer also does not tell an AI agent to run moon tasks.
+2. The maintainer uses the plugin each day for two weeks. During this period, the maintainer does not use the terminal or an AI agent to find or run moon tasks.
 3. Users install the plugin from JetBrains Marketplace.
 4. Users other than the maintainer open issues and give comments.
 
@@ -172,9 +172,9 @@ The team got this information in a meeting on 2026-10-13:
 
 The team got this information in a meeting on 2026-10-14:
 
-- Many moon users use one of these tools: VS Code with the moon console extension, the terminal, or an AI agent. Users use these tools in place of the plugin. The Moonrepo plugin is not the main tool that users use in place of Moon Explorer.
+- The maintainer reports that many moon users use one of these tools: VS Code with the moon console extension, the terminal, or an AI agent. Users use these tools in place of the plugin. The Moonrepo plugin is not the main tool that users use in place of Moon Explorer.
 - moon has the command `moon mcp`. It starts an MCP server that gives data about the workspace to AI agents.
 - In the example workspace, moon is an npm development dependency. The test workspace also has moon as an npm development dependency. The first version of the task tree tried to find `moon` only in `PATH`. Thus, it did not find `moon` in these workspaces.
-- The repository of mteterel/intellij-moon-plugin has 4 commits. All 4 commits are from 2026-06-24. After that date, only automatic dependency updates changed it. The team can use ideas from this plugin. The team does not plan to work together with its maintainer now.
+- The repository of mteterel/intellij-moon-plugin has 7 commits. The maintainer of that plugin made 4 commits, all on 2026-06-24. Dependabot made the other 3 commits: one on 2026-06-24, one on 2026-07-10, and one on 2026-08-24. The team can use ideas from this plugin. The team does not plan to work together with its maintainer now.
 - For the run of a task, console text in the **Run** tool window is satisfactory. The test runner of the IDE is not necessary for the MVP.
 - Developers who are new to the workspace are possible users. The maintainer did not measure how many new developers there are.

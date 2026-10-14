@@ -16,7 +16,7 @@ The goal: in a big moon workspace, find any task and run it without the terminal
 The first release (an MVP) focuses on that:
 
 - A task tree in the **Moon** tool window, grouped by project, by task name, or by `stack`
-- Just start typing in the tree to search task names, project names, and descriptions
+- Just start typing in the tree to search task IDs (like `build`), project IDs, and descriptions
 - Double-click a task to run it as a regular IDE run configuration
 - Works out of the box when moon is an npm dev dependency — no need to install it globally
 
