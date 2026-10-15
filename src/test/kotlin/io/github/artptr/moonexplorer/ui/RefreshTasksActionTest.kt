@@ -5,22 +5,27 @@ import com.intellij.openapi.components.service
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.cli.MoonCli
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import java.nio.file.Path
 
 class RefreshTasksActionTest : BasePlatformTestCase() {
 
+    private lateinit var service: MoonTasksService
+
+    override fun setUp() {
+        super.setUp()
+        service = project.service<MoonTasksService>()
+        // The light project is the same for all tests. Remove the state and the load of the previous test.
+        runBlocking { service.resetForTests() }
+        service.projectDir = { TestData.workspace.toPath() }
+    }
+
     override fun tearDown() {
         try {
-            val service = project.service<MoonTasksService>()
-            service.projectDir = { project.basePath?.let(Path::of) }
-            service.queryTasks = MoonCli::queryTasks
+            runBlocking { service.resetForTests() }
         } finally {
             super.tearDown()
         }
@@ -41,12 +46,9 @@ class RefreshTasksActionTest : BasePlatformTestCase() {
     }
 
     fun testActionRefreshesTheTasks() {
-        val service = project.service<MoonTasksService>()
-        service.projectDir = { TestData.workspace.toPath() }
         service.queryTasks = { CliResult.Failed("from action") }
         val action = RefreshTasksAction()
         action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
-        val state = runBlocking { withTimeout(10_000) { service.state.first { it is TasksState.MoonError } } }
-        assertEquals(TasksState.MoonError("from action"), state)
+        service.awaitState(TasksState.MoonError("from action"))
     }
 }
