@@ -11,14 +11,21 @@ import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.file.Path
 
 class RefreshTasksActionTest : BasePlatformTestCase() {
 
+    override fun setUp() {
+        super.setUp()
+        // The light project is the same for all tests. Remove the state and the load of the previous test.
+        runBlocking { project.service<MoonTasksService>().resetForTests() }
+    }
+
     override fun tearDown() {
         try {
             val service = project.service<MoonTasksService>()
+            runBlocking { service.resetForTests() }
             service.projectDir = { project.basePath?.let(Path::of) }
             service.queryTasks = MoonCli::queryTasks
         } finally {
@@ -46,7 +53,8 @@ class RefreshTasksActionTest : BasePlatformTestCase() {
         service.queryTasks = { CliResult.Failed("from action") }
         val action = RefreshTasksAction()
         action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
-        val state = runBlocking { withTimeout(10_000) { service.state.first { it is TasksState.MoonError } } }
-        assertEquals(TasksState.MoonError("from action"), state)
+        val expected = TasksState.MoonError("from action")
+        runBlocking { withTimeoutOrNull(10_000) { service.state.first { it == expected } } }
+            ?: fail("Expected $expected, but the state is ${service.state.value}")
     }
 }

@@ -7,11 +7,13 @@ import io.github.artptr.moonexplorer.cli.MoonCli
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
 
 /** Keeps the tasks of the moon workspace for the IDE project. */
@@ -45,5 +47,13 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
             _state.value = TasksState.Loading
             _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDir(), queryTasks) }
         }
+    }
+
+    /** Cancels the load, waits until it stops, and sets the state to [TasksState.Loading]. Only tests use this function. */
+    @TestOnly
+    internal suspend fun resetForTests() {
+        val previous = synchronized(this) { job.also { job = null } }
+        previous?.cancelAndJoin()
+        _state.value = TasksState.Loading
     }
 }
