@@ -39,7 +39,12 @@ class MoonCliTest {
     }
 
     @Test
-    fun timeoutWithoutTextTellsTheCause() {
-        assertEquals(CliResult.Failed("The moon process did not complete in time."), MoonCli.toResult(ProcessOutput("", "", -1, true, false)))
+    fun timeoutGivesTimedOut() {
+        assertEquals(CliResult.TimedOut, MoonCli.toResult(ProcessOutput("", "", -1, true, false)))
+    }
+
+    @Test
+    fun timeoutWithTextGivesTimedOut() {
+        assertEquals(CliResult.TimedOut, MoonCli.toResult(ProcessOutput("partial", "Downloading", 143, true, false)))
     }
 }
