@@ -114,6 +114,14 @@ GitHub Actions runs these workflows:
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace |
 
+Obey these rules when you add or change a workflow:
+
+1. Add a `permissions` block at the top of the workflow. Give `contents: read` only.
+2. If a job writes data, add a `permissions` block to the job. Give only the permissions that the job must have.
+3. In each `uses:` line, use the complete commit SHA of the action. Put the version tag in a comment after the SHA. Example: `actions/checkout@<sha> # v7.0.1`.
+
+Dependabot updates the SHA and the comment together.
+
 ## 8. Release
 
 1. Make sure that `CHANGELOG.md` has entries under `Unreleased`.
