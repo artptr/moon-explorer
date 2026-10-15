@@ -2,7 +2,6 @@ package io.github.artptr.moonexplorer.cli
 
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.openapi.progress.coroutineToIndicator
@@ -14,8 +13,8 @@ sealed interface CliResult {
     /** The command completed with exit code 0. */
     data class Success(val stdout: String) : CliResult
 
-    /** The plugin cannot find the `moon` executable. */
-    data object NotFound : CliResult
+    /** The plugin cannot find the `moon` executable. [examined] contains the files that the plugin examined before `PATH`. */
+    data class NotFound(val examined: List<Path>) : CliResult
 
     /** The command did not complete correctly. [message] is the error text from moon. */
     data class Failed(val message: String) : CliResult
@@ -27,8 +26,6 @@ sealed interface CliResult {
 /** Starts the `moon` executable. */
 object MoonCli {
 
-    private const val EXECUTABLE = "moon"
-
     /** The time limit for a moon command. After this time, the plugin stops the moon process. */
     internal const val TIMEOUT_MILLIS = 60_000
 
@@ -37,19 +34,28 @@ object MoonCli {
     /**
      * Runs `moon query tasks` in [workspaceRoot].
      * In moon v2, the output of this command is always JSON.
+     * [settingsPath] is the path to moon from the plugin settings. Refer to [MoonExecutableLocator.find].
      * If the caller cancels the coroutine, or if moon does not complete in [TIMEOUT_MILLIS], the function stops the moon process.
      * Call this function on a background thread.
      */
-    suspend fun queryTasks(workspaceRoot: Path): CliResult = run(workspaceRoot, "query", "tasks")
+    suspend fun queryTasks(workspaceRoot: Path, settingsPath: String?): CliResult =
+        run(workspaceRoot, settingsPath, "query", "tasks")
 
-    private suspend fun run(workDir: Path, vararg args: String): CliResult {
-        // The plugin uses moon from PATH until the setting for the path to moon is available.
-        val executable = PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS(EXECUTABLE) ?: return CliResult.NotFound
-        val commandLine = GeneralCommandLine(executable.path, *args)
+    /**
+     * Makes the command line that runs [executable] with [args] in [workDir].
+     * The command line uses the environment of the login shell and turns off the colors in the output.
+     */
+    fun commandLine(executable: Path, workDir: Path, vararg args: String): GeneralCommandLine =
+        GeneralCommandLine(executable.toString(), *args)
             .withWorkingDirectory(workDir)
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
             .withEnvironment("NO_COLOR", "1")
             .withCharset(StandardCharsets.UTF_8)
+
+    private suspend fun run(workDir: Path, settingsPath: String?, vararg args: String): CliResult {
+        val search = MoonExecutableLocator.find(settingsPath, workDir)
+        val executable = search.executable ?: return CliResult.NotFound(search.examined)
+        val commandLine = commandLine(executable, workDir, *args)
         val handler = try {
             CapturingProcessHandler(commandLine)
         } catch (e: ExecutionException) {

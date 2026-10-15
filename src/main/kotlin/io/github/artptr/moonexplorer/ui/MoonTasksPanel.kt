@@ -5,8 +5,10 @@ import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -16,6 +18,7 @@ import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -44,10 +47,23 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
         border = JBUI.Borders.empty(8)
     }
 
+    /** Opens the settings page. The panel shows this link only if the plugin cannot find moon. */
+    internal val settingsLink = ActionLink(MoonExplorerBundle.message("tasks.link.openSettings")) {
+        ShowSettingsUtil.getInstance().showSettingsDialog(project, MoonSettingsConfigurable::class.java)
+    }.apply {
+        border = JBUI.Borders.empty(0, 8, 8, 8)
+        isVisible = false
+    }
+
+    private val messagePanel = JPanel(BorderLayout()).apply {
+        add(JBScrollPane(messageArea), BorderLayout.CENTER)
+        add(settingsLink, BorderLayout.SOUTH)
+    }
+
     private val cardLayout = CardLayout()
     private val cards = JPanel(cardLayout).apply {
         add(JBScrollPane(tree), TREE_CARD)
-        add(JBScrollPane(messageArea), MESSAGE_CARD)
+        add(messagePanel, MESSAGE_CARD)
     }
 
     internal val loadingPanel = JBLoadingPanel(BorderLayout(), this).apply {
@@ -91,7 +107,10 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
                 }
             }
             TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
-            TasksState.MoonNotFound -> showMessage(MoonExplorerBundle.message("tasks.message.moonNotFound"))
+            is TasksState.MoonNotFound -> {
+                val locations = state.examined.joinToString("\n") { "  $it" }
+                showMessage(MoonExplorerBundle.message("tasks.message.moonNotFound", locations), showSettingsLink = true)
+            }
             is TasksState.MoonError -> showMessage(MoonExplorerBundle.message("tasks.message.moonError", state.text))
             TasksState.MoonTimeout -> showMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
             is TasksState.InvalidOutput -> showMessage(MoonExplorerBundle.message("tasks.message.invalidOutput", state.text))
@@ -127,8 +146,9 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
         return root.children().toList().filterIsInstance<ProjectNode>()
     }
 
-    private fun showMessage(text: String) {
+    private fun showMessage(text: String, showSettingsLink: Boolean = false) {
         messageArea.text = text
+        settingsLink.isVisible = showSettingsLink
         messageArea.caretPosition = 0
         showCard(MESSAGE_CARD)
     }

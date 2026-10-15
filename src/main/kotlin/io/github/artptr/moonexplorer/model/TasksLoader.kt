@@ -17,7 +17,7 @@ object TasksLoader {
         val root = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot) ?: return TasksState.NoWorkspace
         return try {
             when (val result = queryTasks(root)) {
-                CliResult.NotFound -> TasksState.MoonNotFound
+                is CliResult.NotFound -> TasksState.MoonNotFound(result.examined)
                 is CliResult.Failed -> TasksState.MoonError(result.message)
                 CliResult.TimedOut -> TasksState.MoonTimeout
                 is CliResult.Success -> TasksState.Loaded(QueryTasksParser.parse(result.stdout))
