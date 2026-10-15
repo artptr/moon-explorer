@@ -30,11 +30,20 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
 
     private var job: Job? = null
 
-    /** Gives the IDE project directory. Tests change this value. */
-    internal var projectDir: () -> Path? = { project.basePath?.let(Path::of) }
+    private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
+    private val defaultQueryTasks: suspend (Path) -> CliResult = MoonCli::queryTasks
 
-    /** Runs `moon query tasks`. Tests change this value to a fake. */
-    internal var queryTasks: suspend (Path) -> CliResult = MoonCli::queryTasks
+    /**
+     * Gives the IDE project directory. Tests change this value.
+     * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
+     */
+    internal var projectDir: () -> Path? = defaultProjectDir
+
+    /**
+     * Runs `moon query tasks`. Tests change this value to a fake.
+     * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
+     */
+    internal var queryTasks: suspend (Path) -> CliResult = defaultQueryTasks
 
     /** Runs `moon query tasks` again. If a load runs now, the function cancels it and starts a new load. */
     @Synchronized
@@ -42,17 +51,29 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
         val previous = job
         // Cancel the previous load now. Thus two moon processes do not run at the same time for long.
         previous?.cancel()
+        // Show the Loading state before the function returns, not when the new coroutine starts.
+        _state.value = TasksState.Loading
+        // Read the inputs now. Thus a later change of these values does not go into this load.
+        val projectDirFn = projectDir
+        val queryTasksFn = queryTasks
         job = cs.launch {
             previous?.join()
-            _state.value = TasksState.Loading
-            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDir(), queryTasks) }
+            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryTasksFn) }
         }
     }
 
-    /** Cancels the load, waits until it stops, and sets the state to [TasksState.Loading]. Only tests use this function. */
+    /**
+     * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading].
+     * Also sets [projectDir] and [queryTasks] to their default values. Only tests use this function.
+     * Call it only on the test thread.
+     */
     @TestOnly
     internal suspend fun resetForTests() {
-        val previous = synchronized(this) { job.also { job = null } }
+        val previous = synchronized(this) {
+            projectDir = defaultProjectDir
+            queryTasks = defaultQueryTasks
+            job.also { job = null }
+        }
         previous?.cancelAndJoin()
         _state.value = TasksState.Loading
     }
