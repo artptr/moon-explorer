@@ -64,6 +64,39 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         }
     }
 
+    fun testTimeoutComesFromTheSettings() {
+        val settings = project.service<MoonSettings>()
+        try {
+            settings.timeoutSeconds = 90
+            assertEquals(90_000, service.timeoutMillis())
+        } finally {
+            settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
+        }
+    }
+
+    fun testDefaultQueryStopsMoonAfterTheTimeLimitFromTheSettings() {
+        // The fake moon is a shell script. Thus this test does not run on Windows.
+        if (SystemInfo.isWindows) return
+        // The script does not stop before the time limit. `exec` replaces the shell. Thus the plugin stops the `sleep` process.
+        val moon = FileUtil.createTempDirectory("fake-moon", null, true).resolve("moon").apply {
+            writeText("#!/bin/sh\nexec sleep 30\n")
+            setExecutable(true)
+        }
+        val settings = project.service<MoonSettings>()
+        try {
+            settings.executablePath = moon.path
+            settings.timeoutSeconds = 1
+            // Use the default query, not the fake from setUp.
+            runBlocking { service.resetForTests() }
+            service.projectDir = { TestData.workspace.toPath() }
+            service.refresh()
+            service.awaitState(TasksState.MoonTimeout)
+        } finally {
+            settings.executablePath = ""
+            settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
+        }
+    }
+
     fun testRefreshShowsTheMoonError() {
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()

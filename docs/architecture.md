@@ -78,7 +78,17 @@ If the path in the settings is not valid or is not an executable file, the plugi
 The plugin keeps the path setting in the workspace file of the IDE project. Thus the setting is not in version control.
 If the plugin cannot find `moon`, the tool window shows the examined locations and a link to the settings page.
 
-## 5. Threading
+## 5. Time limit of moon commands
+
+The plugin stops a moon command if it does not complete in the time limit. The tool window then shows a message and a link to the settings page.
+
+The user sets the time limit in seconds in **Settings | Tools | Moon Explorer**. The default value is 60 seconds.
+The settings page accepts only a whole number from 1 to 86400. In milliseconds, the maximum value is less than the maximum value of a Kotlin `Int`.
+The plugin keeps the time limit in the workspace file of the IDE project.
+
+`cli.MoonCli` does not read the settings, because the CLI layer does not use the `settings` package. `model.MoonTasksService` reads the time limit from `settings.MoonSettings` and gives it to `MoonCli`.
+
+## 6. Threading
 
 All calls to the moon CLI run on a background thread in a coroutine.
 The UI layer updates Swing components on the EDT only.

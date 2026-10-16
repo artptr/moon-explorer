@@ -26,19 +26,16 @@ sealed interface CliResult {
 /** Starts the `moon` executable. */
 object MoonCli {
 
-    /** The time limit for a moon command. After this time, the plugin stops the moon process. */
-    internal const val TIMEOUT_MILLIS = 60_000
-
     private val ANSI_ESCAPE = Regex("\u001B\\[[0-9;?]*[ -/]*[@-~]")
 
     /**
      * Runs `moon query <subject>` with [executable] in [workspaceRoot], for example `moon query projects`.
      * In moon v2, the output of `moon query projects` is always JSON.
-     * If the caller cancels the coroutine, or if moon does not complete in [TIMEOUT_MILLIS], the function stops the moon process.
+     * If the caller cancels the coroutine, or if moon does not complete in [timeoutMillis], the function stops the moon process.
      * Call this function on a background thread.
      */
-    suspend fun query(executable: Path, workspaceRoot: Path, subject: String): CliResult =
-        run(executable, workspaceRoot, "query", subject)
+    suspend fun query(executable: Path, workspaceRoot: Path, subject: String, timeoutMillis: Int): CliResult =
+        run(executable, workspaceRoot, timeoutMillis, "query", subject)
 
     /**
      * Makes the command line `moon run <target>` in [workspaceRoot]. The run configurations use this command line.
@@ -61,14 +58,14 @@ object MoonCli {
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
             .withCharset(StandardCharsets.UTF_8)
 
-    private suspend fun run(executable: Path, workDir: Path, vararg args: String): CliResult {
+    private suspend fun run(executable: Path, workDir: Path, timeoutMillis: Int, vararg args: String): CliResult {
         val commandLine = commandLine(executable, workDir, *args)
         val handler = try {
             CapturingProcessHandler(commandLine)
         } catch (e: ExecutionException) {
             return CliResult.Failed(e.message.orEmpty())
         }
-        return runWithTimeout(handler, TIMEOUT_MILLIS)
+        return runWithTimeout(handler, timeoutMillis)
     }
 
     /**

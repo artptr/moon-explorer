@@ -37,7 +37,7 @@ class MoonCliProcessTest {
 
     private fun queryProjects(executable: File): CliResult {
         val workspace = temp.newFolder("workspace").toPath()
-        return runBlocking { withTimeout(10_000) { withContext(Dispatchers.IO) { MoonCli.query(executable.toPath(), workspace, "projects") } } }
+        return runBlocking { withTimeout(10_000) { withContext(Dispatchers.IO) { MoonCli.query(executable.toPath(), workspace, "projects", timeoutMillis = 10_000) } } }
     }
 
     @Test

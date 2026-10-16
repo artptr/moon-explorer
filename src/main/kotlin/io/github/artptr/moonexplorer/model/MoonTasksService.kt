@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonCli
 import io.github.artptr.moonexplorer.settings.MoonExecutableService
+import io.github.artptr.moonexplorer.settings.MoonSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -64,12 +65,18 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         }
     }
 
-    /** Runs `moon query <subject>` in [root] with the executable of [MoonExecutableService]. */
+    /**
+     * Runs `moon query <subject>` in [root] with the executable of [MoonExecutableService].
+     * Each call gets the current time limit from [timeoutMillis].
+     */
     private suspend fun query(root: Path, subject: String): CliResult {
         val search = project.service<MoonExecutableService>().findInWorkspace(root)
         val executable = search.executable ?: return CliResult.NotFound(search.examined)
-        return MoonCli.query(executable, root, subject)
+        return MoonCli.query(executable, root, subject, timeoutMillis())
     }
+
+    /** Gives the time limit from [MoonSettings] in milliseconds. */
+    internal fun timeoutMillis(): Int = project.service<MoonSettings>().timeoutSeconds * 1000
 
     /**
      * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading].
