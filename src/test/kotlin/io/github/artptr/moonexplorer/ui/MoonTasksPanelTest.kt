@@ -44,6 +44,12 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue(panel.messageArea.text.contains("Error: moon.yml is not valid"))
     }
 
+    fun testMoonTimeoutShowsMessage() {
+        panel.render(TasksState.Loading)
+        panel.render(TasksState.MoonTimeout)
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
+    }
+
     fun testInvalidOutputShowsMessage() {
         panel.render(TasksState.InvalidOutput("bad JSON"))
         assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput", "bad JSON"))

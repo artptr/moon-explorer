@@ -93,6 +93,7 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
             TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
             TasksState.MoonNotFound -> showMessage(MoonExplorerBundle.message("tasks.message.moonNotFound"))
             is TasksState.MoonError -> showMessage(MoonExplorerBundle.message("tasks.message.moonError", state.text))
+            TasksState.MoonTimeout -> showMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
             is TasksState.InvalidOutput -> showMessage(MoonExplorerBundle.message("tasks.message.invalidOutput", state.text))
             TasksState.Loading -> Unit
         }

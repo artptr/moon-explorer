@@ -19,6 +19,9 @@ sealed interface CliResult {
 
     /** The command did not complete correctly. [message] is the error text from moon. */
     data class Failed(val message: String) : CliResult
+
+    /** The command did not complete in the time limit. The plugin stopped the moon process. */
+    data object TimedOut : CliResult
 }
 
 /** Starts the `moon` executable. */
@@ -26,12 +29,15 @@ object MoonCli {
 
     private const val EXECUTABLE = "moon"
 
+    /** The time limit for a moon command. After this time, the plugin stops the moon process. */
+    internal const val TIMEOUT_MILLIS = 60_000
+
     private val ANSI_ESCAPE = Regex("\u001B\\[[0-9;?]*[ -/]*[@-~]")
 
     /**
      * Runs `moon query tasks` in [workspaceRoot].
      * In moon v2, the output of this command is always JSON.
-     * If the caller cancels the coroutine, the function stops the moon process.
+     * If the caller cancels the coroutine, or if moon does not complete in [TIMEOUT_MILLIS], the function stops the moon process.
      * Call this function on a background thread.
      */
     suspend fun queryTasks(workspaceRoot: Path): CliResult = run(workspaceRoot, "query", "tasks")
@@ -49,20 +55,28 @@ object MoonCli {
         } catch (e: ExecutionException) {
             return CliResult.Failed(e.message.orEmpty())
         }
-        val output = coroutineToIndicator { indicator -> handler.runProcessWithProgressIndicator(indicator) }
+        return runWithTimeout(handler, TIMEOUT_MILLIS)
+    }
+
+    /**
+     * Waits until the process of [handler] stops and gives the result.
+     * If the process does not stop in [timeoutMillis], the function stops the process.
+     */
+    internal suspend fun runWithTimeout(handler: CapturingProcessHandler, timeoutMillis: Int): CliResult {
+        val output = coroutineToIndicator { indicator -> handler.runProcessWithProgressIndicator(indicator, timeoutMillis, true) }
         return toResult(output)
     }
 
     /** Converts the output of a moon process to a [CliResult]. */
     internal fun toResult(output: ProcessOutput): CliResult {
-        if (output.exitCode == 0 && !output.isTimeout && !output.isCancelled) return CliResult.Success(output.stdout)
+        if (output.isTimeout) return CliResult.TimedOut
+        if (output.exitCode == 0 && !output.isCancelled) return CliResult.Success(output.stdout)
         val text = output.stderr.ifBlank { output.stdout }.replace(ANSI_ESCAPE, "").trim()
         return CliResult.Failed(text.ifEmpty { statusText(output) })
     }
 
     /** Tells why the process stopped, if moon did not write an error text. */
     private fun statusText(output: ProcessOutput): String = when {
-        output.isTimeout -> "The moon process did not complete in time."
         output.isCancelled -> "The moon process was stopped."
         else -> "The moon process stopped with exit code ${output.exitCode}."
     }

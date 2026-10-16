@@ -17,6 +17,9 @@ sealed interface TasksState {
     /** The `moon` command gave an error. [text] is the error text from moon. */
     data class MoonError(val text: String) : TasksState
 
+    /** The `moon` command did not complete in the time limit. The plugin stopped the moon process. */
+    data object MoonTimeout : TasksState
+
     /** The plugin cannot read the output of moon. [text] tells the cause. */
     data class InvalidOutput(val text: String) : TasksState
 }

@@ -57,6 +57,11 @@ class TasksLoaderTest {
     }
 
     @Test
+    fun timeoutGivesMoonTimeout() {
+        assertEquals(TasksState.MoonTimeout, load(workspace, CliResult.TimedOut))
+    }
+
+    @Test
     fun outputThatIsNotJsonGivesInvalidOutput() {
         assertTrue(load(workspace, CliResult.Success("not JSON")) is TasksState.InvalidOutput)
     }
