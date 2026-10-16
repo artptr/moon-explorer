@@ -20,6 +20,7 @@ The plugin has three layers. Each layer uses only the layer below it.
 3. **CLI layer** (`cli`): finds the workspace root, starts the `moon` executable, and gives its output.
 
 The model layer does not use Swing. The CLI layer does not use the IntelliJ PSI.
+The `settings` package contains the settings state and the settings page.
 The parser of the moon JSON output is in the model layer. Thus the CLI layer does not use the model classes.
 
 | Component | Class | Registration |
@@ -32,6 +33,9 @@ The parser of the moon JSON output is in the model layer. Thus the CLI layer doe
 | Load of the tasks and the result state | `model.TasksLoader`, `model.TasksState` | None |
 | Parser of `moon query tasks` | `model.QueryTasksParser` | None |
 | Find the workspace root | `cli.MoonWorkspaceLocator` | None |
+| Find the `moon` executable | `cli.MoonExecutableLocator`, `settings.MoonExecutableService` | None (light service) |
+| Settings of the IDE project | `settings.MoonSettings` | None (light service) |
+| Settings page **Settings \| Tools \| Moon Explorer** | `settings.MoonSettingsConfigurable` | `plugin.xml` |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
 
@@ -44,9 +48,25 @@ The parser of the moon JSON output is in the model layer. Thus the CLI layer doe
 3. The plugin reads the JSON with Gson. The IntelliJ Platform contains Gson. Thus the plugin has no new dependency.
 4. The service sets the new state. The tool window shows the tree or a message.
 
-The plugin uses `moon` from `PATH`.
+## 4. Find the `moon` executable
 
-## 4. Threading
+All moon commands of the plugin use the same executable.
+The plugin examines these locations in this sequence. It uses the first executable that it finds.
+
+1. The path in **Settings | Tools | Moon Explorer**, if the user set a path.
+2. `node_modules/.bin/moon` in the workspace root. On Windows, the plugin examines `moon.exe`, `moon.cmd`, `moon.bat`, and `moon.com`.
+3. The `shims` and `bin` directories of proto: `$PROTO_HOME`, or `~/.proto` if `PROTO_HOME` is not set.
+4. The directories in `PATH`.
+
+A `~` at the start of the path in the settings or of `PROTO_HOME` is the home directory of the user.
+A relative path in the settings starts at the workspace root.
+On Windows, the plugin uses only files with the extension `exe`, `cmd`, `bat`, or `com`. Windows cannot start a file without an extension.
+If the path in the settings is not valid or is not an executable file, the plugin examines the next locations. The settings page shows the executable that the plugin uses.
+
+The plugin keeps the path setting in the workspace file of the IDE project. Thus the setting is not in version control.
+If the plugin cannot find `moon`, the tool window shows the examined locations and a link to the settings page.
+
+## 5. Threading
 
 All calls to the moon CLI run on a background thread in a coroutine.
 The UI layer updates Swing components on the EDT only.

@@ -19,6 +19,10 @@
                     icon="AllIcons.Toolwindows.ToolWindowHierarchy"
                     factoryClass="io.github.artptr.moonexplorer.ui.MoonToolWindowFactory"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
+        <projectConfigurable parentId="tools"
+                             id="io.github.artptr.moonexplorer.settings"
+                             instance="io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable"
+                             key="settings.displayName"/>
     </extensions>
 
     <actions>

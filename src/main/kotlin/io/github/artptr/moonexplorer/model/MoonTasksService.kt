@@ -1,9 +1,11 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonCli
+import io.github.artptr.moonexplorer.settings.MoonExecutableService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,7 +33,9 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
     private var job: Job? = null
 
     private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
-    private val defaultQueryTasks: suspend (Path) -> CliResult = MoonCli::queryTasks
+    private val defaultQueryTasks: suspend (Path) -> CliResult = { root ->
+        MoonCli.queryTasks(root, project.service<MoonExecutableService>().settingsPath)
+    }
 
     /**
      * Gives the IDE project directory. Tests change this value.

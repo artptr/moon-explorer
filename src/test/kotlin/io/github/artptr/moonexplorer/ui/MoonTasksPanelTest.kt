@@ -8,6 +8,7 @@ import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.testData.LargeQueryTasksJson
 import io.github.artptr.moonexplorer.testData.TestData
+import java.nio.file.Path
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 import kotlin.system.measureTimeMillis
@@ -33,9 +34,18 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
     }
 
-    fun testMoonNotFoundShowsMessage() {
-        panel.render(TasksState.MoonNotFound)
-        assertMessage(MoonExplorerBundle.message("tasks.message.moonNotFound"))
+    fun testMoonNotFoundShowsTheExaminedLocationsAndTheSettingsLink() {
+        val examined = listOf(Path.of("/work/node_modules/.bin/moon"), Path.of("/home/.proto/shims/moon"))
+        panel.render(TasksState.MoonNotFound(examined))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonNotFound", examined.joinToString("\n") { "  $it" }))
+        examined.forEach { assertTrue(panel.messageArea.text.contains(it.toString())) }
+        assertTrue(panel.settingsLink.isVisible)
+    }
+
+    fun testOtherMessagesDoNotShowTheSettingsLink() {
+        panel.render(TasksState.MoonNotFound(emptyList()))
+        panel.render(TasksState.MoonError("bad"))
+        assertFalse(panel.settingsLink.isVisible)
     }
 
     fun testMoonErrorShowsTheErrorText() {

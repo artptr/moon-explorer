@@ -48,7 +48,8 @@ class TasksLoaderTest {
 
     @Test
     fun notFoundGivesMoonNotFound() {
-        assertEquals(TasksState.MoonNotFound, load(workspace, CliResult.NotFound))
+        val examined = listOf(workspace.resolve("node_modules/.bin/moon"))
+        assertEquals(TasksState.MoonNotFound(examined), load(workspace, CliResult.NotFound(examined)))
     }
 
     @Test

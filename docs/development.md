@@ -22,7 +22,8 @@ To run only the tests, use `./gradlew test`.
 
 ## 3. Run the plugin in a sandbox IDE
 
-The plugin uses `moon` from `PATH`. Before you start the sandbox IDE, make sure that `moon --version` shows moon 2.2.3 or later.
+The plugin finds `moon` in `node_modules/.bin/` of the workspace, in the proto directories, or in `PATH`. Refer to [architecture.md](architecture.md), section 4.
+Before you start the sandbox IDE, make sure that this `moon` is moon 2.2.3 or later.
 
 1. Run `./gradlew runIde`.
 2. In the sandbox IDE, open a moon workspace.
@@ -45,10 +46,12 @@ To use the moon version of the test workspace, do these steps:
 2. In the root directory of the repository, run this command:
 
    ```bash
-   PATH="$PWD/src/test/testData/workspace/node_modules/.bin:$PATH" ./gradlew runWebStorm --args="$PWD/src/test/testData/workspace"
+   ./gradlew runWebStorm --args="$PWD/src/test/testData/workspace"
    ```
 
 3. Open the **Moon** tool window.
+
+The plugin finds `node_modules/.bin/moon` in the test workspace. Thus you do not add it to `PATH`.
 
 ## 4. Test data
 
