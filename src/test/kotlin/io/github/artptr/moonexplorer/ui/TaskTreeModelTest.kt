@@ -88,7 +88,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     }
 
     fun testProjectsWithoutStackAreInTheNoneNode() {
-        // The project config has no stack, but it has no tasks too. Thus give it a task.
+        // The project config has no stack value. It also has no tasks. Thus give it a task.
         val config = MoonProject("config", listOf(MoonTask("check", "config:check", null)), stack = null)
         val withConfig = WorkspaceTasks(tasks.projects + config)
         val byStack = buildTaskTree(withConfig, TaskGrouping.STACK)

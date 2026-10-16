@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.icons.AllIcons
 import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.speedSearch.SpeedSearchUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
@@ -52,7 +53,7 @@ private fun stackNode(stack: String?, projects: List<MoonProject>) = StackNode(s
     projects.forEach { add(projectNode(it)) }
 }
 
-/** A node of the task tree. [key] identifies the node among its sibling nodes after a refresh of the tree. */
+/** A node of the task tree. [key] identifies the node in its sibling nodes after a refresh of the tree. */
 sealed class TaskTreeNode(userObject: Any?, allowsChildren: Boolean = true) : DefaultMutableTreeNode(userObject, allowsChildren) {
     abstract val key: String
 }
@@ -64,15 +65,18 @@ class ProjectNode(val project: MoonProject) : TaskTreeNode(project) {
 }
 
 /**
- * A tree node for a task. [toString] gives the task target.
+ * A tree node for a task. [toString] gives [label], the name that the tree shows.
  * If [showProject] is true, the node shows the project ID, because the parent node gives the task name.
  */
 class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeNode(task, false) {
     override val key: String get() = "task:${task.target}"
-    override fun toString(): String = task.target
+    override fun toString(): String = label
 
     /** The ID of the project of the task. */
     val projectId: String get() = task.target.substringBeforeLast(':')
+
+    /** The name that the node shows. It is the project ID if the parent node gives the task name. If not, it is the task ID. */
+    val label: String get() = if (showProject) projectId else task.id
 }
 
 /** A tree node for a task name. It contains the tasks with this name in all projects. */
@@ -87,7 +91,25 @@ class StackNode(val stack: String?) : TaskTreeNode(stack) {
     override fun toString(): String = stack ?: MoonExplorerBundle.message("tasks.tree.noStack")
 }
 
-/** Shows the nodes of the task tree. A task node shows its description in gray text. */
+/** The separator between the name of a task node and its description. */
+private const val DESCRIPTION_SEPARATOR = "  "
+
+/**
+ * Gives the text that the speed search of the tree examines for [node].
+ * For a task node, the text contains the target and the description. The target contains the project ID and the task ID.
+ * Thus the search finds `web:build`, and the search for `web` also finds the tasks of the project `web`.
+ * The renderer highlights the found text in the text that the node shows. That text does not contain the full target.
+ * For other nodes, the text is the text that the node shows.
+ */
+fun searchText(node: Any?): String = when (node) {
+    is TaskNode -> node.task.target + node.task.description?.let { DESCRIPTION_SEPARATOR + it }.orEmpty()
+    else -> node?.toString().orEmpty()
+}
+
+/**
+ * Shows the nodes of the task tree. A task node shows its description in gray text.
+ * The renderer highlights the text that the speed search found.
+ */
 class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
 
     override fun customizeCellRenderer(
@@ -106,8 +128,8 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
             }
             is TaskNode -> {
                 icon = if (value.showProject) AllIcons.Nodes.Module else AllIcons.Nodes.Function
-                append(if (value.showProject) value.projectId else value.task.id)
-                value.task.description?.let { append("  $it", SimpleTextAttributes.GRAYED_ATTRIBUTES) }
+                append(value.label)
+                value.task.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
             }
             is TaskNameNode -> {
                 icon = AllIcons.Nodes.Function
@@ -120,5 +142,7 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
             // A node type without a branch above shows its text. Thus a new node type is not empty in the tree.
             else -> value?.let { append(it.toString()) }
         }
+        // Highlight the found text in all fragments. The search also examines the description.
+        SpeedSearchUtil.applySpeedSearchHighlighting(tree, this, false, selected)
     }
 }

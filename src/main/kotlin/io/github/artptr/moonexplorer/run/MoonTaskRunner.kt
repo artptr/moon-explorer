@@ -11,14 +11,14 @@ object MoonTaskRunner {
 
     /**
      * Runs [target] with a temporary run configuration.
-     * If a run configuration for [target] already exists, the function uses it.
+     * If there is a run configuration for [target], the function uses it.
      */
     fun run(project: Project, target: String) {
         val settings = findOrCreate(project, target, temporary = true)
         ProgramRunnerUtil.executeConfiguration(settings, DefaultRunExecutor.getRunExecutorInstance())
     }
 
-    /** Saves a run configuration for [target] and selects it. If a temporary configuration exists, the function saves it. */
+    /** Saves a run configuration for [target] and selects it. If there is a temporary configuration, the function saves it. */
     fun createConfiguration(project: Project, target: String): RunnerAndConfigurationSettings {
         val settings = findOrCreate(project, target, temporary = false)
         if (settings.isTemporary) RunManager.getInstance(project).makeStable(settings)

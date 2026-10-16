@@ -28,7 +28,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Component | Class | Registration |
 |-----------|-------|--------------|
 | Tool window **Moon** | `ui.MoonToolWindowFactory`, `ui.MoonTasksPanel` | `plugin.xml` |
-| Tree nodes and renderer | `ui.TaskTreeModel.kt` | None |
+| Tree nodes, renderer, and the text for the speed search | `ui.TaskTreeModel.kt` | None |
 | Action **Refresh** in the group `MoonExplorer.TasksToolbar` | `ui.RefreshTasksAction` | `plugin.xml` |
 | State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
 | Load of the tasks when the IDE project opens | `model.MoonTasksStartupActivity` | `plugin.xml` |

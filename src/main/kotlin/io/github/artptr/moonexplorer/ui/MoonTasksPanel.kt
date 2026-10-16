@@ -3,16 +3,20 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.PopupHandler
+import com.intellij.ui.TreeSpeedSearch
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBScrollPane
@@ -48,6 +52,12 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         showsRootHandles = true
         cellRenderer = TaskTreeCellRenderer()
     }
+
+    /**
+     * The speed search of the tree. The user selects the tree and types text. The search also examines the nodes in collapsed nodes,
+     * and expands the parent nodes of the node that it finds.
+     */
+    internal val speedSearch: TreeSpeedSearch = TreeSpeedSearch.installOn(tree, true) { searchText(it.lastPathComponent) }
 
     internal val messageArea = JBTextArea().apply {
         isEditable = false
@@ -90,6 +100,15 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     private val settings = project.service<MoonSettings>()
 
+    /**
+     * Runs a task. The default value starts a run configuration. Tests change this value to a fake.
+     * Change it only on the EDT.
+     */
+    internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
+
+    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
+    private var shownTasks: WorkspaceTasks? = null
+
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
             ?: error("plugin.xml must register the action group $TOOLBAR_GROUP_ID")
@@ -105,19 +124,36 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         }
     }
 
-    /**
-     * Runs a task. The default value starts a run configuration. Tests change this value to a fake.
-     * Change it only on the EDT.
-     */
-    internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
-
     /** Adds the context menu, the double-click, and the Enter key to the task nodes. */
     private fun installTaskActions() {
         PopupHandler.installPopupMenu(tree, TASK_POPUP_GROUP_ID, TASK_POPUP_PLACE)
         object : DoubleClickListener() {
             override fun onDoubleClick(event: MouseEvent): Boolean = onDoubleClick(tree.getPathForLocation(event.x, event.y))
         }.installOn(tree)
-        ActionUtil.wrap(RUN_TASK_ACTION_ID).registerCustomShortcutSet(CommonShortcuts.ENTER, tree, this)
+        RunOnEnterAction().registerCustomShortcutSet(CommonShortcuts.ENTER, tree, this)
+    }
+
+    /**
+     * Runs the selected task when the user pushes Enter in the tree. Then the action closes the speed search.
+     * The action has the text of the action [RUN_TASK_ACTION_ID]. It is disabled if the selection is not one task node.
+     * Then the tree gets the Enter key.
+     */
+    internal inner class RunOnEnterAction : DumbAwareAction() {
+        init {
+            ActionUtil.copyFrom(this, RUN_TASK_ACTION_ID)
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = selectedTask() != null
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+            val task = selectedTask() ?: return
+            runTask(task)
+            speedSearch.hidePopup()
+        }
     }
 
     /**
@@ -169,13 +205,10 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         }
     }
 
-    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
-    private var shownTasks: WorkspaceTasks? = null
-
     /** How the tree puts the tasks into groups. The plugin keeps the value in the settings of the IDE project. */
     internal val grouping: TaskGrouping get() = settings.taskGrouping
 
-    /** Saves [value] and shows the tree again with this grouping. Call this function on the EDT. */
+    /** Saves [value] and shows the tree again with this group mode. Call this function on the EDT. */
     internal fun changeGrouping(value: TaskGrouping) {
         if (value == grouping) return
         settings.taskGrouping = value
@@ -198,7 +231,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         newPaths.filter { keyPath(it) in expanded }.forEach(tree::expandPath)
         var selection = newPaths.filter { keyPath(it) in selectedKeys }
         if (selection.isEmpty() && selectedTargets.isNotEmpty()) {
-            // After a change of the grouping, the paths are different. Select the same tasks in the new tree.
+            // After a change of the group mode, the paths are different. Select the same tasks in the new tree.
             selection = newPaths.filter { (it.lastPathComponent as? TaskNode)?.task?.target in selectedTargets }
             selection.firstOrNull()?.let(tree::scrollPathToVisible)
         }
@@ -206,7 +239,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         showCard(TREE_CARD)
     }
 
-    /** Gives the paths of all nodes below the root, also the nodes in collapsed nodes. Parents come before their children. */
+    /** Gives the paths of all nodes below the root, also the nodes in collapsed nodes. Each parent node is before its child nodes. */
     internal fun allPaths(): List<TreePath> {
         val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyList()
         return root.preorderEnumeration().toList().drop(1).map { TreePath((it as DefaultMutableTreeNode).path) }
