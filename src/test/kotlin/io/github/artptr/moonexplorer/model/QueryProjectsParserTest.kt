@@ -95,6 +95,32 @@ class QueryProjectsParserTest {
     }
 
     @Test
+    fun taskWithoutIdHasTheKeyAsId() {
+        val task = QueryProjectsParser.parse("""{"projects": [{"id": "p", "tasks": {"t": {"target": "p:t"}}}]}""").projects.single().tasks.single()
+        assertEquals("t", task.id)
+        assertEquals("p:t", task.target)
+    }
+
+    @Test
+    fun taskWithoutTargetHasTheTargetOfProjectAndId() {
+        val task = QueryProjectsParser.parse("""{"projects": [{"id": "p", "tasks": {"key": {"id": "t"}}}]}""").projects.single().tasks.single()
+        assertEquals("t", task.id)
+        assertEquals("p:t", task.target)
+    }
+
+    @Test
+    fun taskValuesThatAreNotObjectsAreIgnored() {
+        val json = """{"projects": [{"id": "p", "tasks": {"a": 5, "b": null, "c": "text", "d": [], "e": {"id": "e"}}}]}"""
+        assertEquals(listOf("e"), QueryProjectsParser.parse(json).projects.single().tasks.map { it.id })
+    }
+
+    @Test
+    fun projectWithOnlyTaskValuesThatAreNotObjectsIsNotInTheResult() {
+        val json = """{"projects": [{"id": "a", "tasks": {"t": 5}}, {"id": "b", "tasks": [{"id": "t"}]}]}"""
+        assertTrue(QueryProjectsParser.parse(json).projects.isEmpty())
+    }
+
+    @Test
     fun projectsWithoutTasksAreNotInTheResult() {
         val json = """
             {"projects": [

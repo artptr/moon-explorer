@@ -1,8 +1,11 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
@@ -37,6 +40,28 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         val expected = TasksState.Loaded(TestData.recordedTasks())
         service.awaitState(expected)
         assertEquals(7, expected.tasks.projects.size)
+    }
+
+    fun testDefaultQueryRunsMoonQueryProjects() {
+        // The fake moon is a shell script. Thus this test does not run on Windows.
+        if (SystemInfo.isWindows) return
+        // The script writes one project. The ID of the project is the first two arguments.
+        val moon = FileUtil.createTempDirectory("fake-moon", null, true).resolve("moon").apply {
+            writeText("#!/bin/sh\nprintf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n")
+            setExecutable(true)
+        }
+        val settings = project.service<MoonSettings>()
+        try {
+            settings.executablePath = moon.path
+            // Use the default query, not the fake from setUp.
+            runBlocking { service.resetForTests() }
+            service.projectDir = { TestData.workspace.toPath() }
+            service.refresh()
+            val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
+            service.awaitState(TasksState.Loaded(WorkspaceTasks(listOf(expected))))
+        } finally {
+            settings.executablePath = ""
+        }
     }
 
     fun testRefreshShowsTheMoonError() {

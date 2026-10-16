@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.testData
 
 import com.google.gson.JsonParser
+import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -8,10 +9,17 @@ import org.junit.Test
 class LargeQueryProjectsJsonTest {
 
     @Test
-    fun defaultOutputHasMoreLinesThanTheVisionExample() {
+    fun defaultOutputHasAbout19000Lines() {
         // The product vision gives about 16,000 lines for the tasks of the example workspace. The projects add more lines.
         val lines = LargeQueryProjectsJson.generate().lines().size
-        assertTrue("The output has $lines lines", lines > 16_000)
+        assertTrue("The output has $lines lines", lines in 17_000..21_000)
+    }
+
+    @Test
+    fun parserReadsAllProjectsAndTasksOfTheDefaultOutput() {
+        val projects = QueryProjectsParser.parse(LargeQueryProjectsJson.generate()).projects
+        assertEquals(17, projects.size)
+        assertTrue(projects.all { it.tasks.size == 14 })
     }
 
     @Test
