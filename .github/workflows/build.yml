@@ -21,9 +21,11 @@ on:
 permissions:
   contents: read
 
+# A new commit on a pull request cancels the previous run of the pull request.
+# On main, the runs occur in sequence. If GitHub cancels the job 'releaseDraft' between its steps, the repository has no draft release.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
 
