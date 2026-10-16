@@ -53,7 +53,7 @@ private fun stackNode(stack: String?, projects: List<MoonProject>) = StackNode(s
     projects.forEach { add(projectNode(it)) }
 }
 
-/** A node of the task tree. [key] identifies the node among its sibling nodes after a refresh of the tree. */
+/** A node of the task tree. [key] identifies the node in its sibling nodes after a refresh of the tree. */
 sealed class TaskTreeNode(userObject: Any?, allowsChildren: Boolean = true) : DefaultMutableTreeNode(userObject, allowsChildren) {
     abstract val key: String
 }
@@ -101,7 +101,7 @@ fun searchText(node: Any?): String = when (node) {
     else -> ""
 }
 
-/** The name that a task node shows: the project ID if the parent node gives the task name, or else the task ID. */
+/** The name that a task node shows. It is the project ID if the parent node gives the task name. If not, it is the task ID. */
 private val TaskNode.label: String get() = if (showProject) projectId else task.id
 
 /**

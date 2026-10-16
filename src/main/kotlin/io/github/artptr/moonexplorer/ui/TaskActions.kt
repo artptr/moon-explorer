@@ -12,7 +12,7 @@ import io.github.artptr.moonexplorer.run.MoonTaskRunner
 /** The task that the user selected in the tree of the Moon tool window. The value is null if the selection is not one task. */
 val SELECTED_TASK: DataKey<MoonTask> = DataKey.create("MoonExplorer.SelectedTask")
 
-/** The base of the actions for the selected task. The action shows only if one task is selected. */
+/** The base of the actions for the selected task. The action is visible only if the user selects one task. */
 abstract class SelectedTaskAction : DumbAwareAction() {
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

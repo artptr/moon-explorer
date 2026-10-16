@@ -108,7 +108,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         val node = selectedTask
         assertEquals("build", node.task.id)
 
-        // The popup of the speed search does not open in a headless test. Thus a fake supply gives the found text.
+        // The popup of the speed search does not open in a headless test. Thus a fake object gives the found text.
         // The fake uses the comparator of the speed search of the panel.
         val tree = Tree()
         val supply = object : SpeedSearchSupply() {

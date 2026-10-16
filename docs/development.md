@@ -51,7 +51,7 @@ To use the moon version of the test workspace, do these steps:
 
 3. Open the **Moon** tool window.
 
-The plugin finds `node_modules/.bin/moon` in the test workspace. Thus you do not add it to `PATH`.
+The plugin finds `node_modules/.bin/moon` in the test workspace. Thus it is not necessary to add it to `PATH`.
 
 ## 4. Test data
 

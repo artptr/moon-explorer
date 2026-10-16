@@ -56,7 +56,7 @@ object MoonCli {
         baseCommandLine(executable, workspaceRoot, "run", target)
 
     /**
-     * Makes the command line that runs [executable] with [args] in [workDir], and turns off the colors in the output.
+     * Makes the command line that runs [executable] with [args] in [workDir]. The output of this command line has no colors.
      * The plugin reads the output of this command line.
      */
     internal fun commandLine(executable: Path, workDir: Path, vararg args: String): GeneralCommandLine =

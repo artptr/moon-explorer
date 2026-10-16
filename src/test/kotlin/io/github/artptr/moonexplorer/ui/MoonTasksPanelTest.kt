@@ -28,7 +28,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        // The light project is the same for all tests. Start each test with the default grouping.
+        // The light project is the same for all tests. Start each test with the default group mode.
         project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
@@ -203,7 +203,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     fun testGroupingIsSavedInTheSettings() {
         panel.changeGrouping(TaskGrouping.STACK)
         assertEquals(TaskGrouping.STACK, project.service<MoonSettings>().taskGrouping)
-        // A new panel, for example after a restart of the IDE, uses the saved grouping.
+        // A new panel, for example after a restart of the IDE, uses the saved group mode.
         val other = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, other)
         assertEquals(TaskGrouping.STACK, other.grouping)
