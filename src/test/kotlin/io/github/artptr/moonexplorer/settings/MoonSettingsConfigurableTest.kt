@@ -31,8 +31,8 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
 
     private fun awaitFoundText(expected: String) {
         PlatformTestUtil.waitWithEventsDispatching(
-            { "Expected <$expected>, but the label is <${configurable.foundLabel.text}>" },
-            { configurable.foundLabel.text == expected },
+            { "Expected <$expected>, but the field shows <${configurable.foundField.text}>" },
+            { configurable.foundField.text == expected },
             10,
         )
     }
@@ -55,7 +55,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         configurable.createComponent()
         configurable.reset()
         // The search runs on a background thread. Thus reset returns before the result is available.
-        assertEquals(MoonExplorerBundle.message("settings.found.searching"), configurable.foundLabel.text)
+        assertEquals(MoonExplorerBundle.message("settings.found.searching"), configurable.foundField.text)
     }
 
     fun testPageIsModifiedWhenTheSavedPathChanges() {
