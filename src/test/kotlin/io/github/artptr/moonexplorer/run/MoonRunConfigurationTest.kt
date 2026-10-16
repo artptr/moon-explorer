@@ -5,10 +5,12 @@ import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import org.jdom.Element
 import org.junit.Assert
 import java.nio.file.Path
+import javax.swing.JEditorPane
 
 class MoonRunConfigurationTest : BasePlatformTestCase() {
 
@@ -73,6 +75,18 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
             val changed = configuration("")
             editor.applyTo(changed)
             assertEquals("web:test", changed.target)
+        } finally {
+            Disposer.dispose(editor)
+        }
+    }
+
+    fun testEditorCommentShowsTheFullText() {
+        // The comment is HTML. Text in angle brackets, for example <target>, does not show.
+        val editor = MoonRunConfigurationEditor()
+        try {
+            val texts = UIUtil.findComponentsOfType(editor.component, JEditorPane::class.java)
+                .map { it.document.getText(0, it.document.length) }
+            assertTrue("Comments: $texts", texts.any { "moon run with this target in the workspace root" in it })
         } finally {
             Disposer.dispose(editor)
         }
