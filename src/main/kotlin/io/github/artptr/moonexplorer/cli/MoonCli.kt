@@ -42,14 +42,24 @@ object MoonCli {
         run(workspaceRoot, settingsPath, "query", "tasks")
 
     /**
-     * Makes the command line that runs [executable] with [args] in [workDir].
-     * The command line uses the environment of the login shell and turns off the colors in the output.
+     * Makes the command line `moon run <target>` in [workspaceRoot]. The run configurations use this command line.
+     * The output keeps its colors, because the console of the Run tool window shows them.
+     */
+    fun runTaskCommandLine(executable: Path, workspaceRoot: Path, target: String): GeneralCommandLine =
+        baseCommandLine(executable, workspaceRoot, "run", target)
+
+    /**
+     * Makes the command line that runs [executable] with [args] in [workDir], and turns off the colors in the output.
+     * The plugin reads the output of this command line.
      */
     internal fun commandLine(executable: Path, workDir: Path, vararg args: String): GeneralCommandLine =
+        baseCommandLine(executable, workDir, *args).withEnvironment("NO_COLOR", "1")
+
+    /** Makes a command line that uses the environment of the login shell. */
+    private fun baseCommandLine(executable: Path, workDir: Path, vararg args: String): GeneralCommandLine =
         GeneralCommandLine(executable.toString(), *args)
             .withWorkingDirectory(workDir)
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-            .withEnvironment("NO_COLOR", "1")
             .withCharset(StandardCharsets.UTF_8)
 
     private suspend fun run(workDir: Path, settingsPath: String?, vararg args: String): CliResult {

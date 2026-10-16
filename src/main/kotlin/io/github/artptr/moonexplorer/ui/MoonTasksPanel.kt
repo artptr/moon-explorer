@@ -3,11 +3,16 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.ui.DoubleClickListener
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBScrollPane
@@ -16,21 +21,24 @@ import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.run.MoonTaskRunner
 import io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import java.awt.CardLayout
+import java.awt.event.MouseEvent
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
 
 /** The content of the "Moon" tool window: a toolbar, and a tree of tasks or a message. */
-class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disposable {
+class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true, true), Disposable {
 
     internal val tree = Tree(DefaultTreeModel(null)).apply {
         isRootVisible = false
@@ -84,11 +92,48 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
         toolbar.targetComponent = this
         setToolbar(toolbar.component)
         setContent(loadingPanel)
+        installTaskActions()
 
         val service = project.service<MoonTasksService>()
         job = service.scope.launch(Dispatchers.EDT) {
             service.state.collect { render(it) }
         }
+    }
+
+    /**
+     * Runs a task. The default value starts a run configuration. Tests change this value to a fake.
+     * Change it only on the EDT.
+     */
+    internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
+
+    /** Adds the context menu, the double-click, and the Enter key to the task nodes. */
+    private fun installTaskActions() {
+        PopupHandler.installPopupMenu(tree, TASK_POPUP_GROUP_ID, TASK_POPUP_PLACE)
+        object : DoubleClickListener() {
+            override fun onDoubleClick(event: MouseEvent): Boolean = onDoubleClick(tree.getPathForLocation(event.x, event.y))
+        }.installOn(tree)
+        ActionUtil.wrap(RUN_TASK_ACTION_ID).registerCustomShortcutSet(CommonShortcuts.ENTER, tree, this)
+    }
+
+    /**
+     * Runs the task of [path] after a double-click. Gives true if the node is a task node.
+     * A double-click on a project node expands or collapses the node. The tree does this, thus the function gives false.
+     */
+    internal fun onDoubleClick(path: TreePath?): Boolean {
+        val node = path?.lastPathComponent as? TaskNode ?: return false
+        runTask(node.task)
+        return true
+    }
+
+    /** Gives the selected task. The value is null if the selection is not one task node. */
+    internal fun selectedTask(): MoonTask? {
+        val paths = tree.selectionPaths ?: return null
+        return (paths.singleOrNull()?.lastPathComponent as? TaskNode)?.task
+    }
+
+    override fun uiDataSnapshot(sink: DataSink) {
+        super.uiDataSnapshot(sink)
+        sink[SELECTED_TASK] = selectedTask()
     }
 
     /** Shows [state]. Call this function on the EDT. */
@@ -167,5 +212,8 @@ class MoonTasksPanel(project: Project) : SimpleToolWindowPanel(true, true), Disp
         const val MESSAGE_CARD = "message"
         const val TOOLBAR_GROUP_ID = "MoonExplorer.TasksToolbar"
         const val TOOLBAR_PLACE = "MoonExplorer.TasksToolWindow"
+        const val TASK_POPUP_GROUP_ID = "MoonExplorer.TaskPopup"
+        const val TASK_POPUP_PLACE = "MoonExplorer.TaskPopup"
+        const val RUN_TASK_ACTION_ID = "MoonExplorer.RunTask"
     }
 }

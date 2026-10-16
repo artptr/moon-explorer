@@ -23,6 +23,7 @@
                              id="io.github.artptr.moonexplorer.settings"
                              instance="io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable"
                              key="settings.displayName"/>
+        <configurationType implementation="io.github.artptr.moonexplorer.run.MoonRunConfigurationType"/>
     </extensions>
 
     <actions>
@@ -30,6 +31,13 @@
             <action id="MoonExplorer.RefreshTasks"
                     class="io.github.artptr.moonexplorer.ui.RefreshTasksAction"
                     icon="AllIcons.Actions.Refresh"/>
+        </group>
+        <group id="MoonExplorer.TaskPopup">
+            <action id="MoonExplorer.RunTask"
+                    class="io.github.artptr.moonexplorer.ui.RunTaskAction"
+                    icon="AllIcons.Actions.Execute"/>
+            <action id="MoonExplorer.CreateRunConfiguration"
+                    class="io.github.artptr.moonexplorer.ui.CreateRunConfigurationAction"/>
         </group>
     </actions>
 </idea-plugin>

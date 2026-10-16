@@ -11,3 +11,5 @@
 - The plugin stops the moon process if it does not complete in 60 seconds. The **Moon** tool window then shows a message.
 - The plugin finds the `moon` executable in `node_modules/.bin/` of the workspace, in the proto directories, and in `PATH`
 - Settings page **Settings | Tools | Moon Explorer** with the path to the `moon` executable
+- Run configuration type **moon** that runs `moon run <target>`
+- Run a task from the **Moon** tool window with a double-click, the **Enter** key, or the context menu. The context menu also has **Create Run Configuration**.
