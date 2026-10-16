@@ -97,6 +97,15 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     private val settings = project.service<MoonSettings>()
 
+    /**
+     * Runs a task. The default value starts a run configuration. Tests change this value to a fake.
+     * Change it only on the EDT.
+     */
+    internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
+
+    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
+    private var shownTasks: WorkspaceTasks? = null
+
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
             ?: error("plugin.xml must register the action group $TOOLBAR_GROUP_ID")
@@ -111,12 +120,6 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             service.state.collect { render(it) }
         }
     }
-
-    /**
-     * Runs a task. The default value starts a run configuration. Tests change this value to a fake.
-     * Change it only on the EDT.
-     */
-    internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
 
     /** Adds the context menu, the double-click, and the Enter key to the task nodes. */
     private fun installTaskActions() {
@@ -176,13 +179,10 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         }
     }
 
-    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
-    private var shownTasks: WorkspaceTasks? = null
-
     /** How the tree puts the tasks into groups. The plugin keeps the value in the settings of the IDE project. */
     internal val grouping: TaskGrouping get() = settings.taskGrouping
 
-    /** Saves [value] and shows the tree again with this grouping. Call this function on the EDT. */
+    /** Saves [value] and shows the tree again with this group mode. Call this function on the EDT. */
     internal fun changeGrouping(value: TaskGrouping) {
         if (value == grouping) return
         settings.taskGrouping = value
@@ -205,7 +205,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         newPaths.filter { keyPath(it) in expanded }.forEach(tree::expandPath)
         var selection = newPaths.filter { keyPath(it) in selectedKeys }
         if (selection.isEmpty() && selectedTargets.isNotEmpty()) {
-            // After a change of the grouping, the paths are different. Select the same tasks in the new tree.
+            // After a change of the group mode, the paths are different. Select the same tasks in the new tree.
             selection = newPaths.filter { (it.lastPathComponent as? TaskNode)?.task?.target in selectedTargets }
             selection.firstOrNull()?.let(tree::scrollPathToVisible)
         }
@@ -213,7 +213,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         showCard(TREE_CARD)
     }
 
-    /** Gives the paths of all nodes below the root, also the nodes in collapsed nodes. Parents come before their children. */
+    /** Gives the paths of all nodes below the root, also the nodes in collapsed nodes. Each parent node is before its child nodes. */
     internal fun allPaths(): List<TreePath> {
         val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyList()
         return root.preorderEnumeration().toList().drop(1).map { TreePath((it as DefaultMutableTreeNode).path) }
