@@ -59,6 +59,18 @@ intellijPlatform {
     }
 }
 
+// Workaround for issue #40. With the configuration cache, the task key of compileTestKotlin does not contain the main classes.
+// Thus Gradle can use old test classes after a change to the main classes. This input adds the main classes to the task key.
+// Use ClasspathNormalizer, not CompileClasspathNormalizer: the tests also contain the bodies of inline functions.
+// Gradle corrects the problem in version 9.9.0: https://github.com/gradle/gradle/issues/39132
+// Remove this input after the update to Gradle 9.9.0. Then do the steps in issue #40 again.
+// Also refer to https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1880.
+tasks.named("compileTestKotlin") {
+    inputs.files(sourceSets.main.map { it.output.classesDirs })
+        .withPropertyName("mainClassesForIssue40")
+        .withNormalizer(ClasspathNormalizer::class)
+}
+
 tasks.test {
     // The tests read the test data with this path. Refer to TestData.kt.
     systemProperty("moonExplorer.testData", layout.projectDirectory.dir("src/test/testData").asFile.absolutePath)
