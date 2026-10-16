@@ -50,4 +50,10 @@ class QueryProjectsParserTest {
     fun outputWithoutProjectsThrows() {
         QueryProjectsParser.parseStacks("""{"tasks": {}}""")
     }
+
+    @Test
+    fun unknownStackIsNullInAllCases() {
+        val json = """{"projects": [{"id": "a", "stack": "Unknown"}, {"id": "b", "stack": "UNKNOWN"}]}"""
+        assertEquals(mapOf("a" to null, "b" to null), QueryProjectsParser.parseStacks(json))
+    }
 }

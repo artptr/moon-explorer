@@ -1,5 +1,11 @@
 package io.github.artptr.moonexplorer.model
 
+/**
+ * The alphabetical order of IDs and names in the plugin. Upper case and lower case are equal.
+ * If two values are equal without case, the order with case decides. Thus the order is always the same.
+ */
+val ID_ORDER: Comparator<String> = String.CASE_INSENSITIVE_ORDER.thenComparing(naturalOrder())
+
 /** A task of a moon project. [target] has the format `<project>:<task>`. */
 data class MoonTask(val id: String, val target: String, val description: String?)
 

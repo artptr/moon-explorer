@@ -28,7 +28,7 @@ object QueryProjectsParser {
             .mapNotNull { project ->
                 val id = project.string("id") ?: return@mapNotNull null
                 val stack = project.string("stack") ?: project.get("config")?.objectOrNull()?.string("stack")
-                id to stack?.takeUnless { it.isBlank() || it == UNKNOWN_STACK }
+                id to stack?.takeUnless { it.isBlank() || it.equals(UNKNOWN_STACK, ignoreCase = true) }
             }
             .toMap()
     }

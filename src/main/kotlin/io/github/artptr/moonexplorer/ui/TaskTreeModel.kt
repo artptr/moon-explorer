@@ -4,14 +4,13 @@ import com.intellij.icons.AllIcons
 import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.SimpleTextAttributes
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
-
-private val BY_NAME: Comparator<String> = String.CASE_INSENSITIVE_ORDER.thenComparing(naturalOrder())
 
 /**
  * Makes the tree nodes for [tasks] with the structure of [grouping]. All nodes are in alphabetical order.
@@ -27,7 +26,7 @@ fun buildTaskTree(tasks: WorkspaceTasks, grouping: TaskGrouping = TaskGrouping.P
         TaskGrouping.TASK_NAME -> {
             tasks.projects.flatMap { it.tasks }
                 .groupBy { it.id }
-                .toSortedMap(BY_NAME)
+                .toSortedMap(ID_ORDER)
                 .forEach { (name, tasksWithName) ->
                     val nameNode = TaskNameNode(name)
                     tasksWithName.forEach { nameNode.add(TaskNode(it, showProject = true)) }
@@ -37,7 +36,7 @@ fun buildTaskTree(tasks: WorkspaceTasks, grouping: TaskGrouping = TaskGrouping.P
         TaskGrouping.STACK -> {
             val (withStack, withoutStack) = tasks.projects.partition { it.stack != null }
             withStack.groupBy { it.stack!! }
-                .toSortedMap(BY_NAME)
+                .toSortedMap(ID_ORDER)
                 .forEach { (stack, projects) -> root.add(stackNode(stack, projects)) }
             if (withoutStack.isNotEmpty()) root.add(stackNode(null, withoutStack))
         }
@@ -118,6 +117,8 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
                 icon = AllIcons.Nodes.Folder
                 append(value.toString(), if (value.stack == null) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES)
             }
+            // A node type without a branch above shows its text. Thus a new node type is not empty in the tree.
+            else -> value?.let { append(it.toString()) }
         }
     }
 }

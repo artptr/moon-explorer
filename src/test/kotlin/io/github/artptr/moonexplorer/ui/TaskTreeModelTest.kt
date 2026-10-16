@@ -4,6 +4,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
@@ -112,5 +113,14 @@ class TaskTreeModelTest : BasePlatformTestCase() {
             fragments += text to iterator.textAttributes
         }
         return fragments
+    }
+
+    fun testOtherNodeShowsItsText() {
+        val fragments = render(DefaultMutableTreeNode("other"))
+        assertEquals(listOf("other"), fragments.map { it.first })
+    }
+
+    fun testIdOrderIgnoresCaseAndIsStable() {
+        assertEquals(listOf("alpha", "Beta", "beta", "zeta"), listOf("zeta", "beta", "alpha", "Beta").sortedWith(ID_ORDER))
     }
 }
