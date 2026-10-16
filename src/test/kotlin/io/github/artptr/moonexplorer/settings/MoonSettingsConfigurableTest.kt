@@ -104,6 +104,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
             tasks.projectDir = { TestData.workspace.toPath() }
             tasks.queryTasks = { CliResult.Failed("from apply") }
             val moon = fakeMoonExecutable()
+            configurable.createComponent()
             configurable.reset()
             pathField().text = moon.toString()
             assertTrue(configurable.isModified)
@@ -116,6 +117,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
     }
 
     fun testPathThatIsNotValidShowsAnError() {
+        configurable.createComponent()
         configurable.reset()
         pathField().text = "bad\u0000path"
         // The page checks the path on input. Thus the user sees the error before Apply.

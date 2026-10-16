@@ -92,16 +92,12 @@ object MoonExecutableLocator {
     }
 
     /**
-     * Gives the absolute directories in `PATH`. On Windows, the name of the variable can have a different case, for example `Path`.
+     * Gives the absolute directories in `PATH`.
      * The function ignores blank entries, entries that are not valid paths, and relative entries.
      * A relative entry starts at the working directory of the IDE, thus it has no relation to the workspace.
      */
     private fun pathDirectories(env: SearchEnvironment): List<Path> {
-        val value = if (env.isWindows) {
-            env.environment.entries.firstOrNull { it.key.equals("PATH", ignoreCase = true) }?.value
-        } else {
-            env.environment["PATH"]
-        }
+        val value = variable(env, "PATH")
         val separator = if (env.isWindows) ';' else ':'
         return value.orEmpty().split(separator)
             .map { it.trim() }
@@ -127,11 +123,21 @@ object MoonExecutableLocator {
     /** Gives `$PROTO_HOME`, or `~/.proto` if `PROTO_HOME` is not set, is not a valid path, or is a relative path. */
     private fun protoHome(env: SearchEnvironment): Path {
         val default = env.userHome.resolve(".proto")
-        val text = env.environment["PROTO_HOME"]?.trim()?.takeIf { it.isNotEmpty() } ?: return default
+        val text = variable(env, "PROTO_HOME")?.trim()?.takeIf { it.isNotEmpty() } ?: return default
         val path = toPath(text, env.userHome)?.takeIf { it.isAbsolute }
         return path ?: default.also {
             thisLogger().warn("PROTO_HOME is not a valid absolute path: $text. The plugin uses $default.")
         }
+    }
+
+    /**
+     * Gives the value of the environment variable [name]. On Windows, the names of environment variables are not case sensitive.
+     * For example, Windows gives `Path`, not `PATH`.
+     */
+    private fun variable(env: SearchEnvironment, name: String): String? = if (env.isWindows) {
+        env.environment.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+    } else {
+        env.environment[name]
     }
 
     private fun isExecutable(file: Path, isWindows: Boolean): Boolean {

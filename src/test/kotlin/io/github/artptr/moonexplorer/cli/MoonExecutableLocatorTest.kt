@@ -283,4 +283,22 @@ class MoonExecutableLocatorTest {
         val cmd = moonIn(pathDir, "moon.cmd")
         assertEquals(cmd, MoonExecutableLocator.find(null, workspace, env("Path" to pathDir.toString(), windows = true)).executable)
     }
+
+    @Test
+    fun windowsExaminesTheNamesInSequence() {
+        val result = MoonExecutableLocator.find(null, workspace, env(windows = true))
+        assertNull(result.executable)
+        val names = listOf("moon.exe", "moon.cmd", "moon.bat", "moon.com")
+        val expected = names.map { workspace.resolve("node_modules/.bin/$it") } +
+            names.map { home.resolve(".proto/shims/$it") } +
+            names.map { home.resolve(".proto/bin/$it") }
+        assertEquals(expected, result.examined)
+    }
+
+    @Test
+    fun windowsProtoHomeVariableNameIsNotCaseSensitive() {
+        val protoHome = temp.newFolder("proto-home").toPath()
+        val cmd = moonIn(protoHome.resolve("shims"), "moon.cmd")
+        assertEquals(cmd, MoonExecutableLocator.find(null, workspace, env("Proto_Home" to protoHome.toString(), windows = true)).executable)
+    }
 }
