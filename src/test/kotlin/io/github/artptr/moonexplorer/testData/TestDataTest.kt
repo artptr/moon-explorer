@@ -69,4 +69,11 @@ class TestDataTest {
             assertEquals(target, task.get("target").asString)
         }
     }
+
+    @Test
+    fun recordedProjectsHaveNoPathOfTheComputer() {
+        val roots = JsonParser.parseString(TestData.recorded("query-projects.json")).asJsonObject
+            .getAsJsonArray("projects").map { it.asJsonObject.get("root").asString }
+        assertTrue(roots.all { it.startsWith("/workspace/") })
+    }
 }

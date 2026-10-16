@@ -42,6 +42,13 @@ object MoonCli {
         run(workspaceRoot, settingsPath, "query", "tasks")
 
     /**
+     * Runs `moon query projects` in [workspaceRoot]. The output is JSON.
+     * The function obeys the same rules as [queryTasks].
+     */
+    suspend fun queryProjects(workspaceRoot: Path, settingsPath: String?): CliResult =
+        run(workspaceRoot, settingsPath, "query", "projects")
+
+    /**
      * Makes the command line `moon run <target>` in [workspaceRoot]. The run configurations use this command line.
      * The output keeps its colors, because the console of the Run tool window shows them.
      */

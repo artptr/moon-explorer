@@ -13,3 +13,4 @@
 - Settings page **Settings | Tools | Moon Explorer** with the path to the `moon` executable
 - Run configuration type **moon** that runs `moon run <target>`
 - Run a task from the **Moon** tool window with a double-click, the **Enter** key, or the context menu. The context menu also has **Create Run Configuration**.
+- **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.

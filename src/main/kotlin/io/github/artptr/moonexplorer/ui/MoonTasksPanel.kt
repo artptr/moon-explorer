@@ -23,8 +23,11 @@ import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
+import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -85,6 +88,8 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     private val job: Job
 
+    private val settings = project.service<MoonSettings>()
+
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
             ?: error("plugin.xml must register the action group $TOOLBAR_GROUP_ID")
@@ -134,6 +139,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     override fun uiDataSnapshot(sink: DataSink) {
         super.uiDataSnapshot(sink)
         sink[SELECTED_TASK] = selectedTask()
+        sink[TASKS_PANEL] = this
     }
 
     /** Shows [state]. Call this function on the EDT. */
@@ -148,7 +154,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
                 if (state.tasks.projects.isEmpty()) {
                     showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
                 } else {
-                    showTree(state)
+                    showTree(state.tasks)
                 }
             }
             TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
@@ -163,35 +169,53 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         }
     }
 
-    private fun showTree(state: TasksState.Loaded) {
-        // Keep the expanded nodes and the selected nodes after a refresh. The nodes are found by ID,
+    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
+    private var shownTasks: WorkspaceTasks? = null
+
+    /** How the tree puts the tasks into groups. The plugin keeps the value in the settings of the IDE project. */
+    internal val grouping: TaskGrouping get() = settings.taskGrouping
+
+    /** Saves [value] and shows the tree again with this grouping. Call this function on the EDT. */
+    internal fun changeGrouping(value: TaskGrouping) {
+        if (value == grouping) return
+        settings.taskGrouping = value
+        shownTasks?.let(::showTree)
+    }
+
+    private fun showTree(tasks: WorkspaceTasks) {
+        // Keep the expanded nodes and the selected nodes after a refresh. The keys of the nodes contain IDs,
         // thus a change of a description does not collapse a node.
-        val expanded = projectNodes().filter { tree.isExpanded(TreePath(it.path)) }.map { it.project.id }.toSet()
-        val selectedNodes = tree.selectionPaths.orEmpty().map { it.lastPathComponent }
-        val selectedProjects = selectedNodes.filterIsInstance<ProjectNode>().map { it.project.id }.toSet()
-        val selectedTasks = selectedNodes.filterIsInstance<TaskNode>().map { it.task.target }.toSet()
+        val oldPaths = allPaths()
+        val expanded = oldPaths.filter(tree::isExpanded).map(::keyPath).toSet()
+        val selectedPaths = tree.selectionPaths.orEmpty()
+        val selectedKeys = selectedPaths.map(::keyPath).toSet()
+        val selectedTargets = selectedPaths.mapNotNull { (it.lastPathComponent as? TaskNode)?.task?.target }.toSet()
 
-        val root = buildTaskTree(state.tasks)
-        (tree.model as DefaultTreeModel).setRoot(root)
+        shownTasks = tasks
+        (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, grouping))
 
-        val selectedPaths = mutableListOf<TreePath>()
-        for (projectNode in projectNodes()) {
-            if (projectNode.project.id in expanded) tree.expandPath(TreePath(projectNode.path))
-            if (projectNode.project.id in selectedProjects) selectedPaths += TreePath(projectNode.path)
-            projectNode.children().toList().filterIsInstance<TaskNode>()
-                .filter { it.task.target in selectedTasks }
-                .forEach { selectedPaths += TreePath(it.path) }
+        val newPaths = allPaths()
+        newPaths.filter { keyPath(it) in expanded }.forEach(tree::expandPath)
+        var selection = newPaths.filter { keyPath(it) in selectedKeys }
+        if (selection.isEmpty() && selectedTargets.isNotEmpty()) {
+            // After a change of the grouping, the paths are different. Select the same tasks in the new tree.
+            selection = newPaths.filter { (it.lastPathComponent as? TaskNode)?.task?.target in selectedTargets }
+            selection.firstOrNull()?.let(tree::scrollPathToVisible)
         }
-        tree.selectionPaths = selectedPaths.toTypedArray()
+        tree.selectionPaths = selection.toTypedArray()
         showCard(TREE_CARD)
     }
 
-    private fun projectNodes(): List<ProjectNode> {
+    /** Gives the paths of all nodes below the root, also the nodes in collapsed nodes. Parents come before their children. */
+    internal fun allPaths(): List<TreePath> {
         val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyList()
-        return root.children().toList().filterIsInstance<ProjectNode>()
+        return root.preorderEnumeration().toList().drop(1).map { TreePath((it as DefaultMutableTreeNode).path) }
     }
 
+    private fun keyPath(path: TreePath): List<String> = path.path.drop(1).map { (it as TaskTreeNode).key }
+
     private fun showMessage(text: String, showSettingsLink: Boolean = false) {
+        shownTasks = null
         messageArea.text = text
         settingsLink.isVisible = showSettingsLink
         messageArea.caretPosition = 0

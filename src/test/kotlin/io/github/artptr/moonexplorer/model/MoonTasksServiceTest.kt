@@ -23,6 +23,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // The light project is the same for all tests. Remove the state and the load of the previous test.
         runBlocking { service.resetForTests() }
         service.projectDir = { TestData.workspace.toPath() }
+        // The tests must not start moon. The tests that need other output change this value.
+        service.queryProjects = { CliResult.Success(TestData.recorded("query-projects.json")) }
     }
 
     override fun tearDown() {
@@ -36,7 +38,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testRefreshLoadsTheTasks() {
         service.queryTasks = { CliResult.Success(recorded) }
         service.refresh()
-        val expected = TasksState.Loaded(QueryTasksParser.parse(recorded))
+        val stacks = QueryProjectsParser.parseStacks(TestData.recorded("query-projects.json"))
+        val expected = TasksState.Loaded(QueryTasksParser.parse(recorded).withStacks(stacks))
         service.awaitState(expected)
         assertEquals(7, expected.tasks.projects.size)
     }
@@ -102,7 +105,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.refresh()
         runBlocking { withTimeout(10_000) { started.await() } }
         service.refresh()
-        service.awaitState(TasksState.Loaded(QueryTasksParser.parse(recorded)))
+        val stacks = QueryProjectsParser.parseStacks(TestData.recorded("query-projects.json"))
+        service.awaitState(TasksState.Loaded(QueryTasksParser.parse(recorded).withStacks(stacks)))
         assertTrue("The first load must be cancelled", cancelled.isCompleted)
         assertEquals(2, calls.get())
     }

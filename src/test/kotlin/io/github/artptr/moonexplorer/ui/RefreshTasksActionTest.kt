@@ -21,6 +21,8 @@ class RefreshTasksActionTest : BasePlatformTestCase() {
         // The light project is the same for all tests. Remove the state and the load of the previous test.
         runBlocking { service.resetForTests() }
         service.projectDir = { TestData.workspace.toPath() }
+        // The tests must not start moon. The tests that need other output change this value.
+        service.queryProjects = { CliResult.Success(TestData.recorded("query-projects.json")) }
     }
 
     override fun tearDown() {
