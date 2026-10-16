@@ -2,7 +2,7 @@ package io.github.artptr.moonexplorer.run
 
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationTypeBase
-import com.intellij.execution.configurations.ConfigurationTypeUtil
+import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.BaseState
@@ -26,8 +26,10 @@ class MoonRunConfigurationType : ConfigurationTypeBase(
     companion object {
         const val ID = "MoonRunConfiguration"
 
+        /** Gives the registered type. Fails with a clear message if `plugin.xml` does not register the type. */
         fun getInstance(): MoonRunConfigurationType =
-            ConfigurationTypeUtil.findConfigurationType(MoonRunConfigurationType::class.java)
+            ConfigurationType.CONFIGURATION_TYPE_EP.findExtension(MoonRunConfigurationType::class.java)
+                ?: error("plugin.xml must register the configuration type ${MoonRunConfigurationType::class.java.name}")
     }
 }
 

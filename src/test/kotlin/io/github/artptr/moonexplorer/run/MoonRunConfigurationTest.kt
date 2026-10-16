@@ -1,8 +1,12 @@
 package io.github.artptr.moonexplorer.run
 
 import com.intellij.execution.ExecutionException
+import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.RuntimeConfigurationError
+import com.intellij.execution.executors.DefaultRunExecutor
+import com.intellij.execution.runners.ExecutionEnvironmentBuilder
+import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.UIUtil
@@ -90,5 +94,17 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         } finally {
             Disposer.dispose(editor)
         }
+    }
+
+    fun testRunWithoutWorkspaceStopsWithAMessageAndStartsNoProcess() {
+        // The light test project is not a moon workspace. Thus startProcess stops before it starts a process.
+        val configuration = configuration()
+        val executor = DefaultRunExecutor.getRunExecutorInstance()
+        val environment = ExecutionEnvironmentBuilder.create(project, executor, configuration).build()
+        val state = configuration.getState(executor, environment)
+        assertInstanceOf(state, CommandLineState::class.java)
+        val runner = ProgramRunner.getRunner(executor.id, configuration) ?: error("No runner for the moon configuration")
+        val e = Assert.assertThrows(ExecutionException::class.java) { state.execute(executor, runner) }
+        assertEquals(MoonExplorerBundle.message("run.configuration.error.noWorkspace"), e.message)
     }
 }

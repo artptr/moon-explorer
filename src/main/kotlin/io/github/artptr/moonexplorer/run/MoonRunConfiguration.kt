@@ -61,6 +61,8 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
     /**
      * Makes the command line `moon run <target>` in the workspace root.
      * Throws [ExecutionException] with a message for the user if the plugin cannot find the workspace or moon.
+     * The function reads the file system. Call this function on a background thread.
+     * The platform calls [CommandLineState.startProcess] on a background thread.
      */
     internal fun createCommandLine(): GeneralCommandLine {
         val root = project.basePath?.let { MoonWorkspaceLocator.findWorkspaceRoot(Path.of(it)) }
