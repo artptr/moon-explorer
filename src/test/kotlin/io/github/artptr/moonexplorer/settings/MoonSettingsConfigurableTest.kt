@@ -239,5 +239,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
     fun testCommentShowsTheDefaultTimeout() {
         val comment = MoonExplorerBundle.message("settings.timeout.comment", MoonSettings.DEFAULT_TIMEOUT_SECONDS.toString())
         assertTrue(comment.contains("The default value is 60."))
+        // The comment must tell that the time limit is not for moon run.
+        assertTrue(comment.contains("The time limit does not apply to the tasks that you run."))
     }
 }

@@ -8,10 +8,10 @@
 
 - Project structure for the IntelliJ Platform plugin
 - **Moon** tool window with a tree of the projects and tasks of the moon workspace, and a **Refresh** action
-- The plugin stops the moon process if it does not complete in the time limit. The **Moon** tool window then shows a message and a link to the settings.
+- The plugin stops `moon query projects` if it does not complete in the time limit. The **Moon** tool window then shows a message and a link to the settings.
 - The plugin finds the `moon` executable in `node_modules/.bin/` of the workspace, in the proto directories, and in `PATH`
 - Settings page **Settings | Tools | Moon Explorer** with the path to the `moon` executable
-- Setting for the time limit of moon commands in **Settings | Tools | Moon Explorer**. The default value is 60 seconds.
+- Setting for the time limit to load the tasks in **Settings | Tools | Moon Explorer**. The default value is 60 seconds. The time limit does not apply to the tasks that you run.
 - Run configuration type **moon** that runs `moon run <target>`
 - Run a task from the **Moon** tool window with a double-click, the **Enter** key, or the context menu. The context menu also has **Create Run Configuration**.
 - **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.
