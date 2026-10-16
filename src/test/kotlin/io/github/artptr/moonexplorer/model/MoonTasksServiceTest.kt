@@ -1,8 +1,11 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
@@ -15,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class MoonTasksServiceTest : BasePlatformTestCase() {
 
     private lateinit var service: MoonTasksService
-    private val recorded = TestData.recorded("query-tasks.json")
+    private val recorded = TestData.recorded("query-projects.json")
 
     override fun setUp() {
         super.setUp()
@@ -32,24 +35,46 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testRefreshLoadsTheTasks() {
-        service.queryTasks = { CliResult.Success(recorded) }
+        service.queryProjects = { CliResult.Success(recorded) }
         service.refresh()
         val expected = TasksState.Loaded(TestData.recordedTasks())
         service.awaitState(expected)
         assertEquals(7, expected.tasks.projects.size)
     }
 
+    fun testDefaultQueryRunsMoonQueryProjects() {
+        // The fake moon is a shell script. Thus this test does not run on Windows.
+        if (SystemInfo.isWindows) return
+        // The script writes one project. The ID of the project is the first two arguments.
+        val moon = FileUtil.createTempDirectory("fake-moon", null, true).resolve("moon").apply {
+            writeText("#!/bin/sh\nprintf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n")
+            setExecutable(true)
+        }
+        val settings = project.service<MoonSettings>()
+        try {
+            settings.executablePath = moon.path
+            // Use the default query, not the fake from setUp.
+            runBlocking { service.resetForTests() }
+            service.projectDir = { TestData.workspace.toPath() }
+            service.refresh()
+            val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
+            service.awaitState(TasksState.Loaded(WorkspaceTasks(listOf(expected))))
+        } finally {
+            settings.executablePath = ""
+        }
+    }
+
     fun testRefreshShowsTheMoonError() {
-        service.queryTasks = { CliResult.Failed("bad config") }
+        service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
         service.awaitState(TasksState.MoonError("bad config"))
     }
 
     fun testRefreshSetsLoadingBeforeItReturns() {
-        service.queryTasks = { CliResult.Failed("first") }
+        service.queryProjects = { CliResult.Failed("first") }
         service.refresh()
         service.awaitState(TasksState.MoonError("first"))
-        service.queryTasks = { awaitCancellation() }
+        service.queryProjects = { awaitCancellation() }
         service.refresh()
         assertEquals(TasksState.Loading, service.state.value)
     }
@@ -57,7 +82,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testRefreshUsesTheInputsOfTheCall() {
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
-        service.queryTasks = {
+        service.queryProjects = {
             started.complete(Unit)
             try {
                 awaitCancellation()
@@ -69,10 +94,10 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         try {
             service.refresh()
             runBlocking { withTimeout(10_000) { started.await() } }
-            service.queryTasks = { CliResult.Failed("second refresh") }
+            service.queryProjects = { CliResult.Failed("second refresh") }
             service.refresh()
             // A change after the call must not go into the load of the call.
-            service.queryTasks = { CliResult.Failed("later change") }
+            service.queryProjects = { CliResult.Failed("later change") }
             release.complete(Unit)
             service.awaitState(TasksState.MoonError("second refresh"))
         } finally {
@@ -85,7 +110,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
         val calls = AtomicInteger()
-        service.queryTasks = {
+        service.queryProjects = {
             if (calls.incrementAndGet() == 1) {
                 started.complete(Unit)
                 try {
@@ -106,7 +131,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testStartupActivityLoadsTheTasks() {
-        service.queryTasks = { CliResult.Failed("from startup") }
+        service.queryProjects = { CliResult.Failed("from startup") }
         runBlocking { MoonTasksStartupActivity().execute(project) }
         service.awaitState(TasksState.MoonError("from startup"))
     }

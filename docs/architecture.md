@@ -33,8 +33,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
 | Load of the tasks when the IDE project opens | `model.MoonTasksStartupActivity` | `plugin.xml` |
 | Load of the tasks and the result state | `model.TasksLoader`, `model.TasksState` | None |
-| Parser of `moon query tasks` | `model.QueryTasksParser` | None |
-| Parser of the `stack` values in `moon query projects` | `model.QueryProjectsParser` | None |
+| Parser of `moon query projects` | `model.QueryProjectsParser` | None |
 | Group modes of the tree (`TaskGrouping`) and the action group `MoonExplorer.GroupBy` | `ui.GroupByProjectAction`, `ui.GroupByTaskNameAction`, `ui.GroupByStackAction` | `plugin.xml` |
 | Find the workspace root | `cli.MoonWorkspaceLocator` | None |
 | Find the `moon` executable | `cli.MoonExecutableLocator`, `settings.MoonExecutableService` | None (light service) |
@@ -51,10 +50,13 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 ## 3. Data flow
 
 1. The plugin finds the workspace root. It starts at the IDE project directory and goes up through the parent directories. The workspace root has a `.moon/` directory with a `workspace.*` file.
-2. The plugin runs `moon query tasks` in the workspace root. In moon v2, the output of this command is always JSON.
-3. The plugin runs `moon query projects` in the workspace root to get the `stack` value of each project. The output of `moon query tasks` does not contain this value. The plugin runs the two commands one after the other. Thus two moon processes do not use the workspace at the same time.
-4. The plugin reads the JSON with Gson. The IntelliJ Platform contains Gson. Thus the plugin has no new dependency.
-5. The service sets the new state. The tool window shows the tree or a message.
+2. The plugin runs `moon query projects` in the workspace root. In moon v2, the output of this command is always JSON.
+3. The plugin reads the JSON with Gson. The IntelliJ Platform contains Gson. Thus the plugin has no new dependency.
+4. The service sets the new state. The tool window shows the tree or a message.
+
+The output of `moon query projects` contains the `stack` value and the tasks of each project. Thus the plugin starts only one moon process for each load.
+The output does not contain internal tasks. The output of `moon query tasks` also does not contain internal tasks.
+moon does not write the key `tasks` for a project without tasks. The tree does not show these projects.
 
 The tree has three group modes: by project, by task name, and by `stack`. The plugin keeps the selected mode in the workspace file of the IDE project.
 

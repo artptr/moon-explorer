@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 /** The state of the task data for the tool window. */
 sealed interface TasksState {
-    /** The plugin runs `moon query tasks`. */
+    /** The plugin runs `moon query projects`. */
     data object Loading : TasksState
 
     /** The plugin read the tasks of the workspace. */

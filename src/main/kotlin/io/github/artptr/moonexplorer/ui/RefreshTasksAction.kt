@@ -6,7 +6,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import io.github.artptr.moonexplorer.model.MoonTasksService
 
-/** Runs `moon query tasks` again and loads the tree again. */
+/** Runs `moon query projects` again and loads the tree again. */
 class RefreshTasksAction : DumbAwareAction() {
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

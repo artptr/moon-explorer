@@ -75,7 +75,7 @@ The test workspace contains these items:
 - Tasks with a description and tasks without a description
 - The project `config` has no tasks.
 
-**NOTE:** The output of `moon query tasks` does not contain projects without tasks. Thus the project `config` is not in `moon/query-tasks.json`.
+**NOTE:** In `moon/query-projects.json`, the project `config` has no key `tasks`. moon does not write this key for a project without tasks.
 
 ### 4.1 Record the output again
 
@@ -93,9 +93,9 @@ The script stops with an error if a recorded file contains the path of the repos
 ### 4.2 Test data for a large workspace
 
 Do not commit large test files that a tool makes. Make them during the test.
-For tests with a large workspace, use the test function `LargeQueryTasksJson.generate()`.
-The function copies the recorded tasks and gives them new IDs.
-The default output has 17 projects with 14 tasks each, and about 16,000 lines.
+For tests with a large workspace, use the test function `LargeQueryProjectsJson.generate()`.
+The function copies the recorded projects and tasks and gives them new IDs.
+The default output has 17 projects with 14 tasks each.
 
 ## 5. Do a check of compatibility
 

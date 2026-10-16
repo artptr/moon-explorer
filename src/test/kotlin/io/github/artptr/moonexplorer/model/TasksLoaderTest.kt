@@ -5,7 +5,6 @@ import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -19,10 +18,9 @@ class TasksLoaderTest {
 
     private val workspace = TestData.workspace.toPath()
 
-    private val projects = CliResult.Success(TestData.recorded("query-projects.json"))
+    private val recorded = CliResult.Success(TestData.recorded("query-projects.json"))
 
-    private fun load(dir: Path?, result: CliResult, projectsResult: CliResult = projects) =
-        runBlocking { TasksLoader.loadTasks(dir, { result }, { projectsResult }) }
+    private fun load(dir: Path?, result: CliResult) = runBlocking { TasksLoader.loadTasks(dir) { result } }
 
     @Test
     fun noProjectDirectoryGivesNoWorkspace() {
@@ -37,17 +35,28 @@ class TasksLoaderTest {
     @Test
     fun runsTheQueryInTheWorkspaceRoot() {
         var dir: Path? = null
-        runBlocking {
-            TasksLoader.loadTasks(workspace.resolve("apps/web"), { dir = it; CliResult.Success("""{"tasks": {}}""") }, { projects })
-        }
+        runBlocking { TasksLoader.loadTasks(workspace.resolve("apps/web")) { dir = it; recorded } }
         assertEquals(workspace.toAbsolutePath().normalize(), dir)
     }
 
     @Test
+    fun runsOneQueryForEachLoad() {
+        var calls = 0
+        runBlocking { TasksLoader.loadTasks(workspace) { calls++; recorded } }
+        assertEquals(1, calls)
+    }
+
+    @Test
     fun successGivesLoaded() {
-        val state = load(workspace, CliResult.Success(TestData.recorded("query-tasks.json")))
-        assertTrue(state is TasksState.Loaded)
-        assertEquals(7, (state as TasksState.Loaded).tasks.projects.size)
+        assertEquals(TasksState.Loaded(TestData.recordedTasks()), load(workspace, recorded))
+    }
+
+    @Test
+    fun loadedTasksHaveTheStackOfTheirProject() {
+        val state = load(workspace, recorded) as TasksState.Loaded
+        val stacks = state.tasks.projects.associate { it.id to it.stack }
+        assertEquals("frontend", stacks["web"])
+        assertEquals("backend", stacks["api"])
     }
 
     @Test
@@ -73,59 +82,13 @@ class TasksLoaderTest {
 
     @Test
     fun unexpectedErrorGivesInvalidOutput() {
-        val state = runBlocking { TasksLoader.loadTasks(workspace, { throw IllegalStateException("unexpected") }, { projects }) }
+        val state = runBlocking { TasksLoader.loadTasks(workspace) { throw IllegalStateException("unexpected") } }
         assertEquals(TasksState.InvalidOutput("unexpected"), state)
     }
 
     @Test
     fun checkedExceptionGivesInvalidOutput() {
-        val state = runBlocking {
-            TasksLoader.loadTasks(workspace, { throw ExecutionException("cannot start") }, { projects })
-        }
+        val state = runBlocking { TasksLoader.loadTasks(workspace) { throw ExecutionException("cannot start") } }
         assertEquals(TasksState.InvalidOutput("cannot start"), state)
-    }
-
-    @Test
-    fun loadedTasksHaveTheStackOfTheirProject() {
-        val state = load(workspace, CliResult.Success(TestData.recorded("query-tasks.json"))) as TasksState.Loaded
-        val stacks = state.tasks.projects.associate { it.id to it.stack }
-        assertEquals("frontend", stacks["web"])
-        assertEquals("backend", stacks["api"])
-    }
-
-    @Test
-    fun runsTheProjectsQueryAfterTheTasksQuery() {
-        val calls = mutableListOf<String>()
-        runBlocking {
-            TasksLoader.loadTasks(
-                workspace,
-                { calls += "tasks"; CliResult.Success("""{"tasks": {}}""") },
-                { calls += "projects"; projects },
-            )
-        }
-        assertEquals(listOf("tasks", "projects"), calls)
-    }
-
-    @Test
-    fun failedTasksQueryDoesNotRunTheProjectsQuery() {
-        var projectsCalled = false
-        val state = runBlocking {
-            TasksLoader.loadTasks(workspace, { CliResult.Failed("bad") }, { projectsCalled = true; projects })
-        }
-        assertEquals(TasksState.MoonError("bad"), state)
-        assertFalse(projectsCalled)
-    }
-
-    @Test
-    fun projectsQueryErrorGivesTheErrorState() {
-        val tasks = CliResult.Success(TestData.recorded("query-tasks.json"))
-        assertEquals(TasksState.MoonError("lock"), load(workspace, tasks, CliResult.Failed("lock")))
-        assertEquals(TasksState.MoonTimeout, load(workspace, tasks, CliResult.TimedOut))
-    }
-
-    @Test
-    fun projectsOutputThatIsNotJsonGivesInvalidOutput() {
-        val tasks = CliResult.Success(TestData.recorded("query-tasks.json"))
-        assertTrue(load(workspace, tasks, CliResult.Success("not JSON")) is TasksState.InvalidOutput)
     }
 }

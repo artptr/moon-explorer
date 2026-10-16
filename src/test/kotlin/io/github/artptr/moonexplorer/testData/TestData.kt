@@ -1,7 +1,6 @@
 package io.github.artptr.moonexplorer.testData
 
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
-import io.github.artptr.moonexplorer.model.QueryTasksParser
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import java.io.File
 
@@ -19,7 +18,6 @@ object TestData {
     /** Reads a recorded file from [moon]. */
     fun recorded(name: String): String = File(moon, name).readText()
 
-    /** The tasks of the recorded `moon query tasks` output, with the stacks of the recorded `moon query projects` output. */
-    fun recordedTasks(): WorkspaceTasks =
-        QueryTasksParser.parse(recorded("query-tasks.json")).withStacks(QueryProjectsParser.parseStacks(recorded("query-projects.json")))
+    /** The projects and tasks of the recorded `moon query projects` output. */
+    fun recordedTasks(): WorkspaceTasks = QueryProjectsParser.parse(recorded("query-projects.json"))
 }
