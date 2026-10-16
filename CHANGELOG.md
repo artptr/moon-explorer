@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-16
+
 ### Added
 
 - **Moon** tool window with a tree of the projects and tasks of the moon workspace, and a **Refresh** action
@@ -15,3 +17,6 @@
 - Run a task from the **Moon** tool window with a double-click, the **Enter** key, or the context menu. The context menu also has **Create Run Configuration**.
 - **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.
 - Speed search in the tree of the **Moon** tool window. Select the tree. Then type text to find a task by its ID, its project, or its description.
+
+[Unreleased]: https://github.com/artptr/moon-explorer/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/artptr/moon-explorer/commits/v0.1.0
