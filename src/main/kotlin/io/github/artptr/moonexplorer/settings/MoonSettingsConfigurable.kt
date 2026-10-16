@@ -6,12 +6,14 @@ import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundSearchableConfigurable
+import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.COLUMNS_MEDIUM
+import com.intellij.ui.dsl.builder.COLUMNS_SHORT
 import com.intellij.ui.dsl.builder.LabelPosition
 import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
 import com.intellij.ui.dsl.builder.bindText
@@ -46,6 +48,10 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
      * A text field with a fixed minimum width does not make the page wider if the path is long.
      */
     internal lateinit var foundField: JBTextField
+        private set
+
+    /** The time limit for moon commands, in seconds. */
+    internal lateinit var timeoutField: JBTextField
         private set
 
     private var searchJob: Job? = null
@@ -89,7 +95,32 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
                 .applyToComponent { isEditable = false }
                 .component
         }
+        row {
+            timeoutField = textField()
+                .label(MoonExplorerBundle.message("settings.timeout.label"), LabelPosition.TOP)
+                .bindText(
+                    { settings.timeoutSeconds.toString() },
+                    { text -> MoonSettings.parseTimeoutSeconds(text)?.let { settings.timeoutSeconds = it } },
+                )
+                .columns(COLUMNS_SHORT)
+                .comment(
+                    MoonExplorerBundle.message("settings.timeout.comment", MoonSettings.DEFAULT_TIMEOUT_SECONDS.toString()),
+                    MAX_LINE_LENGTH_WORD_WRAP,
+                )
+                .validationOnInput { field -> timeoutError(field.text)?.let { error(it) } }
+                .component
+        }
     }
+
+    /** Gives the error text for the time limit [text], or null if the value is correct. */
+    private fun timeoutError(text: String): String? =
+        if (MoonSettings.parseTimeoutSeconds(text) == null) {
+            // Give strings, not numbers. The message format writes the number 86400 as "86,400".
+            val range = MoonSettings.TIMEOUT_RANGE
+            MoonExplorerBundle.message("settings.timeout.invalid", range.first.toString(), range.last.toString())
+        } else {
+            null
+        }
 
     override fun reset() {
         super.reset()
@@ -97,9 +128,14 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
     }
 
     override fun apply() {
+        // The platform does not run the validations of the panel before it calls `apply`.
+        // Thus this function does a check of the time limit.
+        timeoutError(timeoutField.text)?.let { throw ConfigurationException(it) }
         val changed = isModified
         super.apply()
-        // Load the tasks again with the new executable.
+        // Show the saved value, for example "120" for " 120 ". Then the page is not modified after apply.
+        timeoutField.text = settings.timeoutSeconds.toString()
+        // Load the tasks again with the new settings: a new executable or a new time limit.
         if (changed) project.service<MoonTasksService>().refresh()
     }
 

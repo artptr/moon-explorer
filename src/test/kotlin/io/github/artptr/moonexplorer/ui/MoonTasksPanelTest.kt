@@ -65,6 +65,9 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.render(TasksState.MoonNotFound(emptyList()))
         panel.render(TasksState.MoonError("bad"))
         assertFalse(panel.settingsLink.isVisible)
+        panel.render(TasksState.MoonTimeout)
+        panel.render(TasksState.MoonError("bad"))
+        assertFalse("The link must not stay after the timeout message", panel.settingsLink.isVisible)
     }
 
     fun testMoonErrorShowsTheErrorText() {
@@ -77,6 +80,8 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.render(TasksState.Loading)
         panel.render(TasksState.MoonTimeout)
         assertMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
+        // The user can change the time limit in the settings.
+        assertTrue(panel.settingsLink.isVisible)
     }
 
     fun testInvalidOutputShowsMessage() {

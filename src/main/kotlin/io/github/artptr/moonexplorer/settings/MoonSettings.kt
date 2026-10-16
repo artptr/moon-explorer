@@ -19,6 +19,7 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
     class SettingsState : BaseState() {
         var executablePath by string()
         var taskGrouping by enum(TaskGrouping.PROJECT)
+        var timeoutSeconds by property(DEFAULT_TIMEOUT_SECONDS)
     }
 
     /** The path to the `moon` executable. If the value is empty, the plugin finds moon automatically. */
@@ -34,4 +35,30 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
         set(value) {
             state.taskGrouping = value
         }
+
+    /**
+     * The time limit for a moon command, in seconds. After this time, the plugin stops the moon process.
+     * If the value in the state is not in [TIMEOUT_RANGE], the plugin uses [DEFAULT_TIMEOUT_SECONDS].
+     * This occurs only if a person changes the workspace file manually. The setter accepts only values in [TIMEOUT_RANGE].
+     */
+    var timeoutSeconds: Int
+        get() = state.timeoutSeconds.takeIf { it in TIMEOUT_RANGE } ?: DEFAULT_TIMEOUT_SECONDS
+        set(value) {
+            require(value in TIMEOUT_RANGE) { "The time limit $value is not in $TIMEOUT_RANGE" }
+            state.timeoutSeconds = value
+        }
+
+    companion object {
+        /** The default time limit. Issue #26 sets this value. */
+        const val DEFAULT_TIMEOUT_SECONDS = 60
+
+        /** The maximum time limit is 24 hours. In milliseconds, this value is less than [Int.MAX_VALUE]. */
+        const val MAX_TIMEOUT_SECONDS = 86_400
+
+        /** The time limits that the settings page accepts. */
+        val TIMEOUT_RANGE = 1..MAX_TIMEOUT_SECONDS
+
+        /** Converts the text of the settings field to a time limit. Gives null if the text is not a whole number in [TIMEOUT_RANGE]. */
+        fun parseTimeoutSeconds(text: String): Int? = text.trim().toIntOrNull()?.takeIf { it in TIMEOUT_RANGE }
+    }
 }

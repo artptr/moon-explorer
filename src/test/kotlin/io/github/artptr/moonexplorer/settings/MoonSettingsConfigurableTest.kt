@@ -2,6 +2,7 @@ package io.github.artptr.moonexplorer.settings
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
@@ -27,6 +28,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         super.setUp()
         settings = project.service<MoonSettings>()
         settings.executablePath = ""
+        settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
         configurable = MoonSettingsConfigurable(project)
     }
 
@@ -34,6 +36,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         try {
             configurable.disposeUIResources()
             settings.executablePath = ""
+            settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
         } finally {
             super.tearDown()
         }
@@ -137,5 +140,104 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         PlatformTestUtil.waitWithEventsDispatching("The first search must stop", { slow.isCompleted }, 10)
         PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
         assertEquals(second.toString(), configurable.foundField.text)
+    }
+
+    // Issue #26 sets the time limit to 60 seconds. If you change the default value, also change this test.
+    fun testDefaultTimeoutIsOneMinute() {
+        assertEquals(60, MoonSettings.SettingsState().timeoutSeconds)
+        assertEquals(60, MoonSettings().timeoutSeconds)
+    }
+
+    fun testStoredTimeoutOutsideTheRangeGivesTheDefault() {
+        for (value in listOf(0, -5, MoonSettings.MAX_TIMEOUT_SECONDS + 1)) {
+            settings.state.timeoutSeconds = value
+            assertEquals("Stored value $value", MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.timeoutSeconds)
+        }
+    }
+
+    fun testParseTimeoutAcceptsWholeNumbersInTheRange() {
+        assertEquals(1, MoonSettings.parseTimeoutSeconds("1"))
+        assertEquals(120, MoonSettings.parseTimeoutSeconds(" 120 "))
+        assertEquals(86_400, MoonSettings.parseTimeoutSeconds("86400"))
+    }
+
+    fun testParseTimeoutRejectsOtherText() {
+        for (text in listOf("", " ", "0", "-1", "1.5", "abc", "86401", "99999999999")) {
+            assertNull("Text <$text>", MoonSettings.parseTimeoutSeconds(text))
+        }
+    }
+
+    fun testPageShowsTheSavedTimeout() {
+        settings.timeoutSeconds = 300
+        configurable.createComponent()
+        configurable.reset()
+        assertEquals("300", configurable.timeoutField.text)
+    }
+
+    fun testTimeoutThatIsNotValidShowsAnError() {
+        val panel = configurable.createComponent() as DialogPanel
+        configurable.reset()
+        val expected = MoonExplorerBundle.message("settings.timeout.invalid", "1", "86400")
+        for (text in listOf("0", "abc", "90000")) {
+            configurable.timeoutField.text = text
+            val errors = panel.validationsOnInput.values.flatten().mapNotNull { it.validate() }
+            assertEquals("Text <$text>", listOf(expected), errors.map { it.message })
+        }
+        configurable.timeoutField.text = "90"
+        assertEmpty(panel.validationsOnInput.values.flatten().mapNotNull { it.validate() })
+    }
+
+    fun testApplyRejectsATimeoutThatIsNotValid() {
+        configurable.createComponent()
+        configurable.reset()
+        configurable.timeoutField.text = "0"
+        assertTrue(configurable.isModified)
+        assertThrows(ConfigurationException::class.java) { configurable.apply() }
+        assertEquals(MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.timeoutSeconds)
+    }
+
+    fun testApplySavesTheTimeoutAndLoadsTheTasksAgain() {
+        val tasks = project.service<MoonTasksService>()
+        tasks.prepareForTests()
+        try {
+            tasks.queryProjects = { CliResult.Failed("from timeout") }
+            configurable.createComponent()
+            configurable.reset()
+            configurable.timeoutField.text = "300"
+            configurable.apply()
+            assertEquals(300, settings.timeoutSeconds)
+            assertFalse(configurable.isModified)
+            tasks.awaitState(TasksState.MoonError("from timeout"))
+        } finally {
+            runBlocking { tasks.resetForTests() }
+        }
+    }
+
+    fun testSetterRejectsATimeoutOutsideTheRange() {
+        for (value in listOf(0, -5, MoonSettings.MAX_TIMEOUT_SECONDS + 1)) {
+            assertThrows(IllegalArgumentException::class.java) { settings.timeoutSeconds = value }
+        }
+        assertEquals(MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.state.timeoutSeconds)
+    }
+
+    fun testApplyShowsTheSavedTimeoutWithoutSpaces() {
+        val tasks = project.service<MoonTasksService>()
+        tasks.prepareForTests()
+        try {
+            configurable.createComponent()
+            configurable.reset()
+            configurable.timeoutField.text = " 120 "
+            configurable.apply()
+            assertEquals(120, settings.timeoutSeconds)
+            assertEquals("120", configurable.timeoutField.text)
+            assertFalse("The page must not be modified after apply", configurable.isModified)
+        } finally {
+            runBlocking { tasks.resetForTests() }
+        }
+    }
+
+    fun testCommentShowsTheDefaultTimeout() {
+        val comment = MoonExplorerBundle.message("settings.timeout.comment", MoonSettings.DEFAULT_TIMEOUT_SECONDS.toString())
+        assertTrue(comment.contains("The default value is 60."))
     }
 }

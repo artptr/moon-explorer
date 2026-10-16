@@ -66,12 +66,6 @@ class MoonCliTimeoutTest {
         assertTrue("The plugin must stop the process after the timeout", process.isStopped)
     }
 
-    // Issue #26 sets the time limit to 60 seconds. If you change the limit intentionally, change this test too.
-    @Test
-    fun defaultTimeoutIsOneMinute() {
-        assertEquals(60_000, MoonCli.TIMEOUT_MILLIS)
-    }
-
     private companion object {
         /** The maximum time that a test waits for the fake process. */
         const val TEST_LIMIT_MILLIS = 10_000L
