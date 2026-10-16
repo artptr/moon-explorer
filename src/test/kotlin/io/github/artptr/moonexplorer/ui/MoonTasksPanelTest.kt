@@ -5,22 +5,23 @@ import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ClickListener
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.QueryTasksParser
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.testData.LargeQueryTasksJson
 import io.github.artptr.moonexplorer.testData.TestData
+import kotlin.system.measureTimeMillis
 import java.nio.file.Path
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
-import kotlin.system.measureTimeMillis
 
 class MoonTasksPanelTest : BasePlatformTestCase() {
 
@@ -135,7 +136,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.tree.selectionPath = taskPath("web:build")
         panel.render(TasksState.Loaded(changed))
         assertTrue("The web node must stay expanded", panel.tree.isExpanded(projectPath("web")))
-        assertEquals("web:build", panel.tree.selectionPath?.lastPathComponent.toString())
+        assertEquals("web:build", (panel.tree.selectionPath?.lastPathComponent as TaskNode).task.target)
     }
 
     private fun loadRecorded() = panel.render(
@@ -182,10 +183,36 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(clickListeners(Tree()) + 1, clickListeners(panel.tree))
     }
 
-    fun testEnterKeyRunsTheTaskAction() {
-        val actions = ActionUtil.getActions(panel.tree)
-        val enter = actions.single { action -> action.shortcutSet.shortcuts.any { it in CommonShortcuts.ENTER.shortcuts } }
+    private fun enterAction(): MoonTasksPanel.RunOnEnterAction =
+        ActionUtil.getActions(panel.tree).filterIsInstance<MoonTasksPanel.RunOnEnterAction>().single()
+
+    fun testEnterKeyHasTheTextOfTheRunAction() {
+        val enter = enterAction()
+        assertTrue(enter.shortcutSet.shortcuts.any { it in CommonShortcuts.ENTER.shortcuts })
         assertEquals(ActionManager.getInstance().getAction(MoonTasksPanel.RUN_TASK_ACTION_ID).templateText, enter.templateText)
+    }
+
+    fun testEnterKeyRunsTheSelectedTaskAndClosesTheSpeedSearch() {
+        val ran = mutableListOf<String>()
+        panel.runTask = { ran += it.target }
+        loadRecorded()
+        panel.tree.selectionPath = taskPath("web:build")
+        val action = enterAction()
+        val event = TestActionEvent.createTestEvent(action)
+        action.update(event)
+        assertTrue(event.presentation.isEnabled)
+        action.actionPerformed(event)
+        assertEquals(listOf("web:build"), ran)
+        assertFalse(panel.speedSearch.isPopupActive)
+    }
+
+    fun testEnterKeyOnAProjectNodeIsLeftToTheTree() {
+        loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        val action = enterAction()
+        val event = TestActionEvent.createTestEvent(action)
+        action.update(event)
+        assertFalse("A disabled action does not take the Enter key from the tree", event.presentation.isEnabled)
     }
 
     private fun topNodeNames() = (panel.tree.model.root as DefaultMutableTreeNode).children().toList().map { it.toString() }

@@ -15,6 +15,7 @@ import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.testData.TestData
 import java.awt.event.KeyEvent
 import java.beans.PropertyChangeListener
+import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 
 class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
@@ -138,10 +139,34 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         assertSame(panel.speedSearch, SpeedSearchSupply.getSupply(panel.tree, true))
     }
 
-    fun testSearchTextContainsTheIdAndTheDescription() {
+    fun testSearchTextContainsTheTargetAndTheDescription() {
         val build = TaskNode(tasks.projects.single { it.id == "web" }.tasks.single { it.id == "build" })
-        assertEquals("build  Make the production bundle.", searchText(build))
-        assertEquals("web  Make the production bundle.", searchText(TaskNode(build.task, showProject = true)))
+        assertEquals("web:build  Make the production bundle.", searchText(build))
+        assertEquals("web:build  Make the production bundle.", searchText(TaskNode(build.task, showProject = true)))
+    }
+
+    fun testSearchTextOfOtherNodesIsTheShownText() {
+        assertEquals("web", searchText(ProjectNode(tasks.projects.single { it.id == "web" })))
+        assertEquals("other", searchText(DefaultMutableTreeNode("other")))
+        assertEquals("", searchText(null))
+    }
+
+    fun testSearchFindsATaskByItsTarget() {
+        panel.speedSearch.findAndSelectElement("web:lint")
+        assertEquals("web:lint", selectedTask.task.target)
+    }
+
+    fun testSearchForAProjectAlsoFindsItsTasks() {
+        panel.speedSearch.findAndSelectElement("worker")
+        assertEquals("worker", (selectedPath.lastPathComponent as ProjectNode).project.id)
+        panel.speedSearch.adjustSelection(KeyEvent.VK_DOWN, "worker")
+        assertEquals("worker", selectedTask.projectId)
+    }
+
+    fun testTaskNodeTextIsTheShownName() {
+        val build = TaskNode(tasks.projects.single { it.id == "web" }.tasks.single { it.id == "build" })
+        assertEquals("build", build.toString())
+        assertEquals("web", TaskNode(build.task, showProject = true).toString())
     }
 
     private fun selectedPathOf(projectId: String): TreePath =

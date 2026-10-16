@@ -65,15 +65,18 @@ class ProjectNode(val project: MoonProject) : TaskTreeNode(project) {
 }
 
 /**
- * A tree node for a task. [toString] gives the task target.
+ * A tree node for a task. [toString] gives [label], the name that the tree shows.
  * If [showProject] is true, the node shows the project ID, because the parent node gives the task name.
  */
 class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeNode(task, false) {
     override val key: String get() = "task:${task.target}"
-    override fun toString(): String = task.target
+    override fun toString(): String = label
 
     /** The ID of the project of the task. */
     val projectId: String get() = task.target.substringBeforeLast(':')
+
+    /** The name that the node shows. It is the project ID if the parent node gives the task name. If not, it is the task ID. */
+    val label: String get() = if (showProject) projectId else task.id
 }
 
 /** A tree node for a task name. It contains the tasks with this name in all projects. */
@@ -92,17 +95,16 @@ class StackNode(val stack: String?) : TaskTreeNode(stack) {
 private const val DESCRIPTION_SEPARATOR = "  "
 
 /**
- * Gives the text that the tree shows for [node]. The speed search of the tree examines this text.
- * For a task node, the text contains the task ID (or the project ID) and the description.
+ * Gives the text that the speed search of the tree examines for [node].
+ * For a task node, the text contains the target and the description. The target contains the project ID and the task ID.
+ * Thus the search finds `web:build`, and the search for `web` also finds the tasks of the project `web`.
+ * The renderer highlights the found text in the text that the node shows. That text does not contain the full target.
+ * For other nodes, the text is the text that the node shows.
  */
 fun searchText(node: Any?): String = when (node) {
-    is TaskNode -> node.label + node.task.description?.let { DESCRIPTION_SEPARATOR + it }.orEmpty()
-    is TaskTreeNode -> node.toString()
-    else -> ""
+    is TaskNode -> node.task.target + node.task.description?.let { DESCRIPTION_SEPARATOR + it }.orEmpty()
+    else -> node?.toString().orEmpty()
 }
-
-/** The name that a task node shows. It is the project ID if the parent node gives the task name. If not, it is the task ID. */
-private val TaskNode.label: String get() = if (showProject) projectId else task.id
 
 /**
  * Shows the nodes of the task tree. A task node shows its description in gray text.

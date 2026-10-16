@@ -3,12 +3,15 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.DoubleClickListener
@@ -127,7 +130,30 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         object : DoubleClickListener() {
             override fun onDoubleClick(event: MouseEvent): Boolean = onDoubleClick(tree.getPathForLocation(event.x, event.y))
         }.installOn(tree)
-        ActionUtil.wrap(RUN_TASK_ACTION_ID).registerCustomShortcutSet(CommonShortcuts.ENTER, tree, this)
+        RunOnEnterAction().registerCustomShortcutSet(CommonShortcuts.ENTER, tree, this)
+    }
+
+    /**
+     * Runs the selected task when the user pushes Enter in the tree. Then the action closes the speed search.
+     * The action has the text of the action [RUN_TASK_ACTION_ID]. It is disabled if the selection is not one task node.
+     * Then the tree gets the Enter key.
+     */
+    internal inner class RunOnEnterAction : DumbAwareAction() {
+        init {
+            ActionUtil.copyFrom(this, RUN_TASK_ACTION_ID)
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = selectedTask() != null
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+            val task = selectedTask() ?: return
+            runTask(task)
+            speedSearch.hidePopup()
+        }
     }
 
     /**
