@@ -37,7 +37,8 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
         }
 
     /**
-     * The time limit for a moon command, in seconds. After this time, the plugin stops the moon process.
+     * The time limit to load the tasks, in seconds. After this time, the plugin stops `moon query projects`.
+     * The time limit does not apply to `moon run`.
      * If the value in the state is not in [TIMEOUT_RANGE], the plugin uses [DEFAULT_TIMEOUT_SECONDS].
      * This occurs only if a person changes the workspace file manually. The setter accepts only values in [TIMEOUT_RANGE].
      */

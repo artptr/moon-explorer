@@ -78,9 +78,10 @@ If the path in the settings is not valid or is not an executable file, the plugi
 The plugin keeps the path setting in the workspace file of the IDE project. Thus the setting is not in version control.
 If the plugin cannot find `moon`, the tool window shows the examined locations and a link to the settings page.
 
-## 5. Time limit of moon commands
+## 5. Time limit to load the tasks
 
-The plugin stops a moon command if it does not complete in the time limit. The tool window then shows a message and a link to the settings page.
+The plugin stops `moon query projects` if it does not complete in the time limit. The tool window then shows a message and a link to the settings page.
+`moon run` has no time limit. The task runs in the Run tool window until it stops or the user stops it.
 
 The user sets the time limit in seconds in **Settings | Tools | Moon Explorer**. The default value is 60 seconds.
 The settings page accepts only a whole number from 1 to 86400. In milliseconds, the maximum value is less than the maximum value of a Kotlin `Int`.

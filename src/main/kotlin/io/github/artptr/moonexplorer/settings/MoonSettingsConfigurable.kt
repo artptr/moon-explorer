@@ -50,7 +50,7 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
     internal lateinit var foundField: JBTextField
         private set
 
-    /** The time limit for moon commands, in seconds. */
+    /** The time limit to load the tasks, in seconds. */
     internal lateinit var timeoutField: JBTextField
         private set
 
