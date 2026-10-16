@@ -18,6 +18,7 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.SystemProperties
+import com.intellij.util.concurrency.ThreadingAssertions
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.cli.MoonExecutableLocator
 import io.github.artptr.moonexplorer.model.MoonTasksService
@@ -104,11 +105,13 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
     }
 
     /**
-     * Finds moon on a background thread with [settingsPath], and shows the result.
+     * Finds moon on a background thread with [settingsPath], and shows the result. Call this function on the EDT.
      * The function waits [delayMillis] before the search. A new call cancels the previous search.
      * Thus the page does not examine the files after each key that the user pushes.
      */
     internal fun updateFoundPath(settingsPath: String, delayMillis: Long = SEARCH_DELAY_MILLIS): Job {
+        // The check of searchJob in the search below is correct only if all calls run on the EDT.
+        ThreadingAssertions.assertEventDispatchThread()
         searchJob?.cancel()
         foundField.text = MoonExplorerBundle.message("settings.found.searching")
         val service = project.service<MoonExecutableService>()

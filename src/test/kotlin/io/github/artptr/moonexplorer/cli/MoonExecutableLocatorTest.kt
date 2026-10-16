@@ -238,4 +238,49 @@ class MoonExecutableLocatorTest {
         val bat = moonIn(workspace.resolve("node_modules/.bin"), "moon.bat")
         assertEquals(bat, MoonExecutableLocator.find(null, workspace, env(windows = true)).executable)
     }
+
+    @Test
+    fun windowsPrefersExeWhenSeveralNamesExist() {
+        val bin = workspace.resolve("node_modules/.bin")
+        moonIn(bin, "moon.cmd")
+        moonIn(bin, "moon.bat")
+        val exe = moonIn(bin, "moon.exe")
+        assertEquals(exe, MoonExecutableLocator.find(null, workspace, env(windows = true)).executable)
+    }
+
+    @Test
+    fun blankProtoHomeUsesTheDefaultDirectory() {
+        val shim = moonIn(home.resolve(".proto/shims"))
+        assertEquals(shim, MoonExecutableLocator.find(null, workspace, env("PROTO_HOME" to "  ")).executable)
+    }
+
+    @Test
+    fun relativeProtoHomeUsesTheDefaultDirectory() {
+        val shim = moonIn(home.resolve(".proto/shims"))
+        assertEquals(shim, MoonExecutableLocator.find(null, workspace, env("PROTO_HOME" to "relative/proto")).executable)
+    }
+
+    @Test
+    fun pathEntryWithTildeStartsAtTheHomeDirectory() {
+        val moon = moonIn(home.resolve("bin"))
+        assertEquals(moon, MoonExecutableLocator.find(null, workspace, env("PATH" to "~/bin")).executable)
+    }
+
+    @Test
+    fun pathIgnoresBlankInvalidAndRelativeEntriesAndTrimsSpaces() {
+        val moon = moonIn(pathDir)
+        val path = listOf(" ", "bad\u0000path", "relative-bin", " $pathDir ").joinToString(File.pathSeparator)
+        assertEquals(moon, MoonExecutableLocator.find(null, workspace, env("PATH" to path)).executable)
+    }
+
+    @Test
+    fun pathWithOnlyARelativeEntryFindsNothing() {
+        assertNull(MoonExecutableLocator.find(null, null, env("PATH" to "relative-bin", windows = false)).executable)
+    }
+
+    @Test
+    fun windowsPathVariableNameIsNotCaseSensitive() {
+        val cmd = moonIn(pathDir, "moon.cmd")
+        assertEquals(cmd, MoonExecutableLocator.find(null, workspace, env("Path" to pathDir.toString(), windows = true)).executable)
+    }
 }

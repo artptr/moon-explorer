@@ -72,27 +72,42 @@ object MoonExecutableLocator {
             if (configured == null) {
                 thisLogger().warn("The path to moon in the settings is not valid or has no workspace root: $settingsText")
             } else {
-                firstExecutable(listOf(configured))?.let { return MoonExecutableSearch(it, examined) }
+                firstExecutable(listOf(configured))?.let { return MoonExecutableSearch(it, examined.toList()) }
             }
         }
 
         val workspaceCandidates = workspaceRoot?.let { root -> names.map { root.resolve("node_modules/.bin/$it") } }.orEmpty()
-        firstExecutable(workspaceCandidates)?.let { return MoonExecutableSearch(it, examined) }
+        firstExecutable(workspaceCandidates)?.let { return MoonExecutableSearch(it, examined.toList()) }
 
         val protoHome = protoHome(env)
         val protoCandidates = listOf("shims", "bin").flatMap { dir -> names.map { protoHome.resolve(dir).resolve(it) } }
-        firstExecutable(protoCandidates)?.let { return MoonExecutableSearch(it, examined) }
+        firstExecutable(protoCandidates)?.let { return MoonExecutableSearch(it, examined.toList()) }
 
-        val separator = if (env.isWindows) ';' else ':'
-        val pathDirs = env.environment["PATH"].orEmpty().split(separator)
-            .filter { it.isNotBlank() }
-            .mapNotNull { toPath(it, env.userHome) }
-        for (dir in pathDirs) {
+        for (dir in pathDirectories(env)) {
             // The directories in PATH are not in the examined list. The message tells about PATH in one line.
             names.map(dir::resolve).firstOrNull { isExecutable(it, env.isWindows) }
-                ?.let { return MoonExecutableSearch(it, examined) }
+                ?.let { return MoonExecutableSearch(it, examined.toList()) }
         }
-        return MoonExecutableSearch(null, examined)
+        return MoonExecutableSearch(null, examined.toList())
+    }
+
+    /**
+     * Gives the absolute directories in `PATH`. On Windows, the name of the variable can have a different case, for example `Path`.
+     * The function ignores blank entries, entries that are not valid paths, and relative entries.
+     * A relative entry starts at the working directory of the IDE, thus it has no relation to the workspace.
+     */
+    private fun pathDirectories(env: SearchEnvironment): List<Path> {
+        val value = if (env.isWindows) {
+            env.environment.entries.firstOrNull { it.key.equals("PATH", ignoreCase = true) }?.value
+        } else {
+            env.environment["PATH"]
+        }
+        val separator = if (env.isWindows) ';' else ':'
+        return value.orEmpty().split(separator)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .mapNotNull { toPath(it, env.userHome) }
+            .filter { it.isAbsolute }
     }
 
     /**
@@ -109,12 +124,13 @@ object MoonExecutableLocator {
         null
     }
 
-    /** Gives `$PROTO_HOME`, or `~/.proto` if `PROTO_HOME` is not set or is not a valid path. */
+    /** Gives `$PROTO_HOME`, or `~/.proto` if `PROTO_HOME` is not set, is not a valid path, or is a relative path. */
     private fun protoHome(env: SearchEnvironment): Path {
         val default = env.userHome.resolve(".proto")
-        val text = env.environment["PROTO_HOME"]?.takeIf { it.isNotBlank() } ?: return default
-        return toPath(text, env.userHome) ?: default.also {
-            thisLogger().warn("PROTO_HOME is not a valid path: $text. The plugin uses $default.")
+        val text = env.environment["PROTO_HOME"]?.trim()?.takeIf { it.isNotEmpty() } ?: return default
+        val path = toPath(text, env.userHome)?.takeIf { it.isAbsolute }
+        return path ?: default.also {
+            thisLogger().warn("PROTO_HOME is not a valid absolute path: $text. The plugin uses $default.")
         }
     }
 

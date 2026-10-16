@@ -1,18 +1,26 @@
 package io.github.artptr.moonexplorer.cli
 
 import com.intellij.execution.process.CapturingProcessHandler
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.ApplicationRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-class MoonCliTimeoutTest : BasePlatformTestCase() {
+class MoonCliTimeoutTest {
+
+    // MoonCli uses the progress manager of the platform. The tests need only the application, not a project.
+    @get:Rule
+    val application = ApplicationRule()
 
     /** A process that does not stop until the plugin stops it. The test does not start moon. */
     private class HangingProcess : Process() {
@@ -51,14 +59,16 @@ class MoonCliTimeoutTest : BasePlatformTestCase() {
         }
     }
 
-    fun testProcessThatDoesNotStopGivesTimedOut() {
+    @Test
+    fun processThatDoesNotStopGivesTimedOut() {
         val process = HangingProcess()
         assertEquals(CliResult.TimedOut, runHangingProcess(process, 200))
         assertTrue("The plugin must stop the process after the timeout", process.isStopped)
     }
 
     // Issue #26 sets the time limit to 60 seconds. If you change the limit intentionally, change this test too.
-    fun testDefaultTimeoutIsOneMinute() {
+    @Test
+    fun defaultTimeoutIsOneMinute() {
         assertEquals(60_000, MoonCli.TIMEOUT_MILLIS)
     }
 
