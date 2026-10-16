@@ -5,6 +5,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
@@ -24,7 +25,8 @@ class MoonCliTimeoutTest : BasePlatformTestCase() {
         override fun getErrorStream(): InputStream = InputStream.nullInputStream()
 
         override fun waitFor(): Int {
-            stopped.await()
+            // Do not wait without a limit. If the plugin does not stop the process, the test must fail and not hang.
+            stopped.await(TEST_LIMIT_MILLIS, TimeUnit.MILLISECONDS)
             return exitValue()
         }
 
@@ -44,7 +46,9 @@ class MoonCliTimeoutTest : BasePlatformTestCase() {
         val handler = CapturingProcessHandler(process, StandardCharsets.UTF_8, "moon query tasks")
         // The fake process has no operating system process. Thus the handler must not stop a process tree.
         handler.setShouldDestroyProcessRecursively(false)
-        return runBlocking { withContext(Dispatchers.IO) { MoonCli.run(handler, timeoutMillis) } }
+        return runBlocking {
+            withTimeout(TEST_LIMIT_MILLIS) { withContext(Dispatchers.IO) { MoonCli.runWithTimeout(handler, timeoutMillis) } }
+        }
     }
 
     fun testProcessThatDoesNotStopGivesTimedOut() {
@@ -53,7 +57,13 @@ class MoonCliTimeoutTest : BasePlatformTestCase() {
         assertTrue("The plugin must stop the process after the timeout", process.isStopped)
     }
 
+    // Issue #26 sets the time limit to 60 seconds. If you change the limit intentionally, change this test too.
     fun testDefaultTimeoutIsOneMinute() {
         assertEquals(60_000, MoonCli.TIMEOUT_MILLIS)
+    }
+
+    private companion object {
+        /** The maximum time that a test waits for the fake process. */
+        const val TEST_LIMIT_MILLIS = 10_000L
     }
 }

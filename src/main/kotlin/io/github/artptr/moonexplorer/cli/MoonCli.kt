@@ -55,14 +55,14 @@ object MoonCli {
         } catch (e: ExecutionException) {
             return CliResult.Failed(e.message.orEmpty())
         }
-        return run(handler, TIMEOUT_MILLIS)
+        return runWithTimeout(handler, TIMEOUT_MILLIS)
     }
 
     /**
      * Waits until the process of [handler] stops and gives the result.
-     * If the process does not stop in [timeoutMillis], the function stops the process. Tests use a fake process.
+     * If the process does not stop in [timeoutMillis], the function stops the process.
      */
-    internal suspend fun run(handler: CapturingProcessHandler, timeoutMillis: Int): CliResult {
+    internal suspend fun runWithTimeout(handler: CapturingProcessHandler, timeoutMillis: Int): CliResult {
         val output = coroutineToIndicator { indicator -> handler.runProcessWithProgressIndicator(indicator, timeoutMillis, true) }
         return toResult(output)
     }
@@ -70,7 +70,7 @@ object MoonCli {
     /** Converts the output of a moon process to a [CliResult]. */
     internal fun toResult(output: ProcessOutput): CliResult {
         if (output.isTimeout) return CliResult.TimedOut
-        if (output.exitCode == 0 && !output.isTimeout && !output.isCancelled) return CliResult.Success(output.stdout)
+        if (output.exitCode == 0 && !output.isCancelled) return CliResult.Success(output.stdout)
         val text = output.stderr.ifBlank { output.stdout }.replace(ANSI_ESCAPE, "").trim()
         return CliResult.Failed(text.ifEmpty { statusText(output) })
     }
