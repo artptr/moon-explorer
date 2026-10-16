@@ -87,6 +87,7 @@ The file `workspace/package.json` sets the moon version. Node.js and npm are nec
 3. Commit the changes in `src/test/testData/`.
 
 The script installs the moon version that `package.json` gives. Then it writes the files in `moon/`.
+The output of `moon query projects` contains the absolute path of each project. The script replaces the path of the workspace with `/workspace`.
 The script stops with an error if a recorded file contains the path of the repository on your computer.
 
 ### 4.2 Test data for a large workspace

@@ -36,6 +36,9 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
     private val defaultQueryTasks: suspend (Path) -> CliResult = { root ->
         MoonCli.queryTasks(root, project.service<MoonExecutableService>().settingsPath)
     }
+    private val defaultQueryProjects: suspend (Path) -> CliResult = { root ->
+        MoonCli.queryProjects(root, project.service<MoonExecutableService>().settingsPath)
+    }
 
     /**
      * Gives the IDE project directory. Tests change this value.
@@ -49,7 +52,13 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
      */
     internal var queryTasks: suspend (Path) -> CliResult = defaultQueryTasks
 
-    /** Runs `moon query tasks` again. If a load runs now, the function cancels it and starts a new load. */
+    /**
+     * Runs `moon query projects`. Tests change this value to a fake.
+     * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
+     */
+    internal var queryProjects: suspend (Path) -> CliResult = defaultQueryProjects
+
+    /** Runs `moon query tasks` and `moon query projects` again. If a load runs now, the function cancels it and starts a new load. */
     @Synchronized
     fun refresh() {
         val previous = job
@@ -60,15 +69,16 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
         val queryTasksFn = queryTasks
+        val queryProjectsFn = queryProjects
         job = cs.launch {
             previous?.join()
-            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryTasksFn) }
+            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryTasksFn, queryProjectsFn) }
         }
     }
 
     /**
      * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading].
-     * Also sets [projectDir] and [queryTasks] to their default values. Only tests use this function.
+     * Also sets [projectDir], [queryTasks], and [queryProjects] to their default values. Only tests use this function.
      * Call it only on the test thread.
      */
     @TestOnly
@@ -76,6 +86,7 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
         val previous = synchronized(this) {
             projectDir = defaultProjectDir
             queryTasks = defaultQueryTasks
+            queryProjects = defaultQueryProjects
             job.also { job = null }
         }
         previous?.cancelAndJoin()

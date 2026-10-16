@@ -11,8 +11,6 @@ class MoonOutputException(message: String, cause: Throwable? = null) : Exception
 /** Reads the JSON output of `moon query tasks`. */
 object QueryTasksParser {
 
-    private val BY_ID: Comparator<String> = String.CASE_INSENSITIVE_ORDER.thenComparing(naturalOrder())
-
     /** Reads [json] and gives the projects and tasks, sorted by ID. Throws [MoonOutputException] if the JSON is not correct. */
     fun parse(json: String): WorkspaceTasks {
         val root = try {
@@ -34,9 +32,9 @@ object QueryTasksParser {
                 )
             }
             if (taskList.isEmpty()) return@mapNotNull null
-            MoonProject(projectId, taskList.sortedWith(compareBy(BY_ID) { it.id }))
+            MoonProject(projectId, taskList.sortedWith(compareBy(ID_ORDER) { it.id }))
         }
-        return WorkspaceTasks(projects.sortedWith(compareBy(BY_ID) { it.id }))
+        return WorkspaceTasks(projects.sortedWith(compareBy(ID_ORDER) { it.id }))
     }
 
     private fun JsonElement.objectOrNull(): JsonObject? = if (isJsonObject) asJsonObject else null
