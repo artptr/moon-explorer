@@ -6,6 +6,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
 import java.io.File
 
 class MoonSettingsConfigurableTest : BasePlatformTestCase() {
@@ -44,11 +45,11 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
     }
 
     fun testPageShowsThePathThatThePluginFound() {
-        val moon = FileUtil.createTempFile("moon", null, true).apply { setExecutable(true) }
-        settings.executablePath = moon.path
+        val moon = fakeMoonExecutable()
+        settings.executablePath = moon.toString()
         configurable.createComponent()
         configurable.reset()
-        awaitFoundText(moon.toPath().toString())
+        awaitFoundText(moon.toString())
     }
 
     fun testPageShowsTheSearchTextBeforeTheResult() {
@@ -75,11 +76,11 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
     }
 
     fun testPageFindsMoonWithTheTextOfTheFieldBeforeApply() {
-        val moon = FileUtil.createTempFile("moon", null, true).apply { setExecutable(true) }
+        val moon = fakeMoonExecutable()
         configurable.createComponent()
         configurable.reset()
-        configurable.updateFoundPath(moon.path, delayMillis = 0)
-        awaitFoundText(moon.toPath().toString())
+        configurable.updateFoundPath(moon.toString(), delayMillis = 0)
+        awaitFoundText(moon.toString())
         assertEquals("The saved path must not change before Apply", "", settings.executablePath)
     }
 }

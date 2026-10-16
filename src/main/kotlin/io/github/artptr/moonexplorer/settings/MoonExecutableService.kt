@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.cli.MoonExecutableLocator
 import io.github.artptr.moonexplorer.cli.MoonExecutableSearch
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
+import io.github.artptr.moonexplorer.cli.SearchEnvironment
 import kotlinx.coroutines.CoroutineScope
 import java.nio.file.Path
 
@@ -27,9 +28,13 @@ class MoonExecutableService(private val project: Project, private val cs: Corout
     fun find(settingsPath: String = this.settingsPath): MoonExecutableSearch =
         find(settingsPath, project.basePath?.let(Path::of))
 
-    /** Finds the workspace root from [projectDir] and then finds moon. Tests give the values. */
-    internal fun find(settingsPath: String, projectDir: Path?): MoonExecutableSearch {
+    /** Finds the workspace root from [projectDir] and then finds moon in [env]. Tests give the values. */
+    internal fun find(
+        settingsPath: String,
+        projectDir: Path?,
+        env: SearchEnvironment = SearchEnvironment.current(),
+    ): MoonExecutableSearch {
         val root = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot)
-        return MoonExecutableLocator.find(settingsPath, root)
+        return MoonExecutableLocator.find(settingsPath, root, env)
     }
 }

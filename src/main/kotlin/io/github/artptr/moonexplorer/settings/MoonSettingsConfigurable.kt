@@ -24,6 +24,8 @@ import io.github.artptr.moonexplorer.model.MoonTasksService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
@@ -113,8 +115,12 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
         return service.scope.launch(Dispatchers.IO) {
             delay(delayMillis)
             val executable = service.find(settingsPath).executable
+            val search = coroutineContext.job
             // The settings dialog is modal. Thus the update must run in any modality state.
             withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
+                // A newer search or the close of the page cancels this search. Then the result is not current.
+                // This block and updateFoundPath run on the EDT. Thus searchJob has its value when this block runs.
+                if (!isActive || searchJob !== search) return@withContext
                 foundField.text = executable?.toString() ?: MoonExplorerBundle.message("settings.found.notFound")
             }
         }.also { searchJob = it }
@@ -122,6 +128,7 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
 
     override fun disposeUIResources() {
         searchJob?.cancel()
+        searchJob = null
         super.disposeUIResources()
     }
 

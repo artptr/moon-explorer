@@ -215,4 +215,27 @@ class MoonExecutableLocatorTest {
         val exe = moonIn(temp.newFolder("bin").toPath(), "moon.exe")
         assertEquals(exe, MoonExecutableLocator.find(exe.toString(), workspace, env(windows = true)).executable)
     }
+
+    @Test
+    fun relativeSettingsPathStartsAtTheWorkspaceRoot() {
+        val moon = moonIn(workspace.resolve("tools"))
+        val relative = "tools/${moon.fileName}"
+        val result = MoonExecutableLocator.find(relative, workspace, env())
+        assertEquals(moon, result.executable)
+        assertEquals(moon, result.examined.first())
+    }
+
+    @Test
+    fun relativeSettingsPathWithoutWorkspaceIsSkipped() {
+        val shim = moonIn(home.resolve(".proto/shims"))
+        val result = MoonExecutableLocator.find("tools/moon", null, env(windows = false))
+        assertEquals(shim, result.executable)
+        assertEquals(home.resolve(".proto/shims/moon"), result.examined.first())
+    }
+
+    @Test
+    fun windowsFindsMoonBatInNodeModules() {
+        val bat = moonIn(workspace.resolve("node_modules/.bin"), "moon.bat")
+        assertEquals(bat, MoonExecutableLocator.find(null, workspace, env(windows = true)).executable)
+    }
 }

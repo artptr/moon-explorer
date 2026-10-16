@@ -54,11 +54,12 @@ All moon commands of the plugin use the same executable.
 The plugin examines these locations in this sequence. It uses the first executable that it finds.
 
 1. The path in **Settings | Tools | Moon Explorer**, if the user set a path.
-2. `node_modules/.bin/moon` in the workspace root. On Windows, the plugin looks for `moon.exe` and `moon.cmd`.
+2. `node_modules/.bin/moon` in the workspace root. On Windows, the plugin examines `moon.exe`, `moon.cmd`, `moon.bat`, and `moon.com`.
 3. The `shims` and `bin` directories of proto: `$PROTO_HOME`, or `~/.proto` if `PROTO_HOME` is not set.
 4. The directories in `PATH`.
 
 A `~` at the start of the path in the settings or of `PROTO_HOME` is the home directory of the user.
+A relative path in the settings starts at the workspace root.
 On Windows, the plugin uses only files with the extension `exe`, `cmd`, `bat`, or `com`. Windows cannot start a file without an extension.
 If the path in the settings is not valid or is not an executable file, the plugin examines the next locations. The settings page shows the executable that the plugin uses.
 

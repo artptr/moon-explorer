@@ -33,8 +33,8 @@ data class SearchEnvironment(
 /** Finds the `moon` executable. */
 object MoonExecutableLocator {
 
-    /** On Windows, only files with these extensions are executables. */
-    private val WINDOWS_EXECUTABLE_EXTENSIONS = setOf("exe", "cmd", "bat", "com")
+    /** On Windows, only files with these extensions are executables. The search examines them in this sequence. */
+    private val WINDOWS_EXECUTABLE_EXTENSIONS = listOf("exe", "cmd", "bat", "com")
 
     /**
      * Examines these locations in this sequence and gives the first executable:
@@ -44,6 +44,7 @@ object MoonExecutableLocator {
      * 4. The directories in `PATH`.
      *
      * A `~` at the start of [settingsPath] or `PROTO_HOME` is the home directory of the user.
+     * A relative [settingsPath] starts at [workspaceRoot].
      * If [settingsPath] is not a valid path, or is not an executable file, the function examines the next locations.
      * Call this function on a background thread.
      */
@@ -52,7 +53,7 @@ object MoonExecutableLocator {
         workspaceRoot: Path?,
         env: SearchEnvironment = SearchEnvironment.current(),
     ): MoonExecutableSearch {
-        val names = if (env.isWindows) listOf("moon.exe", "moon.cmd") else listOf("moon")
+        val names = if (env.isWindows) WINDOWS_EXECUTABLE_EXTENSIONS.map { "moon.$it" } else listOf("moon")
         val examined = mutableListOf<Path>()
 
         fun firstExecutable(candidates: List<Path>): Path? {
@@ -65,9 +66,11 @@ object MoonExecutableLocator {
 
         val settingsText = settingsPath?.trim().orEmpty()
         if (settingsText.isNotEmpty()) {
-            val configured = toPath(settingsText, env.userHome)
+            val parsed = toPath(settingsText, env.userHome)
+            // Do not use a relative path from the working directory of the IDE. That directory has no relation to the workspace.
+            val configured = if (parsed == null || parsed.isAbsolute) parsed else workspaceRoot?.resolve(parsed)
             if (configured == null) {
-                thisLogger().warn("The path to moon in the settings is not valid: $settingsText")
+                thisLogger().warn("The path to moon in the settings is not valid or has no workspace root: $settingsText")
             } else {
                 firstExecutable(listOf(configured))?.let { return MoonExecutableSearch(it, examined) }
             }
