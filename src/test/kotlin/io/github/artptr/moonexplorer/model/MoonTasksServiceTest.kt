@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class MoonTasksServiceTest : BasePlatformTestCase() {
 
     private lateinit var service: MoonTasksService
-    private val recorded = TestData.recorded("query-tasks.json")
+    private val recorded = TestData.recorded("query-projects.json")
 
     override fun setUp() {
         super.setUp()
@@ -32,7 +32,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testRefreshLoadsTheTasks() {
-        service.queryTasks = { CliResult.Success(recorded) }
+        service.queryProjects = { CliResult.Success(recorded) }
         service.refresh()
         val expected = TasksState.Loaded(TestData.recordedTasks())
         service.awaitState(expected)
@@ -40,16 +40,16 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testRefreshShowsTheMoonError() {
-        service.queryTasks = { CliResult.Failed("bad config") }
+        service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
         service.awaitState(TasksState.MoonError("bad config"))
     }
 
     fun testRefreshSetsLoadingBeforeItReturns() {
-        service.queryTasks = { CliResult.Failed("first") }
+        service.queryProjects = { CliResult.Failed("first") }
         service.refresh()
         service.awaitState(TasksState.MoonError("first"))
-        service.queryTasks = { awaitCancellation() }
+        service.queryProjects = { awaitCancellation() }
         service.refresh()
         assertEquals(TasksState.Loading, service.state.value)
     }
@@ -57,7 +57,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testRefreshUsesTheInputsOfTheCall() {
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
-        service.queryTasks = {
+        service.queryProjects = {
             started.complete(Unit)
             try {
                 awaitCancellation()
@@ -69,10 +69,10 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         try {
             service.refresh()
             runBlocking { withTimeout(10_000) { started.await() } }
-            service.queryTasks = { CliResult.Failed("second refresh") }
+            service.queryProjects = { CliResult.Failed("second refresh") }
             service.refresh()
             // A change after the call must not go into the load of the call.
-            service.queryTasks = { CliResult.Failed("later change") }
+            service.queryProjects = { CliResult.Failed("later change") }
             release.complete(Unit)
             service.awaitState(TasksState.MoonError("second refresh"))
         } finally {
@@ -85,7 +85,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
         val calls = AtomicInteger()
-        service.queryTasks = {
+        service.queryProjects = {
             if (calls.incrementAndGet() == 1) {
                 started.complete(Unit)
                 try {
@@ -106,7 +106,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testStartupActivityLoadsTheTasks() {
-        service.queryTasks = { CliResult.Failed("from startup") }
+        service.queryProjects = { CliResult.Failed("from startup") }
         runBlocking { MoonTasksStartupActivity().execute(project) }
         service.awaitState(TasksState.MoonError("from startup"))
     }

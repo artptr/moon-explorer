@@ -10,10 +10,14 @@ import org.junit.Test
 /** Makes sure that the test data contains the items that the tests of the plugin use. */
 class TestDataTest {
 
-    private val tasks: JsonObject =
-        JsonParser.parseString(TestData.recorded("query-tasks.json")).asJsonObject.getAsJsonObject("tasks")
+    private val projects: List<JsonObject> =
+        JsonParser.parseString(TestData.recorded("query-projects.json")).asJsonObject.getAsJsonArray("projects").map { it.asJsonObject }
 
-    private fun taskIds(project: String) = tasks.getAsJsonObject(project).keySet()
+    /** The tasks of each project that has tasks. The keys are project IDs. */
+    private val tasks: Map<String, JsonObject> =
+        projects.filter { it.has("tasks") }.associate { it.get("id").asString to it.getAsJsonObject("tasks") }
+
+    private fun taskIds(project: String) = tasks.getValue(project).keySet()
 
     @Test
     fun recordedWithMoon223() {
@@ -27,18 +31,19 @@ class TestDataTest {
 
     @Test
     fun outputContainsAllProjectsWithTasks() {
-        assertEquals(setOf("admin", "api", "db", "ui", "utils", "web", "worker"), tasks.keySet())
+        assertEquals(setOf("admin", "api", "db", "ui", "utils", "web", "worker"), tasks.keys)
     }
 
     @Test
-    fun projectWithoutTasksIsNotInOutput() {
+    fun projectWithoutTasksHasNoTasksKey() {
         assertTrue(TestData.workspace.resolve("packages/config/moon.yml").isFile)
-        assertFalse(tasks.has("config"))
+        val config = projects.single { it.get("id").asString == "config" }
+        assertFalse(config.has("tasks"))
     }
 
     @Test
     fun allProjectsInheritTheSameTask() {
-        tasks.keySet().forEach { assertTrue("$it must have lint", "lint" in taskIds(it)) }
+        tasks.keys.forEach { assertTrue("$it must have lint", "lint" in taskIds(it)) }
     }
 
     @Test
@@ -51,13 +56,13 @@ class TestDataTest {
 
     @Test
     fun projectChangesAnInheritedTask() {
-        val args = tasks.getAsJsonObject("web").getAsJsonObject("lint").getAsJsonArray("args").map { it.asString }
+        val args = tasks.getValue("web").getAsJsonObject("lint").getAsJsonArray("args").map { it.asString }
         assertEquals(listOf("lint", "--max-warnings", "0"), args)
     }
 
     @Test
     fun someTasksHaveNoDescription() {
-        val all = tasks.keySet().flatMap { p -> taskIds(p).map { tasks.getAsJsonObject(p).getAsJsonObject(it) } }
+        val all = tasks.values.flatMap { projectTasks -> projectTasks.entrySet().map { it.value.asJsonObject } }
         assertTrue(all.any { it.has("description") })
         assertTrue(all.any { !it.has("description") })
     }
@@ -72,8 +77,7 @@ class TestDataTest {
 
     @Test
     fun recordedProjectsHaveNoPathOfTheComputer() {
-        val roots = JsonParser.parseString(TestData.recorded("query-projects.json")).asJsonObject
-            .getAsJsonArray("projects").map { it.asJsonObject.get("root").asString }
+        val roots = projects.map { it.get("root").asString }
         assertTrue(roots.all { it.startsWith("/workspace/") })
     }
 }

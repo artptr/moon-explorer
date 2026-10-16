@@ -101,7 +101,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         val tasks = project.service<MoonTasksService>()
         tasks.prepareForTests()
         try {
-            tasks.queryTasks = { CliResult.Failed("from apply") }
+            tasks.queryProjects = { CliResult.Failed("from apply") }
             val moon = fakeMoonExecutable()
             configurable.createComponent()
             configurable.reset()

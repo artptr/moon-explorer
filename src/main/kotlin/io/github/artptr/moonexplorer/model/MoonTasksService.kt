@@ -33,7 +33,6 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     private var job: Job? = null
 
     private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
-    private val defaultQueryTasks: suspend (Path) -> CliResult = { root -> query(root, "tasks") }
     private val defaultQueryProjects: suspend (Path) -> CliResult = { root -> query(root, "projects") }
 
     /**
@@ -43,18 +42,12 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     internal var projectDir: () -> Path? = defaultProjectDir
 
     /**
-     * Runs `moon query tasks`. Tests change this value to a fake.
-     * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
-     */
-    internal var queryTasks: suspend (Path) -> CliResult = defaultQueryTasks
-
-    /**
      * Runs `moon query projects`. Tests change this value to a fake.
      * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
      */
     internal var queryProjects: suspend (Path) -> CliResult = defaultQueryProjects
 
-    /** Runs `moon query tasks` and `moon query projects` again. If a load runs now, the function cancels it and starts a new load. */
+    /** Runs `moon query projects` again. If a load runs now, the function cancels it and starts a new load. */
     @Synchronized
     fun refresh() {
         val previous = job
@@ -64,11 +57,10 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         _state.value = TasksState.Loading
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
-        val queryTasksFn = queryTasks
         val queryProjectsFn = queryProjects
         job = scope.launch {
             previous?.join()
-            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryTasksFn, queryProjectsFn) }
+            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryProjectsFn) }
         }
     }
 
@@ -81,14 +73,13 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     /**
      * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading].
-     * Also sets [projectDir], [queryTasks], and [queryProjects] to their default values. Only tests use this function.
+     * Also sets [projectDir] and [queryProjects] to their default values. Only tests use this function.
      * Call it only on the test thread.
      */
     @TestOnly
     internal suspend fun resetForTests() {
         val previous = synchronized(this) {
             projectDir = defaultProjectDir
-            queryTasks = defaultQueryTasks
             queryProjects = defaultQueryProjects
             job.also { job = null }
         }

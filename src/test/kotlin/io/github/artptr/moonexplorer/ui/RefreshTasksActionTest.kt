@@ -44,7 +44,7 @@ class RefreshTasksActionTest : BasePlatformTestCase() {
     }
 
     fun testActionRefreshesTheTasks() {
-        service.queryTasks = { CliResult.Failed("from action") }
+        service.queryProjects = { CliResult.Failed("from action") }
         val action = RefreshTasksAction()
         action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
         service.awaitState(TasksState.MoonError("from action"))

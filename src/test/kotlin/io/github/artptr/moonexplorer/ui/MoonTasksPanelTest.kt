@@ -10,12 +10,12 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ClickListener
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.model.QueryTasksParser
+import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.settings.MoonSettings
-import io.github.artptr.moonexplorer.testData.LargeQueryTasksJson
+import io.github.artptr.moonexplorer.testData.LargeQueryProjectsJson
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlin.system.measureTimeMillis
 import java.nio.file.Path
@@ -95,16 +95,16 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testLoadedShowsTree() {
-        panel.render(TasksState.Loaded(QueryTasksParser.parse(TestData.recorded("query-tasks.json"))))
+        panel.render(TasksState.Loaded(TestData.recordedTasks()))
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
         assertEquals(7, panel.tree.model.getChildCount(panel.tree.model.root))
         assertFalse(panel.loadingPanel.isLoading)
     }
 
     fun testLargeWorkspaceLoadsInLessThanTwoSeconds() {
-        val json = LargeQueryTasksJson.generate()
+        val json = LargeQueryProjectsJson.generate()
         val millis = measureTimeMillis {
-            panel.render(TasksState.Loaded(QueryTasksParser.parse(json)))
+            panel.render(TasksState.Loaded(QueryProjectsParser.parse(json)))
         }
         assertEquals(17, panel.tree.model.getChildCount(panel.tree.model.root))
         assertTrue("The tree loaded in $millis ms", millis < 2_000)
@@ -124,7 +124,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testRefreshKeepsExpandedNodesWhenADescriptionChanges() {
-        val tasks = QueryTasksParser.parse(TestData.recorded("query-tasks.json"))
+        val tasks = TestData.recordedTasks()
         panel.render(TasksState.Loaded(tasks))
         panel.tree.expandPath(projectPath("web"))
         assertTrue(panel.tree.isExpanded(projectPath("web")))

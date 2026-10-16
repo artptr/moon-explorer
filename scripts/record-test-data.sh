@@ -15,7 +15,6 @@ npm ci --no-audit --no-fund --silent
 
 mkdir -p "$out"
 npx moon --version > "$out/moon-version.txt"
-npx moon query tasks > "$out/query-tasks.json"
 # The output of moon query projects contains the absolute path of each project root.
 # Replace the path of the workspace with /workspace. Thus the file does not contain paths of this computer.
 npx moon query projects | sed "s|$workspace|/workspace|g" > "$out/query-projects.json"
