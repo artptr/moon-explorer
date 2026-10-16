@@ -138,6 +138,25 @@ The `Release` workflow signs the plugin and publishes it to JetBrains Marketplac
 These repository secrets are necessary: `PUBLISH_TOKEN`, `CERTIFICATE_CHAIN`, `PRIVATE_KEY`, `PRIVATE_KEY_PASSWORD`.
 Refer to <https://plugins.jetbrains.com/docs/intellij/plugin-signing.html>.
 
+### 8.1 Version that you uploaded manually
+
+JetBrains Marketplace accepts the first version of a new plugin only as a manual upload.
+Marketplace does not accept a version that it has. Thus the `Release` workflow must not publish that version again.
+Refer to <https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html>.
+
+1. Set the signing secrets as environment variables in your shell.
+2. Run `./gradlew signPlugin verifyPluginSignature`.
+3. Upload the file `build/distributions/*-signed.zip` on JetBrains Marketplace.
+4. Run `gh variable set SKIP_MARKETPLACE_PUBLISH --body true`.
+5. Publish the draft release on GitHub.
+6. Make sure that the `Release` workflow is complete.
+7. Run `gh variable delete SKIP_MARKETPLACE_PUBLISH`.
+
+When `SKIP_MARKETPLACE_PUBLISH` is `true`, the `Release` workflow signs the plugin, but does not publish it to Marketplace.
+The workflow does the other steps as usual.
+
+**CAUTION:** Delete the variable after the release. If you do not delete it, the workflow does not publish the next versions to Marketplace.
+
 ## 9. Initial GitHub setup
 
 A maintainer does these steps one time.
