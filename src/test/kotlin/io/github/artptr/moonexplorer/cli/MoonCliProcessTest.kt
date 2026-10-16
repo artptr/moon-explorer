@@ -35,18 +35,18 @@ class MoonCliProcessTest {
         setExecutable(true)
     }
 
-    private fun queryTasks(settingsPath: String): CliResult {
+    private fun queryTasks(executable: File): CliResult {
         val workspace = temp.newFolder("workspace").toPath()
-        return runBlocking { withTimeout(10_000) { withContext(Dispatchers.IO) { MoonCli.queryTasks(workspace, settingsPath) } } }
+        return runBlocking { withTimeout(10_000) { withContext(Dispatchers.IO) { MoonCli.query(executable.toPath(), workspace, "tasks") } } }
     }
 
     @Test
-    fun queryTasksRunsTheExecutableFromTheSettings() {
-        assertEquals(CliResult.Success("query tasks NO_COLOR=1\n"), queryTasks(fakeMoon().path))
+    fun queryRunsTheExecutable() {
+        assertEquals(CliResult.Success("query tasks NO_COLOR=1\n"), queryTasks(fakeMoon()))
     }
 
     @Test
-    fun queryTasksGivesTheErrorOfTheExecutable() {
-        assertEquals(CliResult.Failed("query tasks NO_COLOR=1"), queryTasks(fakeMoon(exitCode = 2).path))
+    fun queryGivesTheErrorOfTheExecutable() {
+        assertEquals(CliResult.Failed("query tasks NO_COLOR=1"), queryTasks(fakeMoon(exitCode = 2)))
     }
 }

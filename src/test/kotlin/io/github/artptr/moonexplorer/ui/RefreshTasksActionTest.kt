@@ -8,7 +8,7 @@ import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.testData.TestData
+import io.github.artptr.moonexplorer.model.prepareForTests
 import kotlinx.coroutines.runBlocking
 
 class RefreshTasksActionTest : BasePlatformTestCase() {
@@ -18,11 +18,7 @@ class RefreshTasksActionTest : BasePlatformTestCase() {
     override fun setUp() {
         super.setUp()
         service = project.service<MoonTasksService>()
-        // The light project is the same for all tests. Remove the state and the load of the previous test.
-        runBlocking { service.resetForTests() }
-        service.projectDir = { TestData.workspace.toPath() }
-        // The tests must not start moon. The tests that need other output change this value.
-        service.queryProjects = { CliResult.Success(TestData.recorded("query-projects.json")) }
+        service.prepareForTests()
     }
 
     override fun tearDown() {

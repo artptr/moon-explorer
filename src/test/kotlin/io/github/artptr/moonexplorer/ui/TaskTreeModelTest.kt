@@ -7,8 +7,6 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
-import io.github.artptr.moonexplorer.model.QueryProjectsParser
-import io.github.artptr.moonexplorer.model.QueryTasksParser
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.testData.TestData
@@ -16,10 +14,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 
 class TaskTreeModelTest : BasePlatformTestCase() {
 
-    private val tasks by lazy {
-        QueryTasksParser.parse(TestData.recorded("query-tasks.json"))
-            .withStacks(QueryProjectsParser.parseStacks(TestData.recorded("query-projects.json")))
-    }
+    private val tasks by lazy { TestData.recordedTasks() }
 
     private val root by lazy { buildTaskTree(tasks) }
 

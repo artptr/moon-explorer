@@ -10,6 +10,7 @@ import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import javax.swing.Icon
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 
@@ -34,13 +35,9 @@ fun buildTaskTree(tasks: WorkspaceTasks, grouping: TaskGrouping = TaskGrouping.P
                     root.add(nameNode)
                 }
         }
-        TaskGrouping.STACK -> {
-            val (withStack, withoutStack) = tasks.projects.partition { it.stack != null }
-            withStack.groupBy { it.stack!! }
-                .toSortedMap(ID_ORDER)
-                .forEach { (stack, projects) -> root.add(stackNode(stack, projects)) }
-            if (withoutStack.isNotEmpty()) root.add(stackNode(null, withoutStack))
-        }
+        TaskGrouping.STACK -> tasks.projects.groupBy { it.stack }
+            .toSortedMap(nullsLast(ID_ORDER))
+            .forEach { (stack, projects) -> root.add(stackNode(stack, projects)) }
     }
     return root
 }
@@ -53,14 +50,20 @@ private fun stackNode(stack: String?, projects: List<MoonProject>) = StackNode(s
     projects.forEach { add(projectNode(it)) }
 }
 
-/** A node of the task tree. [key] identifies the node in its sibling nodes after a refresh of the tree. */
+/**
+ * A node of the task tree. [key] identifies the node in its sibling nodes after a refresh of the tree.
+ * The renderer shows [icon] and [toString] with [attributes].
+ */
 sealed class TaskTreeNode(userObject: Any?, allowsChildren: Boolean = true) : DefaultMutableTreeNode(userObject, allowsChildren) {
     abstract val key: String
+    abstract val icon: Icon
+    open val attributes: SimpleTextAttributes get() = SimpleTextAttributes.REGULAR_ATTRIBUTES
 }
 
 /** A tree node for a project. [toString] gives the project ID. */
 class ProjectNode(val project: MoonProject) : TaskTreeNode(project) {
-    override val key: String get() = "project:${project.id}"
+    override val key: String = "project:${project.id}"
+    override val icon: Icon get() = AllIcons.Nodes.Module
     override fun toString(): String = project.id
 }
 
@@ -69,7 +72,8 @@ class ProjectNode(val project: MoonProject) : TaskTreeNode(project) {
  * If [showProject] is true, the node shows the project ID, because the parent node gives the task name.
  */
 class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeNode(task, false) {
-    override val key: String get() = "task:${task.target}"
+    override val key: String = "task:${task.target}"
+    override val icon: Icon get() = if (showProject) AllIcons.Nodes.Module else AllIcons.Nodes.Function
     override fun toString(): String = label
 
     /** The ID of the project of the task. */
@@ -81,13 +85,17 @@ class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeN
 
 /** A tree node for a task name. It contains the tasks with this name in all projects. */
 class TaskNameNode(val name: String) : TaskTreeNode(name) {
-    override val key: String get() = "name:$name"
+    override val key: String = "name:$name"
+    override val icon: Icon get() = AllIcons.Nodes.Function
     override fun toString(): String = name
 }
 
 /** A tree node for a `stack` value. [stack] is null for the node of the projects without a `stack` value. */
 class StackNode(val stack: String?) : TaskTreeNode(stack) {
-    override val key: String get() = "stack:${stack.orEmpty()}"
+    override val key: String = "stack:${stack.orEmpty()}"
+    override val icon: Icon get() = AllIcons.Nodes.Folder
+    override val attributes: SimpleTextAttributes
+        get() = if (stack == null) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES
     override fun toString(): String = stack ?: MoonExplorerBundle.message("tasks.tree.noStack")
 }
 
@@ -121,26 +129,13 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
         row: Int,
         hasFocus: Boolean,
     ) {
-        when (value) {
-            is ProjectNode -> {
-                icon = AllIcons.Nodes.Module
-                append(value.project.id)
-            }
-            is TaskNode -> {
-                icon = if (value.showProject) AllIcons.Nodes.Module else AllIcons.Nodes.Function
-                append(value.label)
-                value.task.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
-            }
-            is TaskNameNode -> {
-                icon = AllIcons.Nodes.Function
-                append(value.name)
-            }
-            is StackNode -> {
-                icon = AllIcons.Nodes.Folder
-                append(value.toString(), if (value.stack == null) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            }
-            // A node type without a branch above shows its text. Thus a new node type is not empty in the tree.
-            else -> value?.let { append(it.toString()) }
+        if (value is TaskTreeNode) {
+            icon = value.icon
+            append(value.toString(), value.attributes)
+            (value as? TaskNode)?.task?.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
+        } else {
+            // A node of a different type shows its text. Thus the node is not empty in the tree.
+            value?.let { append(it.toString()) }
         }
         // Highlight the found text in all fragments. The search also examines the description.
         SpeedSearchUtil.applySpeedSearchHighlighting(tree, this, false, selected)

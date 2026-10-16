@@ -99,7 +99,6 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
     override fun apply() {
         val changed = isModified
         super.apply()
-        updateFoundPath(settings.executablePath)
         // Load the tasks again with the new executable.
         if (changed) project.service<MoonTasksService>().refresh()
     }

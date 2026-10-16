@@ -9,8 +9,7 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            // The light project is the same for all tests. Remove the configurations of this test.
-            runManager.getConfigurationSettingsList(MoonRunConfigurationType.getInstance()).forEach(runManager::removeConfiguration)
+            removeMoonConfigurations(project)
         } finally {
             super.tearDown()
         }

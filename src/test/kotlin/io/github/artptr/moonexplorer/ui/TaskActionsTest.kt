@@ -8,6 +8,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.run.MoonRunConfiguration
 import io.github.artptr.moonexplorer.run.MoonRunConfigurationType
+import io.github.artptr.moonexplorer.run.removeMoonConfigurations
 
 class TaskActionsTest : BasePlatformTestCase() {
 
@@ -15,8 +16,7 @@ class TaskActionsTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            val runManager = RunManager.getInstance(project)
-            runManager.getConfigurationSettingsList(MoonRunConfigurationType.getInstance()).forEach(runManager::removeConfiguration)
+            removeMoonConfigurations(project)
         } finally {
             super.tearDown()
         }

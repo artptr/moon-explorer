@@ -13,7 +13,7 @@ import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.testData.TestData
+import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -99,9 +99,8 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
 
     fun testApplySavesThePathAndLoadsTheTasksAgain() {
         val tasks = project.service<MoonTasksService>()
-        runBlocking { tasks.resetForTests() }
+        tasks.prepareForTests()
         try {
-            tasks.projectDir = { TestData.workspace.toPath() }
             tasks.queryTasks = { CliResult.Failed("from apply") }
             val moon = fakeMoonExecutable()
             configurable.createComponent()

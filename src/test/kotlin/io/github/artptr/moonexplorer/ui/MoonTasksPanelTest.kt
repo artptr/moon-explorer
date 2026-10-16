@@ -10,7 +10,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ClickListener
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.QueryTasksParser
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
@@ -139,12 +138,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals("web:build", (panel.tree.selectionPath?.lastPathComponent as TaskNode).task.target)
     }
 
-    private fun loadRecorded() = panel.render(
-        TasksState.Loaded(
-            QueryTasksParser.parse(TestData.recorded("query-tasks.json"))
-                .withStacks(QueryProjectsParser.parseStacks(TestData.recorded("query-projects.json"))),
-        ),
-    )
+    private fun loadRecorded() = panel.render(TasksState.Loaded(TestData.recordedTasks()))
 
     fun testSelectedTaskIsTheSelectedTaskNode() {
         loadRecorded()
