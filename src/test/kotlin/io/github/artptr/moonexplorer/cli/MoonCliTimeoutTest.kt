@@ -42,7 +42,7 @@ class MoonCliTimeoutTest : BasePlatformTestCase() {
         override fun destroy() = stopped.countDown()
     }
 
-    private fun runWithTimeout(process: HangingProcess, timeoutMillis: Int): CliResult {
+    private fun runHangingProcess(process: HangingProcess, timeoutMillis: Int): CliResult {
         val handler = CapturingProcessHandler(process, StandardCharsets.UTF_8, "moon query tasks")
         // The fake process has no operating system process. Thus the handler must not stop a process tree.
         handler.setShouldDestroyProcessRecursively(false)
@@ -53,7 +53,7 @@ class MoonCliTimeoutTest : BasePlatformTestCase() {
 
     fun testProcessThatDoesNotStopGivesTimedOut() {
         val process = HangingProcess()
-        assertEquals(CliResult.TimedOut, runWithTimeout(process, 200))
+        assertEquals(CliResult.TimedOut, runHangingProcess(process, 200))
         assertTrue("The plugin must stop the process after the timeout", process.isStopped)
     }
 
