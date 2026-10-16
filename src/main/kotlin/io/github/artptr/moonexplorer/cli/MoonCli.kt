@@ -45,7 +45,7 @@ object MoonCli {
      * Makes the command line that runs [executable] with [args] in [workDir].
      * The command line uses the environment of the login shell and turns off the colors in the output.
      */
-    fun commandLine(executable: Path, workDir: Path, vararg args: String): GeneralCommandLine =
+    internal fun commandLine(executable: Path, workDir: Path, vararg args: String): GeneralCommandLine =
         GeneralCommandLine(executable.toString(), *args)
             .withWorkingDirectory(workDir)
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)

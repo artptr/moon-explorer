@@ -73,4 +73,13 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         assertEquals("", settings.executablePath)
         assertNull(settings.state.executablePath)
     }
+
+    fun testPageFindsMoonWithTheTextOfTheFieldBeforeApply() {
+        val moon = FileUtil.createTempFile("moon", null, true).apply { setExecutable(true) }
+        configurable.createComponent()
+        configurable.reset()
+        configurable.updateFoundPath(moon.path, delayMillis = 0)
+        awaitFoundText(moon.toPath().toString())
+        assertEquals("The saved path must not change before Apply", "", settings.executablePath)
+    }
 }

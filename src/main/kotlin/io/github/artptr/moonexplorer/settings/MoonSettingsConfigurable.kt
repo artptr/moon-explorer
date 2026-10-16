@@ -8,6 +8,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.COLUMNS_MEDIUM
@@ -16,12 +17,17 @@ import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.SystemProperties
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.cli.MoonExecutableLocator
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.nio.file.Path
+import javax.swing.event.DocumentEvent
 
 /** The settings page Settings | Tools | Moon Explorer. */
 class MoonSettingsConfigurable(private val project: Project) : BoundSearchableConfigurable(
@@ -54,6 +60,23 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
                 .columns(COLUMNS_MEDIUM)
                 .align(AlignX.FILL)
                 .comment(MoonExplorerBundle.message("settings.executablePath.comment"), MAX_LINE_LENGTH_WORD_WRAP)
+                .validationOnInput { field ->
+                    // Do only a check of the text here. This function runs on the EDT, thus it must not read files.
+                    val text = field.text.trim()
+                    if (text.isNotEmpty() && MoonExecutableLocator.toPath(text, Path.of(SystemProperties.getUserHome())) == null) {
+                        error(MoonExplorerBundle.message("settings.executablePath.invalid"))
+                    } else {
+                        null
+                    }
+                }
+                .applyToComponent {
+                    // Find moon again when the user changes the path. Thus the page shows the result before Apply.
+                    textField.document.addDocumentListener(object : DocumentAdapter() {
+                        override fun textChanged(e: DocumentEvent) {
+                            updateFoundPath(text)
+                        }
+                    })
+                }
         }
         row {
             foundField = textField()
@@ -67,24 +90,29 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
 
     override fun reset() {
         super.reset()
-        updateFoundPath()
+        updateFoundPath(settings.executablePath)
     }
 
     override fun apply() {
         val changed = isModified
         super.apply()
-        updateFoundPath()
+        updateFoundPath(settings.executablePath)
         // Load the tasks again with the new executable.
         if (changed) project.service<MoonTasksService>().refresh()
     }
 
-    /** Finds moon on a background thread with the saved settings, and shows the result. */
-    internal fun updateFoundPath(): Job {
+    /**
+     * Finds moon on a background thread with [settingsPath], and shows the result.
+     * The function waits [delayMillis] before the search. A new call cancels the previous search.
+     * Thus the page does not examine the files after each key that the user pushes.
+     */
+    internal fun updateFoundPath(settingsPath: String, delayMillis: Long = SEARCH_DELAY_MILLIS): Job {
         searchJob?.cancel()
         foundField.text = MoonExplorerBundle.message("settings.found.searching")
         val service = project.service<MoonExecutableService>()
         return service.scope.launch(Dispatchers.IO) {
-            val executable = service.find().executable
+            delay(delayMillis)
+            val executable = service.find(settingsPath).executable
             // The settings dialog is modal. Thus the update must run in any modality state.
             withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
                 foundField.text = executable?.toString() ?: MoonExplorerBundle.message("settings.found.notFound")
@@ -99,5 +127,7 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
 
     companion object {
         const val ID = "io.github.artptr.moonexplorer.settings"
+
+        private const val SEARCH_DELAY_MILLIS = 300L
     }
 }

@@ -58,6 +58,10 @@ The plugin examines these locations in this sequence. It uses the first executab
 3. The `shims` and `bin` directories of proto: `$PROTO_HOME`, or `~/.proto` if `PROTO_HOME` is not set.
 4. The directories in `PATH`.
 
+A `~` at the start of the path in the settings or of `PROTO_HOME` is the home directory of the user.
+On Windows, the plugin uses only files with the extension `exe`, `cmd`, `bat`, or `com`. Windows cannot start a file without an extension.
+If the path in the settings is not valid or is not an executable file, the plugin examines the next locations. The settings page shows the executable that the plugin uses.
+
 The plugin keeps the path setting in the workspace file of the IDE project. Thus the setting is not in version control.
 If the plugin cannot find `moon`, the tool window shows the examined locations and a link to the settings page.
 

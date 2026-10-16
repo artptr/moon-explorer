@@ -157,4 +157,62 @@ class MoonExecutableLocatorTest {
         val shim = moonIn(home.resolve(".proto/shims"))
         assertEquals(shim, MoonExecutableLocator.find(null, workspace, env(windows = false)).executable)
     }
+
+    @Test
+    fun tildeInSettingsPathIsTheHomeDirectory() {
+        val moon = moonIn(home.resolve("tools"))
+        val name = moon.fileName.toString()
+        assertEquals(moon, MoonExecutableLocator.find("~/tools/$name", workspace, env()).executable)
+    }
+
+    @Test
+    fun tildeInProtoHomeIsTheHomeDirectory() {
+        val moon = moonIn(home.resolve("custom-proto/shims"))
+        assertEquals(moon, MoonExecutableLocator.find(null, workspace, env("PROTO_HOME" to "~/custom-proto")).executable)
+    }
+
+    @Test
+    fun settingsPathThatIsNotValidGoesToTheNextLocation() {
+        val moon = moonIn(workspace.resolve("node_modules/.bin"))
+        val result = MoonExecutableLocator.find("bad\u0000path", workspace, env())
+        assertEquals(moon, result.executable)
+        assertEquals(workspace.resolve("node_modules/.bin").resolve(moon.fileName), result.examined.first())
+    }
+
+    @Test
+    fun protoHomeThatIsNotValidUsesTheDefaultDirectory() {
+        val shim = moonIn(home.resolve(".proto/shims"))
+        assertEquals(shim, MoonExecutableLocator.find(null, workspace, env("PROTO_HOME" to "bad\u0000path")).executable)
+    }
+
+    @Test
+    fun toPathDoesNotAcceptAnInvalidPath() {
+        assertNull(MoonExecutableLocator.toPath("bad\u0000path", home))
+        assertEquals(home, MoonExecutableLocator.toPath("~", home))
+        assertEquals(home.resolve("bin/moon"), MoonExecutableLocator.toPath("~/bin/moon", home))
+    }
+
+    @Test
+    fun windowsPathUsesSemicolons() {
+        val other = temp.newFolder("other").toPath()
+        val cmd = moonIn(pathDir, "moon.cmd")
+        val path = "$other;$pathDir"
+        assertEquals(cmd, MoonExecutableLocator.find(null, workspace, env("PATH" to path, windows = true)).executable)
+    }
+
+    @Test
+    fun windowsSettingsPathWithoutExtensionIsSkipped() {
+        // Windows cannot start a file without an extension, for example the shell script node_modules/.bin/moon.
+        val script = moonIn(temp.newFolder("scripts").toPath(), "moon")
+        val cmd = moonIn(workspace.resolve("node_modules/.bin"), "moon.cmd")
+        val result = MoonExecutableLocator.find(script.toString(), workspace, env(windows = true))
+        assertEquals(cmd, result.executable)
+        assertEquals(script, result.examined.first())
+    }
+
+    @Test
+    fun windowsSettingsPathWithExeExtensionIsUsed() {
+        val exe = moonIn(temp.newFolder("bin").toPath(), "moon.exe")
+        assertEquals(exe, MoonExecutableLocator.find(exe.toString(), workspace, env(windows = true)).executable)
+    }
 }

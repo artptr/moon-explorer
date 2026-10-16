@@ -20,11 +20,16 @@ class MoonExecutableService(private val project: Project, private val cs: Corout
     val settingsPath: String get() = project.service<MoonSettings>().executablePath
 
     /**
-     * Finds moon with the path from the settings and the workspace root of the IDE project.
+     * Finds moon with [settingsPath] and the workspace root of the IDE project.
+     * The default value of [settingsPath] is the path from the settings. The settings page gives the text of its field.
      * Call this function on a background thread.
      */
-    fun find(): MoonExecutableSearch {
-        val root = project.basePath?.let { MoonWorkspaceLocator.findWorkspaceRoot(Path.of(it)) }
+    fun find(settingsPath: String = this.settingsPath): MoonExecutableSearch =
+        find(settingsPath, project.basePath?.let(Path::of))
+
+    /** Finds the workspace root from [projectDir] and then finds moon. Tests give the values. */
+    internal fun find(settingsPath: String, projectDir: Path?): MoonExecutableSearch {
+        val root = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot)
         return MoonExecutableLocator.find(settingsPath, root)
     }
 }
