@@ -54,12 +54,23 @@ jobs:
 
       # Publish the plugin to JetBrains Marketplace
       - name: Publish Plugin
+        if: ${{ vars.SKIP_MARKETPLACE_PUBLISH != 'true' }}
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew publishPlugin
+
+      # Sign the plugin, but do not publish it. Use this for a version that a maintainer uploaded to Marketplace manually.
+      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to docs/development.md, section 8.
+      - name: Sign Plugin
+        if: ${{ vars.SKIP_MARKETPLACE_PUBLISH == 'true' }}
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin
 
       # Upload an artifact as a release asset
       - name: Upload Release Asset
