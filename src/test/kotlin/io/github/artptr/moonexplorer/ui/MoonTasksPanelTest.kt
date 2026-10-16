@@ -1,7 +1,12 @@
 package io.github.artptr.moonexplorer.ui
 
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.ClickListener
+import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.QueryTasksParser
 import io.github.artptr.moonexplorer.model.TasksState
@@ -117,5 +122,50 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.render(TasksState.Loaded(changed))
         assertTrue("The web node must stay expanded", panel.tree.isExpanded(projectPath("web")))
         assertEquals("web:build", panel.tree.selectionPath?.lastPathComponent.toString())
+    }
+
+    private fun loadRecorded() = panel.render(TasksState.Loaded(QueryTasksParser.parse(TestData.recorded("query-tasks.json"))))
+
+    fun testSelectedTaskIsTheSelectedTaskNode() {
+        loadRecorded()
+        panel.tree.selectionPath = taskPath("web:build")
+        assertEquals("web:build", panel.selectedTask()?.target)
+    }
+
+    fun testSelectedTaskIsNullForAProjectNodeOrTwoNodes() {
+        loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        assertNull(panel.selectedTask())
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), taskPath("web:lint"))
+        assertNull(panel.selectedTask())
+    }
+
+    fun testDoubleClickOnATaskRunsIt() {
+        val ran = mutableListOf<String>()
+        panel.runTask = { ran += it.target }
+        loadRecorded()
+        assertTrue(panel.onDoubleClick(taskPath("web:build")))
+        assertEquals(listOf("web:build"), ran)
+    }
+
+    fun testDoubleClickOnAProjectDoesNotRunATask() {
+        val ran = mutableListOf<String>()
+        panel.runTask = { ran += it.target }
+        loadRecorded()
+        assertFalse("The tree must expand or collapse the project node", panel.onDoubleClick(projectPath("web")))
+        assertFalse(panel.onDoubleClick(null))
+        assertEmpty(ran)
+    }
+
+    fun testDoubleClickListenerIsInstalled() {
+        fun clickListeners(tree: Tree) = tree.mouseListeners.count { it.javaClass.name.startsWith(ClickListener::class.java.name) }
+        // The Tree class has its own click listener. The panel adds one more.
+        assertEquals(clickListeners(Tree()) + 1, clickListeners(panel.tree))
+    }
+
+    fun testEnterKeyRunsTheTaskAction() {
+        val actions = ActionUtil.getActions(panel.tree)
+        val enter = actions.single { action -> action.shortcutSet.shortcuts.any { it in CommonShortcuts.ENTER.shortcuts } }
+        assertEquals(ActionManager.getInstance().getAction(MoonTasksPanel.RUN_TASK_ACTION_ID).templateText, enter.templateText)
     }
 }

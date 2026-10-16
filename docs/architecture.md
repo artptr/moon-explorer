@@ -20,8 +20,10 @@ The plugin has three layers. Each layer uses only the layer below it.
 3. **CLI layer** (`cli`): finds the workspace root, starts the `moon` executable, and gives its output.
 
 The model layer does not use Swing. The CLI layer does not use the IntelliJ PSI.
-The `settings` package contains the settings state and the settings page.
 The parser of the moon JSON output is in the model layer. Thus the CLI layer does not use the model classes.
+
+The `settings` package contains the settings state and the settings page.
+The `run` package contains the run configuration for moon tasks. It runs `moon run <target>` in the workspace root.
 
 | Component | Class | Registration |
 |-----------|-------|--------------|
@@ -36,6 +38,9 @@ The parser of the moon JSON output is in the model layer. Thus the CLI layer doe
 | Find the `moon` executable | `cli.MoonExecutableLocator`, `settings.MoonExecutableService` | None (light service) |
 | Settings of the IDE project | `settings.MoonSettings` | None (light service) |
 | Settings page **Settings \| Tools \| Moon Explorer** | `settings.MoonSettingsConfigurable` | `plugin.xml` |
+| Run configuration type **moon** | `run.MoonRunConfigurationType`, `run.MoonRunConfiguration` | `plugin.xml` |
+| Make and run a configuration for a task | `run.MoonTaskRunner` | None |
+| Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
 
