@@ -15,14 +15,8 @@ object MoonWorkspaceLocator {
      * The function does not accept a `.moon/` directory without this file. Thus the function does not use `~/.moon`, the moon home directory.
      * Call this function on a background thread.
      */
-    fun findWorkspaceRoot(start: Path): Path? {
-        var dir: Path? = start.toAbsolutePath().normalize()
-        while (dir != null) {
-            if (isWorkspaceRoot(dir)) return dir
-            dir = dir.parent
-        }
-        return null
-    }
+    fun findWorkspaceRoot(start: Path): Path? =
+        generateSequence(start.toAbsolutePath().normalize()) { it.parent }.firstOrNull(::isWorkspaceRoot)
 
     private fun isWorkspaceRoot(dir: Path): Boolean {
         val moonDir = dir.resolve(".moon")

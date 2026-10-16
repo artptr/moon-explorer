@@ -18,27 +18,23 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
 
-/** Keeps the tasks of the moon workspace for the IDE project. */
+/**
+ * Keeps the tasks of the moon workspace for the IDE project.
+ * [scope] is the coroutine scope of the service. The tool window uses it to collect [state].
+ */
 @Service(Service.Level.PROJECT)
-class MoonTasksService(private val project: Project, private val cs: CoroutineScope) {
+class MoonTasksService(private val project: Project, val scope: CoroutineScope) {
 
     private val _state = MutableStateFlow<TasksState>(TasksState.Loading)
 
     /** The current state. The tool window shows this state. */
     val state: StateFlow<TasksState> = _state.asStateFlow()
 
-    /** The coroutine scope of the service. The tool window uses it to collect [state]. */
-    val scope: CoroutineScope get() = cs
-
     private var job: Job? = null
 
     private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
-    private val defaultQueryTasks: suspend (Path) -> CliResult = { root ->
-        MoonCli.queryTasks(root, project.service<MoonExecutableService>().settingsPath)
-    }
-    private val defaultQueryProjects: suspend (Path) -> CliResult = { root ->
-        MoonCli.queryProjects(root, project.service<MoonExecutableService>().settingsPath)
-    }
+    private val defaultQueryTasks: suspend (Path) -> CliResult = { root -> query(root, "tasks") }
+    private val defaultQueryProjects: suspend (Path) -> CliResult = { root -> query(root, "projects") }
 
     /**
      * Gives the IDE project directory. Tests change this value.
@@ -70,10 +66,17 @@ class MoonTasksService(private val project: Project, private val cs: CoroutineSc
         val projectDirFn = projectDir
         val queryTasksFn = queryTasks
         val queryProjectsFn = queryProjects
-        job = cs.launch {
+        job = scope.launch {
             previous?.join()
             _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryTasksFn, queryProjectsFn) }
         }
+    }
+
+    /** Runs `moon query <subject>` in [root] with the executable of [MoonExecutableService]. */
+    private suspend fun query(root: Path, subject: String): CliResult {
+        val search = project.service<MoonExecutableService>().findInWorkspace(root)
+        val executable = search.executable ?: return CliResult.NotFound(search.examined)
+        return MoonCli.query(executable, root, subject)
     }
 
     /**

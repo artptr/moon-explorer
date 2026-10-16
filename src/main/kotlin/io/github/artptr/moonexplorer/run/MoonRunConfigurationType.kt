@@ -16,12 +16,12 @@ class MoonRunConfigurationType : ConfigurationTypeBase(
     MoonExplorerBundle.message("run.configuration.type.description"),
     AllIcons.Actions.Execute,
 ) {
-    init {
-        addFactory(MoonConfigurationFactory(this))
-    }
-
     /** The factory of the type. The type has only this factory. */
-    val factory: ConfigurationFactory get() = configurationFactories.single()
+    val factory: ConfigurationFactory = MoonConfigurationFactory(this)
+
+    init {
+        addFactory(factory)
+    }
 
     companion object {
         const val ID = "MoonRunConfiguration"

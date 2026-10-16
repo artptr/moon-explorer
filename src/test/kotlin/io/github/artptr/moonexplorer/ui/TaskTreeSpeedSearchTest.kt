@@ -7,8 +7,6 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.speedSearch.SpeedSearchSupply
 import com.intellij.ui.treeStructure.Tree
-import io.github.artptr.moonexplorer.model.QueryProjectsParser
-import io.github.artptr.moonexplorer.model.QueryTasksParser
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.settings.MoonSettings
@@ -22,10 +20,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
 
     private lateinit var panel: MoonTasksPanel
 
-    private val tasks by lazy {
-        QueryTasksParser.parse(TestData.recorded("query-tasks.json"))
-            .withStacks(QueryProjectsParser.parseStacks(TestData.recorded("query-projects.json")))
-    }
+    private val tasks by lazy { TestData.recordedTasks() }
 
     override fun setUp() {
         super.setUp()

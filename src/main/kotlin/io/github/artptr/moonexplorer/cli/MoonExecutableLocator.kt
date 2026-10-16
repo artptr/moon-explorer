@@ -54,41 +54,32 @@ object MoonExecutableLocator {
         env: SearchEnvironment = SearchEnvironment.current(),
     ): MoonExecutableSearch {
         val names = if (env.isWindows) WINDOWS_EXECUTABLE_EXTENSIONS.map { "moon.$it" } else listOf("moon")
+        // The sequence makes the candidates only when the search gets to them.
+        val candidates = sequence {
+            configuredPath(settingsPath, workspaceRoot, env.userHome)?.let { yield(it) }
+            workspaceRoot?.let { root -> yieldAll(names.map { root.resolve("node_modules/.bin/$it") }) }
+            val protoHome = protoHome(env)
+            yieldAll(listOf("shims", "bin").flatMap { dir -> names.map { protoHome.resolve(dir).resolve(it) } })
+        }
         val examined = mutableListOf<Path>()
-
-        fun firstExecutable(candidates: List<Path>): Path? {
-            for (candidate in candidates) {
-                examined.add(candidate)
-                if (isExecutable(candidate, env.isWindows)) return candidate
-            }
-            return null
-        }
-
-        val settingsText = settingsPath?.trim().orEmpty()
-        if (settingsText.isNotEmpty()) {
-            val parsed = toPath(settingsText, env.userHome)
-            // Do not use a relative path from the working directory of the IDE. That directory has no relation to the workspace.
-            val configured = if (parsed == null || parsed.isAbsolute) parsed else workspaceRoot?.resolve(parsed)
-            if (configured == null) {
-                thisLogger().warn("The path to moon in the settings is not valid or has no workspace root: $settingsText")
-            } else {
-                firstExecutable(listOf(configured))?.let { return MoonExecutableSearch(it, examined.toList()) }
-            }
-        }
-
-        val workspaceCandidates = workspaceRoot?.let { root -> names.map { root.resolve("node_modules/.bin/$it") } }.orEmpty()
-        firstExecutable(workspaceCandidates)?.let { return MoonExecutableSearch(it, examined.toList()) }
-
-        val protoHome = protoHome(env)
-        val protoCandidates = listOf("shims", "bin").flatMap { dir -> names.map { protoHome.resolve(dir).resolve(it) } }
-        firstExecutable(protoCandidates)?.let { return MoonExecutableSearch(it, examined.toList()) }
-
-        for (dir in pathDirectories(env)) {
+        val found = candidates.onEach(examined::add).firstOrNull { isExecutable(it, env.isWindows) }
             // The directories in PATH are not in the examined list. The message tells about PATH in one line.
-            names.map(dir::resolve).firstOrNull { isExecutable(it, env.isWindows) }
-                ?.let { return MoonExecutableSearch(it, examined.toList()) }
-        }
-        return MoonExecutableSearch(null, examined.toList())
+            ?: pathDirectories(env).asSequence().flatMap { dir -> names.map(dir::resolve) }.firstOrNull { isExecutable(it, env.isWindows) }
+        return MoonExecutableSearch(found, examined.toList())
+    }
+
+    /**
+     * Gives the path from [settingsPath], or null if [settingsPath] is empty or not valid.
+     * A relative path starts at [workspaceRoot].
+     */
+    private fun configuredPath(settingsPath: String?, workspaceRoot: Path?, userHome: Path): Path? {
+        val settingsText = settingsPath?.trim().orEmpty()
+        if (settingsText.isEmpty()) return null
+        val parsed = toPath(settingsText, userHome)
+        // Do not use a relative path from the working directory of the IDE. That directory has no relation to the workspace.
+        val configured = if (parsed == null || parsed.isAbsolute) parsed else workspaceRoot?.resolve(parsed)
+        if (configured == null) thisLogger().warn("The path to moon in the settings is not valid or has no workspace root: $settingsText")
+        return configured
     }
 
     /**

@@ -184,6 +184,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             loadingPanel.startLoading()
             return
         }
+        // Stop the loading indicator first. Thus an error in the code below does not keep the indicator visible.
         loadingPanel.stopLoading()
         when (state) {
             is TasksState.Loaded -> {

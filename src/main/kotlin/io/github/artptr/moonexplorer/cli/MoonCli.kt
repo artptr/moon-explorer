@@ -32,21 +32,13 @@ object MoonCli {
     private val ANSI_ESCAPE = Regex("\u001B\\[[0-9;?]*[ -/]*[@-~]")
 
     /**
-     * Runs `moon query tasks` in [workspaceRoot].
-     * In moon v2, the output of this command is always JSON.
-     * [settingsPath] is the path to moon from the plugin settings. Refer to [MoonExecutableLocator.find].
+     * Runs `moon query <subject>` with [executable] in [workspaceRoot], for example `moon query tasks`.
+     * In moon v2, the output of `moon query tasks` and `moon query projects` is always JSON.
      * If the caller cancels the coroutine, or if moon does not complete in [TIMEOUT_MILLIS], the function stops the moon process.
      * Call this function on a background thread.
      */
-    suspend fun queryTasks(workspaceRoot: Path, settingsPath: String?): CliResult =
-        run(workspaceRoot, settingsPath, "query", "tasks")
-
-    /**
-     * Runs `moon query projects` in [workspaceRoot]. The output is JSON.
-     * The function obeys the same rules as [queryTasks].
-     */
-    suspend fun queryProjects(workspaceRoot: Path, settingsPath: String?): CliResult =
-        run(workspaceRoot, settingsPath, "query", "projects")
+    suspend fun query(executable: Path, workspaceRoot: Path, subject: String): CliResult =
+        run(executable, workspaceRoot, "query", subject)
 
     /**
      * Makes the command line `moon run <target>` in [workspaceRoot]. The run configurations use this command line.
@@ -69,9 +61,7 @@ object MoonCli {
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
             .withCharset(StandardCharsets.UTF_8)
 
-    private suspend fun run(workDir: Path, settingsPath: String?, vararg args: String): CliResult {
-        val search = MoonExecutableLocator.find(settingsPath, workDir)
-        val executable = search.executable ?: return CliResult.NotFound(search.examined)
+    private suspend fun run(executable: Path, workDir: Path, vararg args: String): CliResult {
         val commandLine = commandLine(executable, workDir, *args)
         val handler = try {
             CapturingProcessHandler(commandLine)

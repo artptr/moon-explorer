@@ -21,16 +21,12 @@ object TasksLoader {
     ): TasksState {
         val root = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot) ?: return TasksState.NoWorkspace
         return try {
-            val tasksOutput = when (val result = queryTasks(root)) {
-                is CliResult.Success -> result.stdout
-                else -> return errorState(result)
-            }
-            val tasks = QueryTasksParser.parse(tasksOutput)
-            val projectsOutput = when (val result = queryProjects(root)) {
-                is CliResult.Success -> result.stdout
-                else -> return errorState(result)
-            }
-            TasksState.Loaded(tasks.withStacks(QueryProjectsParser.parseStacks(projectsOutput)))
+            val tasksResult = queryTasks(root)
+            if (tasksResult !is CliResult.Success) return errorState(tasksResult)
+            val tasks = QueryTasksParser.parse(tasksResult.stdout)
+            val projectsResult = queryProjects(root)
+            if (projectsResult !is CliResult.Success) return errorState(projectsResult)
+            TasksState.Loaded(tasks.withStacks(QueryProjectsParser.parseStacks(projectsResult.stdout)))
         } catch (e: MoonOutputException) {
             TasksState.InvalidOutput(e.message.orEmpty())
         } catch (e: CancellationException) {

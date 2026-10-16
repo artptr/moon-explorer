@@ -19,7 +19,6 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.cli.MoonCli
-import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import io.github.artptr.moonexplorer.settings.MoonExecutableService
 import java.nio.file.Path
 
@@ -65,8 +64,9 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
      * The platform calls [CommandLineState.startProcess] on a background thread.
      */
     internal fun createCommandLine(): GeneralCommandLine {
-        val root = project.basePath?.let { MoonWorkspaceLocator.findWorkspaceRoot(Path.of(it)) }
-        return createCommandLine(root) { project.service<MoonExecutableService>().find().executable }
+        val service = project.service<MoonExecutableService>()
+        val root = service.workspaceRoot()
+        return createCommandLine(root) { service.findInWorkspace(root).executable }
     }
 
     /** Makes the command line in [workspaceRoot] with the executable from [findExecutable]. Tests give the values. */
