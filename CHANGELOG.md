@@ -14,3 +14,4 @@
 - Run configuration type **moon** that runs `moon run <target>`
 - Run a task from the **Moon** tool window with a double-click, the **Enter** key, or the context menu. The context menu also has **Create Run Configuration**.
 - **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.
+- Speed search in the tree of the **Moon** tool window. Select the tree and type text to find a task by its ID, its project, or its description.

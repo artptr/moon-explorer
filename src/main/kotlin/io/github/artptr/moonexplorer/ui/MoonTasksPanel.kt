@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.PopupHandler
+import com.intellij.ui.TreeSpeedSearch
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBScrollPane
@@ -48,6 +49,12 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         showsRootHandles = true
         cellRenderer = TaskTreeCellRenderer()
     }
+
+    /**
+     * The speed search of the tree. The user selects the tree and types text. The search also examines the nodes in collapsed nodes,
+     * and expands the parent nodes of the node that it finds.
+     */
+    internal val speedSearch: TreeSpeedSearch = TreeSpeedSearch.installOn(tree, true) { searchText(it.lastPathComponent) }
 
     internal val messageArea = JBTextArea().apply {
         isEditable = false

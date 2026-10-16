@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.icons.AllIcons
 import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.speedSearch.SpeedSearchUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
@@ -87,7 +88,26 @@ class StackNode(val stack: String?) : TaskTreeNode(stack) {
     override fun toString(): String = stack ?: MoonExplorerBundle.message("tasks.tree.noStack")
 }
 
-/** Shows the nodes of the task tree. A task node shows its description in gray text. */
+/** The separator between the name of a task node and its description. */
+private const val DESCRIPTION_SEPARATOR = "  "
+
+/**
+ * Gives the text that the tree shows for [node]. The speed search of the tree examines this text.
+ * For a task node, the text contains the task ID (or the project ID) and the description.
+ */
+fun searchText(node: Any?): String = when (node) {
+    is TaskNode -> node.label + node.task.description?.let { DESCRIPTION_SEPARATOR + it }.orEmpty()
+    is TaskTreeNode -> node.toString()
+    else -> ""
+}
+
+/** The name that a task node shows: the project ID if the parent node gives the task name, or else the task ID. */
+private val TaskNode.label: String get() = if (showProject) projectId else task.id
+
+/**
+ * Shows the nodes of the task tree. A task node shows its description in gray text.
+ * The renderer highlights the text that the speed search found.
+ */
 class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
 
     override fun customizeCellRenderer(
@@ -106,8 +126,8 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
             }
             is TaskNode -> {
                 icon = if (value.showProject) AllIcons.Nodes.Module else AllIcons.Nodes.Function
-                append(if (value.showProject) value.projectId else value.task.id)
-                value.task.description?.let { append("  $it", SimpleTextAttributes.GRAYED_ATTRIBUTES) }
+                append(value.label)
+                value.task.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
             }
             is TaskNameNode -> {
                 icon = AllIcons.Nodes.Function
@@ -120,5 +140,7 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
             // A node type without a branch above shows its text. Thus a new node type is not empty in the tree.
             else -> value?.let { append(it.toString()) }
         }
+        // Highlight the found text in all fragments. The search also examines the description.
+        SpeedSearchUtil.applySpeedSearchHighlighting(tree, this, false, selected)
     }
 }
