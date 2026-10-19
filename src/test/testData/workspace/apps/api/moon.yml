@@ -16,4 +16,7 @@ tasks:
   build:
     command: 'echo build api'
     deps: ['db:build', 'utils:build']
-    outputs: ['dist']
+    # The command does not make dist. The output is optional. Thus moon does not stop with an error.
+    outputs:
+      - file: 'dist'
+        optional: true

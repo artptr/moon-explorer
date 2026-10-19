@@ -8,7 +8,10 @@ project:
 tasks:
   build:
     command: 'echo build db'
-    outputs: ['dist']
+    # The command does not make dist. The output is optional. Thus moon does not stop with an error.
+    outputs:
+      - file: 'dist'
+        optional: true
   migrate:
     command: 'echo migrate'
     description: 'Run the database migrations.'

@@ -16,7 +16,10 @@ tasks:
     command: 'echo build web'
     description: 'Make the production bundle.'
     deps: ['ui:build', 'utils:build']
-    outputs: ['dist']
+    # The command does not make dist. The output is optional. Thus moon does not stop with an error.
+    outputs:
+      - file: 'dist'
+        optional: true
   preview:
     command: 'echo preview web'
     deps: ['build']
