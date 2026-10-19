@@ -221,14 +221,15 @@ This table gives the decision for each function of the extension, version 0.16.6
 | A run of `moon check` for a project | No | In section 7. |
 | A report of the last run | No | In section 7. |
 | The action graph, the project graph, and the task graph | No | An action that starts the moon commands is in section 7. The plugin does not show the graph itself. Refer to section 8. |
-| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual check is necessary. A setting for the local schemas in `.moon/cache/schemas` is possible. |
+| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual configuration is necessary for `template.yml`. A setting for the local schemas in `.moon/cache/schemas` is possible. |
 | An MCP server for AI agents | No | The team does not plan this function. Refer to principle 7 in section 5. |
 | An update of the tree when `moon.yml` or a file in `.moon/` changes | No | Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. |
 | An action that updates the tree | The **Refresh** action | Complete. |
 | An action that opens the configuration file of a project | No | In section 7. |
 | The setting `moon.binPath` for the path to the `moon` executable | A setting for the path. The plugin also finds the executable automatically (section 4.4). | Complete. |
 | The setting `moon.logLevel` for the log level of all moon commands | No | The team did not examine this function. |
-| A command that opens the settings | The settings page **Settings \| Tools \| Moon Explorer** | Complete. |
-| More than one root directory in the VS Code window, and the setting `moon.rootPrefixes` for a workspace root in a subdirectory | The plugin finds the workspace root only in the IDE project directory or in its parent directories | The team did not examine this function. |
+| A command that opens the settings | The settings page **Settings \| Tools \| Moon Explorer** | Complete. The user opens the page from the **Settings** dialog. The tool window shows a link to the page for some errors. |
+| More than one root directory in the VS Code window | The plugin uses one workspace root for each IDE project | The team did not examine this function. |
+| The setting `moon.rootPrefixes` for a workspace root in a subdirectory | The plugin finds the workspace root only in the IDE project directory or in its parent directories | The team did not examine this function. |
 
 The README can use this table to tell users which functions Moon Explorer has.
