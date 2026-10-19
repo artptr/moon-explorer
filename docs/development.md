@@ -120,7 +120,7 @@ GitHub Actions runs these workflows:
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace |
 
-**NOTE:** The `paths` filter in `build.yml` gives the list of documentation files. If `Build` becomes a status check that must pass before a merge, a workflow that does not start stops the merge. In that case, replace the filter with a job that always runs and gives the status.
+**NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
 
 Obey these rules when you add or change a workflow:
 
@@ -186,5 +186,6 @@ A maintainer does these steps one time.
 
 5. On the project board, set the **Status** field to these values: **Backlog**, **Ready**, **In progress**, **In review**, **Done**.
 6. On the project board, turn on the built-in workflows **Item added to project** (status **Backlog**) and **Item closed** (status **Done**).
-7. In the repository settings, add a branch rule for `main`. Make the `Build` and `Docs` checks necessary before a merge.
-8. In the repository settings, turn on **Discussions**.
+7. In the repository settings, add a branch rule for `main`. Make the `Docs` check necessary before a merge.
+8. To make the `Build` check necessary, first replace the `paths` filter in `build.yml`. Refer to the note in [7. Continuous integration](#7-continuous-integration).
+9. In the repository settings, turn on **Discussions**.

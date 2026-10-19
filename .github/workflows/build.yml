@@ -18,7 +18,7 @@ on:
     # The workflow does not start if the change has only documentation files.
     # You cannot add files back to a 'paths-ignore' filter. Thus the filter uses 'paths' with '!' patterns.
     # A later pattern has priority over an earlier pattern. The Gradle build reads CHANGELOG.md. Thus the filter includes CHANGELOG.md.
-    # The filter also includes all files in 'src/', because '!**/*.md' removes the Markdown files in 'src/' from the filter.
+    # The filter includes 'src/**' again. Thus a future Markdown file in 'src/' also starts the workflow.
     paths:
       - '**'
       - '!docs/**'

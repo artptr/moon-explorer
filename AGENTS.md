@@ -76,7 +76,7 @@ GitHub is the location for the code, the issues, the project board, and CI.
 2. Make a branch from `main` (maintainers and agents with write access), or from a fork (all other contributors). Use the name `<type>/<issue-number>-<short-description>`. Example: `feat/12-task-list`.
 3. Use [Conventional Commits](https://www.conventionalcommits.org) for commit messages. Example: `feat: show moon projects in the tool window`.
 4. Open a pull request into `main`. Put `Closes #<issue-number>` in the pull request text.
-5. CI must pass before a merge. The workflows are `Build` and `Docs`.
+5. CI must pass before a merge. The workflows are `Build` and `Docs`. The `Build` workflow does not start for changes to documentation only.
 6. Add an entry to the `Unreleased` section of `CHANGELOG.md` for each change that a user can see.
 7. Do not push directly to `main`.
 
