@@ -5,6 +5,7 @@
 # - Create a draft GitHub release on non-pull-request runs.
 #
 # The workflow is triggered on pushes to the 'main' branch and on pull_request events.
+# A change to documentation only does not start the workflow. Refer to the 'paths' filters below.
 #
 # GitHub Actions reference: https://docs.github.com/actions
 #
@@ -14,8 +15,31 @@ on:
   # Trigger the workflow on pushes to only the 'main' branch (this avoids duplicate checks being run e.g., for dependabot pull requests)
   push:
     branches: [ main ]
+    # The workflow does not start if the change has only documentation files.
+    # You cannot add files back to a 'paths-ignore' filter. Thus the filter uses 'paths' with '!' patterns.
+    # A later pattern has priority over an earlier pattern. The Gradle build reads CHANGELOG.md. Thus the filter includes CHANGELOG.md.
+    # The filter also includes all files in 'src/', because '!**/*.md' removes the Markdown files in 'src/' from the filter.
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**/*.md'
+      - '!.vale/**'
+      - '!.vale.ini'
+      - '!.claude/**'
+      - 'CHANGELOG.md'
+      - 'src/**'
   # Trigger the workflow on any pull request
   pull_request:
+    # Use the same 'paths' filter as for 'push'.
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**/*.md'
+      - '!.vale/**'
+      - '!.vale.ini'
+      - '!.claude/**'
+      - 'CHANGELOG.md'
+      - 'src/**'
 
 # Give the GITHUB_TOKEN read access only. Jobs that write data set their own permissions.
 permissions:

@@ -62,5 +62,5 @@ gh pr checks --watch
 ## Releases
 
 Only a maintainer makes releases.
-The `Build` workflow creates a draft release on each push to `main`.
+The `Build` workflow creates a draft release on each push to `main`, except a push that changes only documentation.
 When the maintainer publishes the draft, the `Release` workflow publishes the plugin to JetBrains Marketplace.

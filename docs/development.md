@@ -115,10 +115,12 @@ GitHub Actions runs these workflows:
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| `Build` | Push to `main`, pull request | Build, test, verification of the plugin, draft release |
+| `Build` | Push to `main`, pull request. A change to documentation only does not start the workflow. | Build, test, verification of the plugin, draft release |
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace |
+
+**NOTE:** The `paths` filter in `build.yml` gives the list of documentation files. If `Build` becomes a status check that must pass before a merge, a workflow that does not start stops the merge. In that case, replace the filter with a job that always runs and gives the status.
 
 Obey these rules when you add or change a workflow:
 
