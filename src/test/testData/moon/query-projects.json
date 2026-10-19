@@ -1857,6 +1857,16 @@
               "runInSyncPhase": null
             }
           },
+          "generate-icons": {
+            "description": "Make the icon components from the SVG files.",
+            "command": "echo generate icons",
+            "args": null,
+            "globalInputs": [],
+            "options": {
+              "internal": true,
+              "runInSyncPhase": null
+            }
+          },
           "storybook": {
             "description": "Start Storybook for the components.",
             "command": "echo storybook",
@@ -2361,6 +2371,7 @@
       "taskTargets": [
         "ui:build",
         "ui:format",
+        "ui:generate-icons",
         "ui:lint",
         "ui:storybook",
         "ui:test",

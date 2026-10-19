@@ -15,3 +15,9 @@ tasks:
     options:
       persistent: true
       cache: false
+  # An internal task. moon does not write internal tasks in the key "tasks" in the output of "moon query projects".
+  generate-icons:
+    command: 'echo generate icons'
+    description: 'Make the icon components from the SVG files.'
+    options:
+      internal: true
