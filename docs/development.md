@@ -73,6 +73,7 @@ The test workspace contains these items:
 - Three files in `.moon/tasks/`. All projects inherit `all.yml`. Frontend projects inherit `frontend.yml`. Backend projects inherit `backend.yml`.
 - The project `web` changes the inherited task `lint`.
 - Tasks with a description and tasks without a description
+- The project `ui` has the internal task `generate-icons`. moon does not write internal tasks in the key `tasks` in the output of `moon query projects`.
 - The project `config` has no tasks.
 - `build` tasks with the optional output `dist`. The commands do not make files. Thus `moon run` completes for each task.
 

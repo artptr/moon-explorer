@@ -80,6 +80,44 @@ class TestDataTest {
         outputFiles.forEach { assertTrue("${it.key} must be optional", it.value.asJsonObject.get("optional")?.asBoolean == true) }
     }
 
+    /**
+     * moon writes an internal task only in `taskTargets` and in the configuration of the project.
+     * The plugin reads the key `tasks`. Thus the tree does not show internal tasks. `moon run` does not run them.
+     */
+    @Test
+    fun internalTaskIsOnlyInTheConfigurationAndTaskTargets() {
+        val ui = projects.single { it.get("id").asString == "ui" }
+        assertTrue("ui:generate-icons" in ui.getAsJsonArray("taskTargets").map { it.asString })
+        assertTrue(ui.getAsJsonObject("config").getAsJsonObject("tasks").has("generate-icons"))
+        assertFalse("generate-icons" in taskIds("ui"))
+    }
+
+    /** The groups by `layer` and by tag, and the icon for the language of each project, use these values. They do not need one more moon command. */
+    @Test
+    fun projectsHaveLayerTagsAndLanguage() {
+        val web = projects.single { it.get("id").asString == "web" }
+        assertEquals("application", web.get("layer").asString)
+        assertEquals("typescript", web.get("language").asString)
+        assertEquals(listOf("react", "public"), web.getAsJsonObject("config").getAsJsonArray("tags").map { it.asString })
+    }
+
+    /**
+     * A tooltip with the command can use these values.
+     * moon sets the type from the options of the task. A task with outputs has the type `build`, a persistent task has the type `run`, and all other tasks have the type `test`.
+     * Thus `lint` and `format` are `test`. An icon for each type can be incorrect for these tasks.
+     */
+    @Test
+    fun tasksHaveTypeAndCommand() {
+        val webTasks = tasks.getValue("web")
+        assertEquals("build", webTasks.getAsJsonObject("build").get("type").asString)
+        assertEquals("run", webTasks.getAsJsonObject("dev").get("type").asString)
+        assertEquals("test", webTasks.getAsJsonObject("test").get("type").asString)
+        assertEquals("test", webTasks.getAsJsonObject("lint").get("type").asString)
+        assertEquals("test", webTasks.getAsJsonObject("format").get("type").asString)
+        assertEquals("echo", webTasks.getAsJsonObject("build").get("command").asString)
+        assertEquals(listOf("build", "web"), webTasks.getAsJsonObject("build").getAsJsonArray("args").map { it.asString })
+    }
+
     @Test
     fun recordedTaskFilesHaveTheirTargets() {
         for (target in listOf("api:audit", "web:lint", "web:build")) {
