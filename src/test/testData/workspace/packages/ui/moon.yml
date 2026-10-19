@@ -8,7 +8,10 @@ project:
 tasks:
   build:
     command: 'echo build ui'
-    outputs: ['dist']
+    # The command does not make dist. The output is optional. Thus moon does not stop with an error.
+    outputs:
+      - file: 'dist'
+        optional: true
   storybook:
     command: 'echo storybook'
     description: 'Start Storybook for the components.'

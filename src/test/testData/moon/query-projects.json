@@ -34,7 +34,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -238,12 +239,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "apps/admin/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {
@@ -616,7 +618,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -888,12 +891,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "apps/api/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {
@@ -1301,7 +1305,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -1543,12 +1548,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "packages/db/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {
@@ -1850,7 +1856,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -2028,12 +2035,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "packages/ui/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {
@@ -2399,7 +2407,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -2567,12 +2576,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "packages/utils/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {
@@ -2884,7 +2894,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -3111,12 +3122,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "apps/web/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {
@@ -3558,7 +3570,8 @@
             "globalInputs": [],
             "outputs": [
               {
-                "file": "dist"
+                "file": "dist",
+                "optional": true
               }
             ],
             "options": {
@@ -3816,12 +3829,13 @@
           },
           "outputs": [
             {
-              "file": "dist"
+              "file": "dist",
+              "optional": true
             }
           ],
           "outputFiles": {
             "apps/worker/dist": {
-              "optional": false
+              "optional": true
             }
           },
           "state": {

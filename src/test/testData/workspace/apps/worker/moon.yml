@@ -15,4 +15,7 @@ tasks:
     command: 'echo build worker'
     description: 'Compile the worker.'
     deps: ['db:build']
-    outputs: ['dist']
+    # The command does not make dist. The output is optional. Thus moon does not stop with an error.
+    outputs:
+      - file: 'dist'
+        optional: true

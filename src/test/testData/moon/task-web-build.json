@@ -61,12 +61,13 @@
   },
   "outputs": [
     {
-      "file": "dist"
+      "file": "dist",
+      "optional": true
     }
   ],
   "outputFiles": {
     "apps/web/dist": {
-      "optional": false
+      "optional": true
     }
   },
   "state": {
