@@ -29,6 +29,15 @@ class QueryProjectsParserTest {
     }
 
     @Test
+    fun internalTaskIsNotInTheResult() {
+        // moon does not run internal tasks directly. Thus the tree must not show them.
+        assertEquals(
+            listOf("build", "format", "lint", "storybook", "test", "typecheck"),
+            project("ui").tasks.map { it.id },
+        )
+    }
+
+    @Test
     fun taskHasTargetAndDescription() {
         val build = project("web").tasks.single { it.id == "build" }
         assertEquals("web:build", build.target)
