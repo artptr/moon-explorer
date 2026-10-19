@@ -132,18 +132,17 @@ These functions are possible for a later release. The team did not approve them.
 - An inspection that finds tasks without a description
 - Debug of a task and more options for run configurations
 - Filters and saved scopes (section 4.2). The team removed them from the MVP in the meeting on 2026-10-14. The groups by `stack` and the search can be satisfactory.
-- Pinned tasks. The user pins the tasks that the user runs many times. The tree shows the pinned tasks in a group at the top. The team selected pinned tasks in place of hidden tasks in the meeting on 2026-10-19. Refer to section 10.
-- A search for tasks in **Search Everywhere** and **Run Anything**. The user can find and run a task when the **Moon** tool window is closed.
+- Pinned tasks. The user pins the tasks that the user runs many times. The tree shows the pinned tasks in a group at the top. The team selected pinned tasks in place of hidden tasks in the meeting on 2026-10-19. Refer to section 10. Issue [#75](https://github.com/artptr/moon-explorer/issues/75)
+- A search for tasks in **Search Everywhere** and **Run Anything**. The user can find and run a task when the **Moon** tool window is closed. Issue [#76](https://github.com/artptr/moon-explorer/issues/76)
 - An action that opens the project graph, the task graph, or the action graph of moon. The commands `moon project-graph`, `moon task-graph`, and `moon action-graph` show the graph. The plugin does not show the graph itself.
 - An action that runs `moon check` for a project
-- An action that opens the configuration file of a project, for example `moon.yml`
 - The command of a task in a tooltip in the tree
-- Groups by `layer` and by tag in the tree
+- Groups by `layer` (issue [#67](https://github.com/artptr/moon-explorer/issues/67)) and by tag (issue [#80](https://github.com/artptr/moon-explorer/issues/80)) in the tree
 - The automatic selection of the project when the user opens a different file
 - An icon for the language of each project in the tree. The Moonrepo plugin has this function.
 - A notification when the version of moon is older than the minimum version. The Moonrepo plugin shows a similar notification for problems in the workspace.
-- A report of the last run
-- Run icons in the gutter of `moon.yml`. WebStorm has the same function for scripts in `package.json`.
+- A report of the last run. Issue [#77](https://github.com/artptr/moon-explorer/issues/77)
+- Run icons in the gutter of `moon.yml`. WebStorm has the same function for scripts in `package.json`. Issue [#70](https://github.com/artptr/moon-explorer/issues/70)
 - Test results in the test runner of the IDE
 
 ## 8. Out of scope
@@ -209,27 +208,27 @@ This table gives the decision for each function of the extension, version 0.16.6
 
 | Function of the extension | Moon Explorer | Decision |
 |---------------------------|---------------|----------|
-| A tree of projects and tasks with groups by `stack` and `layer` | Groups by project, by task name, and by `stack` | Groups by project, by task name, and by `stack` are complete. Groups by `layer` are in section 7. |
-| A view of the projects in groups by tag | No | Groups by tag are in section 7. |
+| A tree of projects and tasks with groups by `stack` and `layer` | Groups by project, by task name, and by `stack` | Groups by project, by task name, and by `stack` are complete. Issue [#67](https://github.com/artptr/moon-explorer/issues/67) records the groups by `layer`. |
+| A view of the projects in groups by tag | No | Issue [#80](https://github.com/artptr/moon-explorer/issues/80) records this function. |
 | An icon for the language of each project | No | In section 7. |
 | An icon for the type of each task | No | The team does not plan this function. Many tasks have the type `test`, for example `lint`. Refer to section 10. |
 | The command of each task in the tree | The description of each task | A tooltip with the command is in section 7. |
 | Internal tasks are not in the tree | Internal tasks are not in the tree | Complete. moon does not write internal tasks in the key `tasks` in the output. A test makes sure that the key `tasks` does not contain internal tasks. |
-| The setting `moon.hideTasks` hides tasks | No | Pinned tasks are in section 7. |
+| The setting `moon.hideTasks` hides tasks | No | Pinned tasks are in section 7. Issue [#75](https://github.com/artptr/moon-explorer/issues/75) records them. |
 | A run of a task from the tree | A run configuration | Complete. |
-| A run of a task that the user types, for example `web:build` | No | A search in **Search Everywhere** and **Run Anything** is in section 7. |
+| A run of a task that the user types, for example `web:build` | No | A search in **Search Everywhere** and **Run Anything** is in section 7. Issue [#76](https://github.com/artptr/moon-explorer/issues/76) records it. |
 | A run of `moon check` for a project | No | In section 7. |
-| A report of the last run | No | In section 7. |
+| A report of the last run | No | Issue [#77](https://github.com/artptr/moon-explorer/issues/77) records this function. |
 | The action graph, the project graph, and the task graph | No | An action that starts the moon commands is in section 7. The plugin does not show the graph itself. Refer to section 8. |
-| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual configuration is necessary for `template.yml`. A setting for the local schemas in `.moon/cache/schemas` is possible. |
+| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual configuration is necessary for `template.yml`. A setting for the local schemas in `.moon/cache/schemas` is possible. Issue [#78](https://github.com/artptr/moon-explorer/issues/78) records the check. |
 | An MCP server for AI agents | No | The team does not plan this function. Refer to principle 7 in section 5. |
 | An update of the tree when `moon.yml` or a file in `.moon/` changes | No | Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. |
 | An action that updates the tree | The **Refresh** action | Complete. |
-| An action that opens the configuration file of a project | No | In section 7. |
+| An action that opens the configuration file of a project | No | Issue [#69](https://github.com/artptr/moon-explorer/issues/69) records this function. The action also opens the files in `.moon/tasks/`. |
 | The setting `moon.binPath` for the path to the `moon` executable | A setting for the path. The plugin also finds the executable automatically (section 4.4). | Complete. |
 | The setting `moon.logLevel` for the log level of all moon commands | No | The team did not examine this function. |
 | A command that opens the settings | The settings page **Settings \| Tools \| Moon Explorer** | Complete. The user opens the page from the **Settings** dialog. The tool window shows a link to the page for some errors. |
 | More than one root directory in the VS Code window | The plugin uses one workspace root for each IDE project | The team did not examine this function. |
 | The setting `moon.rootPrefixes` for a workspace root in a subdirectory | The plugin finds the workspace root only in the IDE project directory or in its parent directories | The team did not examine this function. |
 
-The README can use this table to tell users which functions Moon Explorer has.
+The README can use this table to tell users which functions Moon Explorer has. Issue [#79](https://github.com/artptr/moon-explorer/issues/79) records this work.
