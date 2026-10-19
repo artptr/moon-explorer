@@ -68,7 +68,7 @@ class TestDataTest {
     }
 
     /**
-     * The commands of the test workspace do not make files. moon stops with an error if a task does not make an output that is not optional.
+     * The commands of the test workspace do not make files. If a task does not make a necessary output, moon stops with an error.
      * Thus all outputs must be optional. Then `moon run` completes for each task in a manual test.
      */
     @Test
@@ -77,7 +77,7 @@ class TestDataTest {
             projectTasks.entrySet().mapNotNull { it.value.asJsonObject.getAsJsonObject("outputFiles") }.flatMap { it.entrySet() }
         }
         assertTrue(outputFiles.isNotEmpty())
-        outputFiles.forEach { assertTrue("${it.key} must be optional", it.value.asJsonObject.get("optional").asBoolean) }
+        outputFiles.forEach { assertTrue("${it.key} must be optional", it.value.asJsonObject.get("optional")?.asBoolean == true) }
     }
 
     @Test
