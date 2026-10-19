@@ -134,8 +134,9 @@ These functions are possible for a later release. The team did not approve them.
 - Filters and saved scopes (section 4.2). The team removed them from the MVP in the meeting on 2026-10-14. The groups by `stack` and the search can be satisfactory.
 - Pinned tasks. The user pins the tasks that the user runs many times. The tree shows the pinned tasks in a group at the top. The team selected pinned tasks in place of hidden tasks in the meeting on 2026-10-19. Refer to section 10.
 - A search for tasks in **Search Everywhere** and **Run Anything**. The user can find and run a task when the **Moon** tool window is closed.
-- An action that opens the project graph or the task graph of moon. The commands `moon project-graph` and `moon task-graph` show the graph. The plugin does not show the graph itself.
+- An action that opens the project graph, the task graph, or the action graph of moon. The commands `moon project-graph`, `moon task-graph`, and `moon action-graph` show the graph. The plugin does not show the graph itself.
 - An action that runs `moon check` for a project
+- An action that opens the configuration file of a project, for example `moon.yml`
 - The command of a task in a tooltip in the tree
 - Groups by `layer` and by tag in the tree
 - The automatic selection of the project when the user opens a different file
@@ -187,7 +188,7 @@ The team got this information in a meeting on 2026-10-14:
 The team got this information in a meeting on 2026-10-19:
 
 - The team examined the source code of the moon VS Code extension, version 0.16.6. This version is from 2026-06-08. Section 11 gives the comparison.
-- The extension has about 7,300 installations from Visual Studio Marketplace and about 4,100 downloads from Open VSX. The last seven releases only correct problems with moon v2.
+- The extension has about 7,300 installations from Visual Studio Marketplace and about 4,100 downloads from Open VSX. The last seven releases do not add functions. They make the extension operate with moon v2, correct problems with moon v2, and correct the release scripts.
 - Not many users change from VS Code to an IntelliJ-based IDE. A user who compares the two products is usually a WebStorm user. This user reads the list of functions of the extension. Then the user asks why Moon Explorer does not have one of these functions.
 - The maintainer did not use the extension.
 - The extension has the setting `moon.hideTasks`. This setting shows that some users hide tasks.
@@ -208,21 +209,26 @@ This table gives the decision for each function of the extension, version 0.16.6
 
 | Function of the extension | Moon Explorer | Decision |
 |---------------------------|---------------|----------|
-| A tree of projects and tasks with groups by `stack` and `layer` | Groups by project, by task name, and by `stack` | Complete. Groups by `layer` are in section 7. |
+| A tree of projects and tasks with groups by `stack` and `layer` | Groups by project, by task name, and by `stack` | Groups by project, by task name, and by `stack` are complete. Groups by `layer` are in section 7. |
 | A view of the projects in groups by tag | No | Groups by tag are in section 7. |
-| An icon for the language of each project | No | In section 7 |
+| An icon for the language of each project | No | In section 7. |
 | An icon for the type of each task | No | The team does not plan this function. Many tasks have the type `test`, for example `lint`. Refer to section 10. |
 | The command of each task in the tree | The description of each task | A tooltip with the command is in section 7. |
-| Internal tasks are not in the tree | Internal tasks are not in the tree | Complete. moon does not write internal tasks in the output. A test makes sure that the output does not contain internal tasks. |
+| Internal tasks are not in the tree | Internal tasks are not in the tree | Complete. moon does not write internal tasks in the key `tasks` in the output. A test makes sure that the key `tasks` does not contain internal tasks. |
 | The setting `moon.hideTasks` hides tasks | No | Pinned tasks are in section 7. |
-| A run of a task from the tree | A run configuration | Complete |
+| A run of a task from the tree | A run configuration | Complete. |
 | A run of a task that the user types, for example `web:build` | No | A search in **Search Everywhere** and **Run Anything** is in section 7. |
-| A run of `moon check` for a project | No | In section 7 |
-| A report of the last run | No | In section 7 |
-| The action graph, the project graph, and the task graph | No | An action that starts the moon command is in section 7. The plugin does not show the graph itself. Refer to section 8. |
-| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | A manual check in WebStorm is necessary. A setting for the local schemas in `.moon/cache/schemas` is possible. |
+| A run of `moon check` for a project | No | In section 7. |
+| A report of the last run | No | In section 7. |
+| The action graph, the project graph, and the task graph | No | An action that starts the moon commands is in section 7. The plugin does not show the graph itself. Refer to section 8. |
+| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual check is necessary. A setting for the local schemas in `.moon/cache/schemas` is possible. |
 | An MCP server for AI agents | No | The team does not plan this function. Refer to principle 7 in section 5. |
-| An update of the tree when `moon.yml` changes | No | Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. |
-| The setting `moon.rootPrefixes` for a workspace root in a subdirectory | The plugin finds the workspace root only in the IDE project directory or in its parent directories | The team did not examine this function. |
+| An update of the tree when `moon.yml` or a file in `.moon/` changes | No | Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. |
+| An action that updates the tree | The **Refresh** action | Complete. |
+| An action that opens the configuration file of a project | No | In section 7. |
+| The setting `moon.binPath` for the path to the `moon` executable | A setting for the path. The plugin also finds the executable automatically (section 4.4). | Complete. |
+| The setting `moon.logLevel` for the log level of all moon commands | No | The team did not examine this function. |
+| A command that opens the settings | The settings page **Settings \| Tools \| Moon Explorer** | Complete. |
+| More than one root directory in the VS Code window, and the setting `moon.rootPrefixes` for a workspace root in a subdirectory | The plugin finds the workspace root only in the IDE project directory or in its parent directories | The team did not examine this function. |
 
 The README can use this table to tell users which functions Moon Explorer has.

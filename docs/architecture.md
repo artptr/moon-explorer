@@ -55,7 +55,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 4. The service sets the new state. The tool window shows the tree or a message.
 
 The output of `moon query projects` contains the `stack` value and the tasks of each project. Thus the plugin starts only one moon process for each load.
-The output does not contain internal tasks. The output of `moon query tasks` also does not contain internal tasks.
+The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.
 moon does not write the key `tasks` for a project without tasks. The tree does not show these projects.
 
 The tree has three group modes: by project, by task name, and by `stack`. The plugin keeps the selected mode in the workspace file of the IDE project.

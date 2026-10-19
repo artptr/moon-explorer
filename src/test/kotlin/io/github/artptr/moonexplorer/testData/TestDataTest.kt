@@ -72,7 +72,7 @@ class TestDataTest {
      * The plugin reads the key `tasks`. Thus the tree does not show internal tasks. `moon run` does not run them.
      */
     @Test
-    fun internalTaskIsOnlyInTaskTargets() {
+    fun internalTaskIsOnlyInTheConfigurationAndTaskTargets() {
         val ui = projects.single { it.get("id").asString == "ui" }
         assertTrue("ui:generate-icons" in ui.getAsJsonArray("taskTargets").map { it.asString })
         assertTrue(ui.getAsJsonObject("config").getAsJsonObject("tasks").has("generate-icons"))
