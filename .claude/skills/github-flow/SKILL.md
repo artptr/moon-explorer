@@ -51,7 +51,7 @@ The board has these columns: **Backlog**, **Ready**, **In progress**, **In revie
 
 1. Use the pull request template.
 2. Put `Closes #<issue-number>` in the text.
-3. Make sure that the `Build` and `Docs` workflows pass.
+3. Make sure that the `Build` and `Docs` workflows pass. If the pull request changes only documentation, the `Build` workflow does not start. Then only `Docs` must pass.
 4. Add a `CHANGELOG.md` entry under `Unreleased` for each change that a user can see.
 
 ```bash
@@ -62,5 +62,5 @@ gh pr checks --watch
 ## Releases
 
 Only a maintainer makes releases.
-The `Build` workflow creates a draft release on each push to `main`.
+The `Build` workflow creates a draft release on each push to `main`, except a push that changes only documentation.
 When the maintainer publishes the draft, the `Release` workflow publishes the plugin to JetBrains Marketplace.
