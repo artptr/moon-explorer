@@ -116,6 +116,11 @@ The cache key contains a version number of the cache, the versions of the two ID
 The runner data is the operating system and the CPU architecture.
 Only a push to `main` saves the IDE cache. All pull requests can use the IDE cache from `main`.
 
+`platformVersion` must be a fixed version number, for example `2025.3.6.1` or the Early Access Program (EAP) build `261.12345.67`.
+Do not use a snapshot version, for example `261-EAP-SNAPSHOT`.
+The IDE of a snapshot version can change, but the cache key does not change. Then the IDE cache contains an old IDE.
+If `platformVersion` is not a fixed version number, the `Build` workflow stops with an error.
+
 ## 6. Do a check of the documentation
 
 Run `vale .`.

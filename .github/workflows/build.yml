@@ -175,16 +175,22 @@ jobs:
         run: |
           set -euo pipefail
           PLATFORM_VERSION="$(sed -n 's/^platformVersion[[:space:]]*=[[:space:]]*//p' gradle.properties)"
+          # 'platformVersion' must be a fixed version number, for example '2025.3.6.1' or the EAP build '261.12345.67'.
+          # The IDE of a snapshot version, for example '261-EAP-SNAPSHOT', can change, but the cache key does not change. Then the IDE cache contains an old IDE.
+          if [[ ! "$PLATFORM_VERSION" =~ ^[0-9][0-9.]*$ ]]; then
+            echo "::error::'platformVersion' in gradle.properties must be a fixed version number. The value is '$PLATFORM_VERSION'."
+            exit 1
+          fi
           if ! RELEASES="$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain)"; then
             printf '%s\n' "${RELEASES:-}"
             echo "::error::The Gradle task printProductsReleases did not complete."
             exit 1
           fi
           NEWEST_IDE="$(printf '%s\n' "$RELEASES" | sed -n '1p')"
-          # The two IDE versions must be version numbers. If the first line of the Gradle output is a different text, for example a warning, the step stops with an error.
-          if [[ ! "$PLATFORM_VERSION" =~ ^[0-9][0-9.]*$ || ! "$NEWEST_IDE" =~ ^IU-[0-9][0-9.]*$ ]]; then
+          # The first line of the Gradle output must be the version of the newest released IDE, for example 'IU-2026.2.3'. If the first line of the Gradle output is a different text, for example a warning, the step stops with an error.
+          if [[ ! "$NEWEST_IDE" =~ ^IU-[0-9][0-9.]*$ ]]; then
             printf '%s\n' "$RELEASES"
-            echo "::error::The step cannot get the IDE versions. IDE of the build (platformVersion): '$PLATFORM_VERSION'. Newest released IDE: '$NEWEST_IDE'."
+            echo "::error::The step cannot get the version of the newest released IDE. The first line of the Gradle output is '$NEWEST_IDE'."
             exit 1
           fi
           echo "minimum=IU-$PLATFORM_VERSION" >> "$GITHUB_OUTPUT"
