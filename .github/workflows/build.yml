@@ -2,6 +2,7 @@
 # - Build the plugin ZIP with the 'buildPlugin' task and upload it as a workflow artifact.
 # - Run the 'check' task and upload test reports on failure.
 # - Run the 'verifyPlugin' task and upload Plugin Verifier reports.
+#   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
 # - Create a draft GitHub release on non-pull-request runs.
 #
 # The workflow is triggered on pushes to the 'main' branch and on pull_request events.
@@ -59,13 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      # Free GitHub Actions Environment Disk Space
-      - name: Maximize Build Space
-        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-        with:
-          tool-cache: false
-          large-packages: false
-
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -92,19 +86,17 @@ jobs:
           name: plugin-distribution
           path: ./build/distributions/*.zip
 
+      # Show the available disk space. The job does not remove files to get more disk space before the build.
+      - name: Show Available Disk Space
+        if: ${{ always() }}
+        run: df -h /
+
   # Run tests and upload test reports on failure
   test:
     name: Test
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:
-
-      # Free GitHub Actions Environment Disk Space
-      - name: Maximize Build Space
-        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-        with:
-          tool-cache: false
-          large-packages: false
 
       # Check out the current repository
       - name: Fetch Sources
@@ -118,10 +110,9 @@ jobs:
           java-version: 21
 
       # Setup Gradle
+      # The action writes the cache only on 'main'. Thus only 'main' puts the test dependencies into the cache.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-        with:
-          cache-read-only: true
 
       # Run tests
       - name: Run Tests
@@ -135,6 +126,11 @@ jobs:
           name: tests-result
           path: ${{ github.workspace }}/build/reports/tests
 
+      # Show the available disk space. The job does not remove files to get more disk space before the tests.
+      - name: Show Available Disk Space
+        if: ${{ always() }}
+        run: df -h /
+
   # Run plugin structure verification along with IntelliJ Plugin Verifier
   verify:
     name: Verify plugin
@@ -143,7 +139,9 @@ jobs:
     steps:
 
       # Free GitHub Actions Environment Disk Space
+      # Only a push to 'main' does a check against all recommended IDEs. Thus only this check must have more disk space.
       - name: Maximize Build Space
+        if: github.event_name != 'pull_request'
         uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
           tool-cache: false
@@ -161,14 +159,75 @@ jobs:
           java-version: 21
 
       # Setup Gradle
+      # The job does not save the Gradle cache. If the 'Restore IDE Cache' step does not find the IDE cache, Gradle downloads the IDE archives into the Gradle home directory.
+      # The archives are large. The job keeps the extracted IDEs in a separate cache.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: true
 
+      # Get the versions of the two IDEs for the quick check: the IDE of the build and the newest released IDE.
+      # The 'printProductsReleases' task does not download the IDEs.
+      - name: Get IDE Versions
+        id: ides
+        # The step keeps the Gradle output in a variable. Then the step reads the first line.
+        # Do not send the Gradle output to 'head'. 'head' can close the pipe before Gradle completes. With 'pipefail', this causes a failure of the step.
+        run: |
+          set -euo pipefail
+          PLATFORM_VERSION="$(sed -n 's/^platformVersion[[:space:]]*=[[:space:]]*//p' gradle.properties)"
+          # 'platformVersion' must be a fixed version number, for example '2025.3.6.1' or the EAP build '261.12345.67'.
+          # The IDE of a snapshot version, for example '261-EAP-SNAPSHOT', can change, but the cache key does not change. Then the IDE cache contains an old IDE.
+          if [[ ! "$PLATFORM_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+            echo "::error::'platformVersion' in gradle.properties must be a fixed version number. The value is '$PLATFORM_VERSION'."
+            exit 1
+          fi
+          if ! RELEASES="$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain)"; then
+            printf '%s\n' "${RELEASES:-}"
+            echo "::error::The Gradle task printProductsReleases did not complete."
+            exit 1
+          fi
+          NEWEST_IDE="$(printf '%s\n' "$RELEASES" | sed -n '1p')"
+          # The first line of the Gradle output must be the version of the newest released IDE, for example 'IU-2026.2.3'. If the first line of the Gradle output is a different text, for example a warning, the step stops with an error.
+          if [[ ! "$NEWEST_IDE" =~ ^IU-[0-9]+(\.[0-9]+)+$ ]]; then
+            printf '%s\n' "$RELEASES"
+            echo "::error::The step cannot get the version of the newest released IDE. The first line of the Gradle output is '$NEWEST_IDE'."
+            exit 1
+          fi
+          echo "minimum=IU-$PLATFORM_VERSION" >> "$GITHUB_OUTPUT"
+          echo "newest=$NEWEST_IDE" >> "$GITHUB_OUTPUT"
+
+      # If the Gradle property 'intellijPlatformIdesCacheEnabled' is true, Gradle extracts the IDEs into '.intellijPlatform/ides/<IDE>'.
+      # The cache contains only the two IDEs for the quick check. A cache for all recommended IDEs is too large.
+      - name: Restore IDE Cache
+        id: ide-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .intellijPlatform/ides/${{ steps.ides.outputs.minimum }}
+            .intellijPlatform/ides/${{ steps.ides.outputs.newest }}
+          # If you change the paths or the contents of the IDE cache, change 'v1' to the next number (for example, 'v2').
+          key: plugin-verifier-ides-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.ides.outputs.minimum }}-${{ steps.ides.outputs.newest }}
+
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
+      # For a pull request, the job does the quick check. The quick check uses two IDEs in offline mode. Refer to 'quickVerification' in build.gradle.kts.
       - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin
+        env:
+          QUICK_VERIFICATION: ${{ github.event_name == 'pull_request' }}
+        run: ./gradlew verifyPlugin -PquickVerification=$QUICK_VERIFICATION -Porg.jetbrains.intellij.platform.intellijPlatformIdesCacheEnabled=true
+
+      # If the 'Restore IDE Cache' step did not find the IDE cache, save the IDE cache.
+      # Only a push to 'main' saves the IDE cache. Thus the repository has only one IDE cache for each key.
+      # The cache from 'main' is available to all pull requests.
+      # If the cache service has a failure, the job continues.
+      - name: Save IDE Cache
+        if: github.event_name != 'pull_request' && steps.ide-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .intellijPlatform/ides/${{ steps.ides.outputs.minimum }}
+            .intellijPlatform/ides/${{ steps.ides.outputs.newest }}
+          key: ${{ steps.ide-cache.outputs.cache-primary-key }}
 
       # Collect Plugin Verifier Result
       - name: Collect Plugin Verifier Result
@@ -177,6 +236,11 @@ jobs:
         with:
           name: pluginVerifier-result
           path: ${{ github.workspace }}/build/reports/pluginVerifier
+
+      # Show the available disk space. For a pull request, the job does not remove files to get more disk space before the check.
+      - name: Show Available Disk Space
+        if: ${{ always() }}
+        run: df -h /
 
   # Prepare a draft release for GitHub Releases page for the manual verification
   # If accepted and published, the release workflow would be triggered
