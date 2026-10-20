@@ -28,7 +28,10 @@ class SelectOpenedFileAction : DumbAwareAction() {
         panel.selectProjectOf(file.toNioPath())
     }
 
-    /** Gives the file of the selected editor. The value is null if there is no editor, or if the file is not on the local disk. */
+    /**
+     * Gives the file of the selected editor. If the IDE shows split editors, this editor is in the current editor window, the window with the focus.
+     * The value is null if there is no editor, or if the file is not on the local disk.
+     */
     private fun openedFile(project: Project): VirtualFile? =
-        FileEditorManager.getInstance(project).selectedFiles.firstOrNull()?.takeIf { it.fileSystem is LocalFileSystem }
+        FileEditorManager.getInstance(project).selectedEditor?.file?.takeIf { it.fileSystem is LocalFileSystem }
 }

@@ -70,7 +70,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         FileEditorManager.getInstance(project).openFile(virtualFile, true)
     }
 
-    fun testToolbarHasTheActionAfterRefresh() {
+    fun testToolbarHasTheAction() {
         val actionManager = ActionManager.getInstance()
         val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
         assertEquals(
@@ -138,6 +138,29 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         panel.changeMainGroup(TaskGrouping.PROJECT)
         panel.render(TasksState.NoWorkspace)
         assertFalse("The panel shows a message", update())
+    }
+
+    fun testCannotSelectDuringALoad() {
+        loadRecorded()
+        panel.render(TasksState.Loading)
+        assertFalse("The tree shows the old tasks", panel.canSelectProject())
+        panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
+        assertNull(panel.tree.selectionPath)
+        assertEmpty(messages)
+        loadRecorded()
+        assertTrue(panel.canSelectProject())
+    }
+
+    fun testActionIsDisabledDuringALoad() {
+        loadRecorded()
+        openInEditor("apps/web/moon.yml")
+        panel.render(TasksState.Loading)
+        assertFalse(update())
+    }
+
+    fun testBalloonTextEscapesHtml() {
+        val text = MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", "a<b>&c.ts")
+        assertEquals("The file a&lt;b&gt;&amp;c.ts is not in a moon project.", balloonHtml(text))
     }
 
     fun testActionIsDisabledForAFileThatIsNotOnTheDisk() {

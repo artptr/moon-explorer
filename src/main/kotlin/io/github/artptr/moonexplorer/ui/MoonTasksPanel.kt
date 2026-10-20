@@ -16,6 +16,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.PopupHandler
@@ -114,11 +115,11 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
 
     /**
-     * Shows an information message to the user. The default value shows a balloon below the toolbar. Tests change this value to a fake.
-     * Change it only on the EDT.
+     * Shows an information message to the user. [text] is plain text, not HTML. The default value shows a balloon below the toolbar.
+     * Tests change this value to a fake. Change it only on the EDT.
      */
     internal var showInfo: (String) -> Unit = { text ->
-        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(text, MessageType.INFO, null)
+        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(balloonHtml(text), MessageType.INFO, null)
             .setFadeoutTime(INFO_FADEOUT_MILLIS)
             .createBalloon()
             .show(RelativePoint.getSouthWestOf(toolbar ?: this), Balloon.Position.below)
@@ -282,9 +283,10 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     /**
      * Gives true if the panel can select the project of a file. The tree must show the tasks, and the main group must be
-     * [TaskGrouping.PROJECT]. If the main group is [TaskGrouping.TASK_NAME], the tree has no project nodes.
+     * [TaskGrouping.PROJECT]. During a load, the tree shows the old tasks. Thus the function gives false. If the main group is [TaskGrouping.TASK_NAME], the tree has no project nodes.
      */
-    internal fun canSelectProject(): Boolean = shownTasks != null && mainGroup == TaskGrouping.PROJECT
+    internal fun canSelectProject(): Boolean =
+        shownTasks != null && !loadingPanel.isLoading && mainGroup == TaskGrouping.PROJECT
 
     /**
      * Selects the node of the project that contains [file]. The function expands the node and its parent nodes, and scrolls to the node.
@@ -340,3 +342,9 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         const val INFO_FADEOUT_MILLIS = 5_000L
     }
 }
+
+/**
+ * Gives the HTML text of a balloon for the plain text [text]. The balloon reads its text as HTML.
+ * Thus a file name with `<`, `>`, or `&` must change into HTML entities.
+ */
+internal fun balloonHtml(text: String): String = StringUtil.escapeXmlEntities(text)

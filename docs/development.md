@@ -79,7 +79,7 @@ The test workspace contains these items:
 - The project `icons` in `packages/ui/icons` is a nested project in the project `ui`. The key `sources` in `.moon/workspace.yml` adds it.
 - `build` tasks with the optional output `dist`. The commands do not make output files. Thus `moon run` completes for each task.
 
-**NOTE:** Do not add a nested project with a glob or a path in a list. If you do this, moon also adds the parent directory `packages` as a project.
+**NOTE:** To add a nested project, put the project ID and the path in the map `sources`. If `projects` is a list and you add a glob or a path to it, moon also adds the directory `packages` as a project.
 
 **NOTE:** In `moon/query-projects.json`, the project `config` has no key `tasks`. moon does not write this key for a project without tasks.
 
