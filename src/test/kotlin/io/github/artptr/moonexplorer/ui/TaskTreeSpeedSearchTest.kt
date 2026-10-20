@@ -7,6 +7,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.speedSearch.SpeedSearchSupply
 import com.intellij.ui.treeStructure.Tree
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.settings.MoonSettings
@@ -24,6 +25,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
+        project.service<MoonSettings>().taskCategory = TaskCategory.NONE
         project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
@@ -33,6 +35,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             panel.speedSearch.hidePopup()
+            project.service<MoonSettings>().taskCategory = TaskCategory.NONE
             project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
         } finally {
             super.tearDown()
@@ -92,8 +95,8 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         assertEquals("worker", selectedTask.projectId)
     }
 
-    fun testSearchOperatesInStackGrouping() {
-        panel.changeGrouping(TaskGrouping.STACK)
+    fun testSearchOperatesInStackCategory() {
+        panel.changeCategory(TaskCategory.STACK)
         panel.speedSearch.findAndSelectElement("audit")
         assertEquals("api:audit", selectedTask.task.target)
         assertEquals("backend", selectedPath.parentPath.parentPath.lastPathComponent.toString())

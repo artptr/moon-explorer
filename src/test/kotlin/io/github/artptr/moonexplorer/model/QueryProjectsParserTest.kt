@@ -14,10 +14,12 @@ class QueryProjectsParserTest {
 
     private fun stacks(json: String) = QueryProjectsParser.parse(json).projects.associate { it.id to it.stack }
 
+    private fun layers(json: String) = QueryProjectsParser.parse(json).projects.associate { it.id to it.layer }
+
     @Test
     fun recordedOutputHasAllProjectsWithTasksInOrder() {
         // The project config has no tasks. Thus it is not in the result.
-        assertEquals(listOf("admin", "api", "db", "ui", "utils", "web", "worker"), recorded.projects.map { it.id })
+        assertEquals(listOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), recorded.projects.map { it.id })
     }
 
     @Test
@@ -55,6 +57,7 @@ class QueryProjectsParserTest {
             "admin" to "frontend",
             "api" to "backend",
             "db" to "backend",
+            "scripts" to null,
             "ui" to "frontend",
             "utils" to "frontend",
             "web" to "frontend",
@@ -170,5 +173,38 @@ class QueryProjectsParserTest {
             ]}
         """
         assertEquals(mapOf("a" to "infrastructure", "b" to null), stacks(json))
+    }
+
+    @Test
+    fun recordedOutputHasTheLayerOfEachProject() {
+        val expected = mapOf(
+            "admin" to "application",
+            "api" to "application",
+            "db" to "library",
+            "scripts" to null,
+            "ui" to "library",
+            "utils" to "library",
+            "web" to "application",
+            "worker" to "application",
+        )
+        assertEquals(expected, recorded.projects.associate { it.id to it.layer })
+    }
+
+    @Test
+    fun unknownOrEmptyLayerIsNull() {
+        // moon gives "unknown" if the project does not set layer.
+        val json = """
+            {"projects": [
+              {"id": "a", "layer": "unknown", "tasks": {"t": {"id": "t"}}}, {"id": "b", "layer": "", "tasks": {"t": {"id": "t"}}},
+              {"id": "c", "tasks": {"t": {"id": "t"}}}
+            ]}
+        """
+        assertEquals(mapOf("a" to null, "b" to null, "c" to null), layers(json))
+    }
+
+    @Test
+    fun layerComesFromTheConfigIfTheTopLevelValueIsMissing() {
+        val json = """{"projects": [{"id": "a", "config": {"layer": "tool"}, "tasks": {"t": {"id": "t"}}}]}"""
+        assertEquals(mapOf("a" to "tool"), layers(json))
     }
 }

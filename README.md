@@ -15,7 +15,7 @@ Think of it as [Nx Console](https://nx.dev/getting-started/editor-setup), but fo
 The goal: in a big moon workspace, find any task and run it without the terminal or digging through YAML.
 The first release (an MVP) focuses on that:
 
-- A task tree in the **Moon** tool window, grouped by project, by task name, or by `stack`
+- A task tree in the **Moon** tool window, grouped by project or by task name, optionally inside `stack` or `layer` nodes
 - Just start typing in the tree to search task IDs (like `build`), project IDs, and descriptions
 - Double-click a task to run it as a regular IDE run configuration
 - Works out of the box when moon is an npm dev dependency — no need to install it globally

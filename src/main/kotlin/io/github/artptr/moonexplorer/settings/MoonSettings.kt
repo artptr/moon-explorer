@@ -6,6 +6,7 @@ import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.StoragePathMacros
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 
 /**
@@ -18,8 +19,30 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
 
     class SettingsState : BaseState() {
         var executablePath by string()
-        var taskGrouping by enum(TaskGrouping.PROJECT)
+        var taskCategory by enum(TaskCategory.NONE)
+        var mainGroup by enum(TaskGrouping.PROJECT)
         var timeoutSeconds by property(DEFAULT_TIMEOUT_SECONDS)
+
+        /**
+         * The group mode of version 0.1.0: `PROJECT`, `TASK_NAME`, or `STACK`. [loadState] changes it to [taskCategory] and [mainGroup].
+         * The value is text, thus the plugin can read the old value `STACK`.
+         */
+        var taskGrouping by string()
+    }
+
+    override fun loadState(state: SettingsState) {
+        super.loadState(state)
+        val oldGrouping = state.taskGrouping ?: return
+        when (oldGrouping) {
+            "STACK" -> {
+                state.taskCategory = TaskCategory.STACK
+                state.mainGroup = TaskGrouping.PROJECT
+            }
+            "TASK_NAME" -> state.mainGroup = TaskGrouping.TASK_NAME
+            else -> state.mainGroup = TaskGrouping.PROJECT
+        }
+        // Do not write the old value again.
+        state.taskGrouping = null
     }
 
     /** The path to the `moon` executable. If the value is empty, the plugin finds moon automatically. */
@@ -29,11 +52,18 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
             state.executablePath = value.trim().ifEmpty { null }
         }
 
-    /** How the tree of the Moon tool window puts the tasks into groups. */
-    var taskGrouping: TaskGrouping
-        get() = state.taskGrouping
+    /** The category nodes at the top of the tree of the Moon tool window. */
+    var taskCategory: TaskCategory
+        get() = state.taskCategory
         set(value) {
-            state.taskGrouping = value
+            state.taskCategory = value
+        }
+
+    /** The main group of the tree of the Moon tool window. It sets the structure in each category node. */
+    var taskGrouping: TaskGrouping
+        get() = state.mainGroup
+        set(value) {
+            state.mainGroup = value
         }
 
     /**

@@ -8,6 +8,7 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import javax.swing.Icon
@@ -15,39 +16,50 @@ import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 
 /**
- * Makes the tree nodes for [tasks] with the structure of [grouping]. All nodes are in alphabetical order.
+ * Makes the tree nodes for [tasks]. All nodes are in alphabetical order.
+ *
+ * If [category] is not [TaskCategory.NONE], the top nodes are a node for each value of the category.
+ * The projects without a value are in the last node, "(none)". The tree always shows a category node, also if it is the only category node.
+ *
+ * [grouping] sets the structure below the root, or below each category node:
  * - [TaskGrouping.PROJECT]: a node for each project. Each project node has a node for each task.
  * - [TaskGrouping.TASK_NAME]: a node for each task name. Each task name node has a node for each task with that name.
- * - [TaskGrouping.STACK]: a node for each `stack` value. Each stack node has its project nodes.
- *   The projects without a `stack` value are in the last node, "(none)".
  */
-fun buildTaskTree(tasks: WorkspaceTasks, grouping: TaskGrouping = TaskGrouping.PROJECT): DefaultMutableTreeNode {
+fun buildTaskTree(
+    tasks: WorkspaceTasks,
+    category: TaskCategory = TaskCategory.NONE,
+    grouping: TaskGrouping = TaskGrouping.PROJECT,
+): DefaultMutableTreeNode {
     val root = DefaultMutableTreeNode()
+    if (category == TaskCategory.NONE) {
+        addGroups(root, tasks.projects, grouping)
+    } else {
+        tasks.projects.groupBy(category::valueOf)
+            .toSortedMap(nullsLast(ID_ORDER))
+            .forEach { (value, projects) -> root.add(CategoryNode(category, value).also { addGroups(it, projects, grouping) }) }
+    }
+    return root
+}
+
+/** Adds the nodes of [grouping] for [projects] to [parent]. */
+private fun addGroups(parent: DefaultMutableTreeNode, projects: List<MoonProject>, grouping: TaskGrouping) {
     when (grouping) {
-        TaskGrouping.PROJECT -> tasks.projects.forEach { root.add(projectNode(it)) }
+        TaskGrouping.PROJECT -> projects.forEach { parent.add(projectNode(it)) }
         TaskGrouping.TASK_NAME -> {
-            tasks.projects.flatMap { it.tasks }
+            projects.flatMap { it.tasks }
                 .groupBy { it.id }
                 .toSortedMap(ID_ORDER)
                 .forEach { (name, tasksWithName) ->
                     val nameNode = TaskNameNode(name)
                     tasksWithName.forEach { nameNode.add(TaskNode(it, showProject = true)) }
-                    root.add(nameNode)
+                    parent.add(nameNode)
                 }
         }
-        TaskGrouping.STACK -> tasks.projects.groupBy { it.stack }
-            .toSortedMap(nullsLast(ID_ORDER))
-            .forEach { (stack, projects) -> root.add(stackNode(stack, projects)) }
     }
-    return root
 }
 
 private fun projectNode(project: MoonProject) = ProjectNode(project).apply {
     project.tasks.forEach { add(TaskNode(it)) }
-}
-
-private fun stackNode(stack: String?, projects: List<MoonProject>) = StackNode(stack).apply {
-    projects.forEach { add(projectNode(it)) }
 }
 
 /**
@@ -90,13 +102,16 @@ class TaskNameNode(val name: String) : TaskTreeNode(name) {
     override fun toString(): String = name
 }
 
-/** A tree node for a `stack` value. [stack] is null for the node of the projects without a `stack` value. */
-class StackNode(val stack: String?) : TaskTreeNode(stack) {
-    override val key: String = "stack:${stack.orEmpty()}"
+/**
+ * A tree node for a value of [category], for example a `stack` value.
+ * [value] is null for the node of the projects without a value. This node shows "(none)" in gray text.
+ */
+class CategoryNode(val category: TaskCategory, val value: String?) : TaskTreeNode(value) {
+    override val key: String = "${category.name.lowercase()}:${value.orEmpty()}"
     override val icon: Icon get() = AllIcons.Nodes.Folder
     override val attributes: SimpleTextAttributes
-        get() = if (stack == null) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES
-    override fun toString(): String = stack ?: MoonExplorerBundle.message("tasks.tree.noStack")
+        get() = if (value == null) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES
+    override fun toString(): String = value ?: MoonExplorerBundle.message("tasks.tree.noValue")
 }
 
 /** The separator between the name of a task node and its description. */

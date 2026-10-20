@@ -39,7 +39,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.refresh()
         val expected = TasksState.Loaded(TestData.recordedTasks())
         service.awaitState(expected)
-        assertEquals(7, expected.tasks.projects.size)
+        assertEquals(8, expected.tasks.projects.size)
     }
 
     fun testDefaultQueryRunsMoonQueryProjects() {
