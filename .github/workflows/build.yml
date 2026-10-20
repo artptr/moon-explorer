@@ -175,10 +175,16 @@ jobs:
         run: |
           set -euo pipefail
           PLATFORM_VERSION="$(sed -n 's/^platformVersion[[:space:]]*=[[:space:]]*//p' gradle.properties)"
-          RELEASES="$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain)"
+          if ! RELEASES="$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain)"; then
+            printf '%s\n' "${RELEASES:-}"
+            echo "::error::The Gradle task printProductsReleases did not complete."
+            exit 1
+          fi
           NEWEST_IDE="$(printf '%s\n' "$RELEASES" | sed -n '1p')"
-          if [[ -z "$PLATFORM_VERSION" || -z "$NEWEST_IDE" ]]; then
-            echo "::error::The step cannot get the IDE versions."
+          # The two IDE versions must be version numbers. If the first line of the Gradle output is a different text, for example a warning, the step stops with an error.
+          if [[ ! "$PLATFORM_VERSION" =~ ^[0-9][0-9.]*$ || ! "$NEWEST_IDE" =~ ^IU-[0-9][0-9.]*$ ]]; then
+            printf '%s\n' "$RELEASES"
+            echo "::error::The step cannot get the IDE versions. IDE of the build (platformVersion): '$PLATFORM_VERSION'. Newest released IDE: '$NEWEST_IDE'."
             exit 1
           fi
           echo "minimum=IU-$PLATFORM_VERSION" >> "$GITHUB_OUTPUT"

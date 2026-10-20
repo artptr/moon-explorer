@@ -110,7 +110,11 @@ In the quick check, the Plugin Verifier operates in offline mode. It does not do
 The plugin does not use these dependencies.
 
 The `Build` workflow does the quick check for a pull request. A push to `main` does the check against all recommended IDE versions.
-The workflow keeps the two IDEs of the quick check in a cache. The cache key contains the versions of the two IDEs.
+
+The workflow keeps the two IDEs of the quick check in the IDE cache.
+The cache key contains a version number of the cache, the versions of the two IDEs, and data about the GitHub runner.
+The runner data is the operating system and the CPU architecture.
+Only a push to `main` saves the IDE cache. All pull requests can use the IDE cache from `main`.
 
 ## 6. Do a check of the documentation
 
