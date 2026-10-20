@@ -40,19 +40,19 @@ class GroupByActionsTest : BasePlatformTestCase() {
 
     private fun selected(action: TasksPanelToggleAction) = action.isSelected(event(action))
 
-    fun testGroupByControlHasTheCategoryAndTheMainGroupWithASeparator() {
+    fun testGroupByControlHasTheMainGroupAndTheCategoryWithASeparator() {
         val actionManager = ActionManager.getInstance()
         val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
         val groupBy = toolbar.childActionsOrStubs.single { actionManager.getId(it) == "MoonExplorer.GroupBy" } as DefaultActionGroup
         assertTrue(groupBy.isPopup)
         assertEquals(
             listOf(
+                "MoonExplorer.GroupByProject",
+                "MoonExplorer.GroupByTaskName",
+                "separator",
                 "MoonExplorer.CategoryNone",
                 "MoonExplorer.CategoryStack",
                 "MoonExplorer.CategoryLayer",
-                "separator",
-                "MoonExplorer.GroupByProject",
-                "MoonExplorer.GroupByTaskName",
             ),
             groupBy.childActionsOrStubs.map { if (it is Separator) "separator" else actionManager.getId(it) },
         )

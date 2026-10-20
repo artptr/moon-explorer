@@ -32,17 +32,17 @@
                     class="io.github.artptr.moonexplorer.ui.RefreshTasksAction"
                     icon="AllIcons.Actions.Refresh"/>
             <group id="MoonExplorer.GroupBy" popup="true" icon="AllIcons.Actions.GroupBy">
+                <action id="MoonExplorer.GroupByProject"
+                        class="io.github.artptr.moonexplorer.ui.GroupByProjectAction"/>
+                <action id="MoonExplorer.GroupByTaskName"
+                        class="io.github.artptr.moonexplorer.ui.GroupByTaskNameAction"/>
+                <separator/>
                 <action id="MoonExplorer.CategoryNone"
                         class="io.github.artptr.moonexplorer.ui.CategoryNoneAction"/>
                 <action id="MoonExplorer.CategoryStack"
                         class="io.github.artptr.moonexplorer.ui.CategoryStackAction"/>
                 <action id="MoonExplorer.CategoryLayer"
                         class="io.github.artptr.moonexplorer.ui.CategoryLayerAction"/>
-                <separator/>
-                <action id="MoonExplorer.GroupByProject"
-                        class="io.github.artptr.moonexplorer.ui.GroupByProjectAction"/>
-                <action id="MoonExplorer.GroupByTaskName"
-                        class="io.github.artptr.moonexplorer.ui.GroupByTaskNameAction"/>
             </group>
         </group>
         <group id="MoonExplorer.TaskPopup">

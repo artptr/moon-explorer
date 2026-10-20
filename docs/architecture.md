@@ -58,10 +58,10 @@ The output of `moon query projects` contains the `stack` value, the `layer` valu
 The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.
 moon does not write the key `tasks` for a project without tasks. The tree does not show these projects.
 
-The tree has two selections in the **Group By** menu. Each selection does not change the other selection:
+The tree has two selections in the **Group By** menu. A separator divides them. Each selection does not change the other selection:
 
-- **Category**: **None**, **Stack**, or **Layer**. If the category is not **None**, the tree has a node for each value at the top. The projects without a value are in the last node, "(none)".
 - **Main group**: **Project** or **Task Name**. This selection sets the structure in each category node.
+- **Category**: **None**, **Stack**, or **Layer**. If the category is not **None**, the tree has a node for each value at the top. The projects without a value are in the last node, "(none)".
 
 The plugin keeps the two selections in the workspace file of the IDE project. The plugin changes the setting of version 0.1.0 to the two selections. The plugin changes the old value **Stack** to the category **Stack** and the main group **Project**.
 
