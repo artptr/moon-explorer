@@ -104,6 +104,14 @@ The default output has 17 projects with 14 tasks each.
 Run `./gradlew verifyPlugin`.
 The IntelliJ Plugin Verifier does a check of the plugin against the recommended IDE versions.
 
+For a quick check, run `./gradlew verifyPlugin -PquickVerification=true`.
+The quick check uses two IDEs only: the IDE of the build (`platformVersion` in `gradle.properties`) and the newest released IDE.
+In the quick check, the Plugin Verifier operates in offline mode. It does not download the optional dependencies of the bundled plugins.
+The plugin does not use these dependencies.
+
+The `Build` workflow does the quick check for a pull request. A push to `main` does the check against all recommended IDE versions.
+The workflow keeps the two IDEs of the quick check in a cache. The cache key contains the versions of the two IDEs.
+
 ## 6. Do a check of the documentation
 
 Run `vale .`.

@@ -1,10 +1,15 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.intellij.platform")
     id("org.jetbrains.changelog")
 }
+
+// The quick check uses two IDEs only. It does not download the optional dependencies of the bundled plugins.
+// The Build workflow uses it for pull requests. Refer to docs/development.md.
+val quickVerification = providers.gradleProperty("quickVerification").map { it.toBoolean() }.getOrElse(false)
 
 kotlin {
     jvmToolchain(21)
@@ -19,7 +24,7 @@ dependencies {
 
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea("2025.3.6.1")
+        intellijIdea(providers.gradleProperty("platformVersion"))
         testFramework(TestFrameworkType.Platform)
     }
 }
@@ -54,7 +59,17 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            if (quickVerification) {
+                // The first IDE is the IDE of the build. It is also the minimum IDE version for the plugin.
+                current()
+                // The second IDE is the newest released IDE. The check does not use EAP builds.
+                // Each new EAP build changes the key of the IDE cache in the Build workflow.
+                latest {
+                    channels = listOf(ProductRelease.Channel.RELEASE)
+                }
+            } else {
+                recommended()
+            }
         }
     }
 }
@@ -69,6 +84,21 @@ tasks.named("compileTestKotlin") {
     inputs.files(sourceSets.main.map { it.output.classesDirs })
         .withPropertyName("mainClassesForIssue40")
         .withNormalizer(ClasspathNormalizer::class)
+}
+
+tasks.verifyPlugin {
+    // In offline mode, the Plugin Verifier does not download the optional dependencies of the bundled plugins (about 2 GB).
+    // The plugin does not use these dependencies. Thus the result of the check is the same.
+    if (quickVerification) {
+        offline = true
+    }
+}
+
+// The Build workflow uses the first line of the output (the newest IDE) in the key of the IDE cache.
+tasks.printProductsReleases {
+    if (quickVerification) {
+        channels = listOf(ProductRelease.Channel.RELEASE)
+    }
 }
 
 tasks.test {
