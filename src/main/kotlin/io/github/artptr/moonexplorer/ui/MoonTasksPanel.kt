@@ -29,6 +29,7 @@ import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.tree.TreeUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
@@ -125,11 +126,8 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             .show(RelativePoint.getSouthWestOf(toolbar ?: this), Balloon.Position.below)
     }
 
-    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
-    private var shownTasks: WorkspaceTasks? = null
-
-    /** The workspace root of [shownTasks]. The value is null if the panel shows a message. */
-    private var shownRoot: Path? = null
+    /** The loaded state that the tree shows now. The value is null if the panel shows a message. */
+    private var shown: TasksState.Loaded? = null
 
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
@@ -213,7 +211,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
                 if (state.tasks.projects.isEmpty()) {
                     showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
                 } else {
-                    shownRoot = state.root
+                    shown = state
                     showTree(state.tasks)
                 }
             }
@@ -239,14 +237,14 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     internal fun changeMainGroup(value: TaskGrouping) {
         if (value == mainGroup) return
         settings.mainGroup = value
-        shownTasks?.let(::showTree)
+        shown?.tasks?.let(::showTree)
     }
 
     /** Saves [value] and shows the tree again with this category. Call this function on the EDT. */
     internal fun changeCategory(value: TaskCategory) {
         if (value == category) return
         settings.taskCategory = value
-        shownTasks?.let(::showTree)
+        shown?.tasks?.let(::showTree)
     }
 
     private fun showTree(tasks: WorkspaceTasks) {
@@ -258,7 +256,6 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         val selectedKeys = selectedPaths.map(::keyPath).toSet()
         val selectedTargets = selectedPaths.mapNotNull { (it.lastPathComponent as? TaskNode)?.task?.target }.toSet()
 
-        shownTasks = tasks
         (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, category, mainGroup))
 
         val newPaths = allPaths()
@@ -283,10 +280,10 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     /**
      * Gives true if the panel can select the project of a file. The tree must show the tasks, and the main group must be
-     * [TaskGrouping.PROJECT]. During a load, the tree shows the old tasks. Thus the function gives false. If the main group is [TaskGrouping.TASK_NAME], the tree has no project nodes.
+     * [TaskGrouping.PROJECT]. If the main group is [TaskGrouping.TASK_NAME], the tree has no project nodes.
+     * During a load, the tree shows the old tasks. Thus the function gives false.
      */
-    internal fun canSelectProject(): Boolean =
-        shownTasks != null && !loadingPanel.isLoading && mainGroup == TaskGrouping.PROJECT
+    internal fun canSelectProject(): Boolean = shown != null && !loadingPanel.isLoading && mainGroup == TaskGrouping.PROJECT
 
     /**
      * Selects the node of the project that contains [file]. The function expands the node and its parent nodes, and scrolls to the node.
@@ -294,28 +291,27 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * Call this function on the EDT.
      */
     internal fun selectProjectOf(file: Path) {
-        if (!canSelectProject()) return
-        val tasks = shownTasks ?: return
-        val root = shownRoot ?: return
-        val source = findProjectForFile(root, file, tasks.sources)
+        val state = shown?.takeIf { canSelectProject() } ?: return
+        val source = findProjectForFile(state.root, file, state.tasks.sources)
         if (source == null) {
             showInfo(MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", file.fileName?.toString() ?: file.toString()))
             return
         }
-        val path = allPaths().firstOrNull { (it.lastPathComponent as? ProjectNode)?.project?.id == source.id }
-        if (path == null) {
+        val root = tree.model.root as? DefaultMutableTreeNode ?: return
+        val node = root.preorderEnumeration().asSequence().filterIsInstance<ProjectNode>().firstOrNull { it.project.id == source.id }
+        if (node == null) {
             // The tree shows only the projects with tasks.
             showInfo(MoonExplorerBundle.message("tasks.selectOpenedFile.noTasks", source.id))
             return
         }
+        val path = TreePath(node.path)
+        // TreeUtil.selectPath expands the parent nodes, but not the project node. Expand it to show the tasks.
         tree.expandPath(path)
-        tree.selectionPath = path
-        tree.scrollPathToVisible(path)
+        TreeUtil.selectPath(tree, path)
     }
 
     private fun showMessage(text: String, showSettingsLink: Boolean = false) {
-        shownTasks = null
-        shownRoot = null
+        shown = null
         messageArea.text = text
         settingsLink.isVisible = showSettingsLink
         messageArea.caretPosition = 0

@@ -20,13 +20,10 @@ object QueryProjectsParser {
         val projects = parseMoonJson(json).objectOrNull()?.get("projects")?.takeIf { it.isJsonArray }?.asJsonArray
             ?: throw MoonOutputException("The output does not contain the array \"projects\"")
 
-        val sources = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
-            val id = project.string("id") ?: return@mapNotNull null
-            val source = project.string("source") ?: return@mapNotNull null
-            ProjectSource(id, source)
-        }
+        val sources = mutableListOf<ProjectSource>()
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
             val projectId = project.string("id") ?: return@mapNotNull null
+            project.string("source")?.let { sources += ProjectSource(projectId, it) }
             // moon does not write the key "tasks" if the project has no tasks.
             val tasks = project.get("tasks")?.objectOrNull()?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null
@@ -40,14 +37,14 @@ object QueryProjectsParser {
             if (tasks.isEmpty()) return@mapNotNull null
             MoonProject(
                 id = projectId,
-                tasks = tasks.sortedWith(compareBy(ID_ORDER) { it.id }),
+                tasks = tasks.sortedById { it.id },
                 stack = metadata(project, "stack"),
                 layer = metadata(project, "layer"),
             )
         }
         return WorkspaceTasks(
-            projects = result.sortedWith(compareBy(ID_ORDER) { it.id }),
-            sources = sources.sortedWith(compareBy(ID_ORDER) { it.id }),
+            projects = result.sortedById { it.id },
+            sources = sources.sortedById { it.id },
         )
     }
 
@@ -59,4 +56,7 @@ object QueryProjectsParser {
         val value = project.string(key) ?: project.get("config")?.objectOrNull()?.string(key)
         return value?.takeUnless { it.isBlank() || it.equals(UNKNOWN_VALUE, ignoreCase = true) }
     }
+
+    /** Sorts the items in [ID_ORDER] of the ID that [id] gives. */
+    private fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(compareBy(ID_ORDER, id))
 }

@@ -4,7 +4,6 @@ import io.github.artptr.moonexplorer.testData.TestData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.nio.file.Path
 
 class ProjectFinderTest {
 
@@ -78,6 +77,6 @@ class ProjectFinderTest {
 
     @Test
     fun noSourcesGivesNull() {
-        assertNull(findProjectForFile(root, Path.of(root.toString(), "apps", "web", "moon.yml"), emptyList()))
+        assertNull(find("apps/web/moon.yml", emptyList()))
     }
 }

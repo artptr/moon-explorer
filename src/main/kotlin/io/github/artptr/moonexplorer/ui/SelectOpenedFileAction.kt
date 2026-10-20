@@ -5,7 +5,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 
 /**
@@ -33,5 +32,5 @@ class SelectOpenedFileAction : DumbAwareAction() {
      * The value is null if there is no editor, or if the file is not on the local disk.
      */
     private fun openedFile(project: Project): VirtualFile? =
-        FileEditorManager.getInstance(project).selectedEditor?.file?.takeIf { it.fileSystem is LocalFileSystem }
+        FileEditorManager.getInstance(project).selectedEditor?.file?.takeIf { it.isInLocalFileSystem }
 }

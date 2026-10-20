@@ -1,8 +1,8 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -48,20 +48,18 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         }
     }
 
-    private fun loadRecorded() = panel.render(TasksState.Loaded(TestData.recordedTasks(), root))
-
     private fun selectedProject(): String? = (panel.tree.selectionPath?.lastPathComponent as? ProjectNode)?.project?.id
 
-    private fun event(action: SelectOpenedFileAction) = TestActionEvent.createTestEvent(
-        action,
-        SimpleDataContext.builder().add(CommonDataKeys.PROJECT, project).add(TASKS_PANEL, panel).build(),
-    )
-
-    private fun update(): Boolean {
+    /** Updates the action and gives its presentation. If [withPanel] is false, the data context does not contain the panel. */
+    private fun update(withPanel: Boolean = true): Presentation {
         val action = SelectOpenedFileAction()
-        val e = event(action)
+        val e = if (withPanel) {
+            tasksPanelEvent(action, project, panel)
+        } else {
+            TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
+        }
         action.update(e)
-        return e.presentation.isEnabled
+        return e.presentation
     }
 
     private fun openInEditor(file: String) {
@@ -80,7 +78,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     }
 
     fun testSelectsAndExpandsTheProjectOfTheFile() {
-        loadRecorded()
+        panel.loadRecorded()
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         assertEquals("web", selectedProject())
         assertTrue(panel.tree.isExpanded(panel.tree.selectionPath))
@@ -88,7 +86,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     }
 
     fun testSelectsTheNestedProject() {
-        loadRecorded()
+        panel.loadRecorded()
         panel.selectProjectOf(root.resolve("packages/ui/icons/moon.yml"))
         assertEquals("icons", selectedProject())
         panel.selectProjectOf(root.resolve("packages/ui/moon.yml"))
@@ -97,7 +95,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
 
     fun testSelectsTheProjectBelowItsCategoryNode() {
         panel.changeCategory(TaskCategory.STACK)
-        loadRecorded()
+        panel.loadRecorded()
         panel.selectProjectOf(root.resolve("apps/api/moon.yml"))
         assertEquals("api", selectedProject())
         val path: TreePath = panel.tree.selectionPath!!
@@ -106,7 +104,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     }
 
     fun testFileThatIsNotInAProjectShowsAMessage() {
-        loadRecorded()
+        panel.loadRecorded()
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         panel.selectProjectOf(root.resolve("package.json"))
         assertEquals(listOf(MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", "package.json")), messages)
@@ -114,14 +112,14 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     }
 
     fun testFileInAProjectWithoutTasksShowsAMessage() {
-        loadRecorded()
+        panel.loadRecorded()
         panel.selectProjectOf(root.resolve("packages/config/moon.yml"))
         assertEquals(listOf(MoonExplorerBundle.message("tasks.selectOpenedFile.noTasks", "config")), messages)
         assertNull(selectedProject())
     }
 
     fun testCannotSelectWhenTheMainGroupIsTaskName() {
-        loadRecorded()
+        panel.loadRecorded()
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertFalse(panel.canSelectProject())
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
@@ -129,33 +127,28 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     }
 
     fun testActionIsEnabledWithAnOpenedFileAndTheProjectGroup() {
-        loadRecorded()
-        assertFalse("No file is open", update())
+        panel.loadRecorded()
+        assertFalse("No file is open", update().isEnabled)
         openInEditor("apps/web/moon.yml")
-        assertTrue(update())
+        assertTrue(update().isEnabled)
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
-        assertFalse("The tree has no project nodes", update())
+        assertFalse("The tree has no project nodes", update().isEnabled)
         panel.changeMainGroup(TaskGrouping.PROJECT)
+        panel.render(TasksState.Loading)
+        assertFalse("The tree shows the old tasks during a load", update().isEnabled)
         panel.render(TasksState.NoWorkspace)
-        assertFalse("The panel shows a message", update())
+        assertFalse("The panel shows a message", update().isEnabled)
     }
 
     fun testCannotSelectDuringALoad() {
-        loadRecorded()
+        panel.loadRecorded()
         panel.render(TasksState.Loading)
         assertFalse("The tree shows the old tasks", panel.canSelectProject())
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         assertNull(panel.tree.selectionPath)
         assertEmpty(messages)
-        loadRecorded()
+        panel.loadRecorded()
         assertTrue(panel.canSelectProject())
-    }
-
-    fun testActionIsDisabledDuringALoad() {
-        loadRecorded()
-        openInEditor("apps/web/moon.yml")
-        panel.render(TasksState.Loading)
-        assertFalse(update())
     }
 
     fun testBalloonTextEscapesHtml() {
@@ -164,23 +157,20 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     }
 
     fun testActionIsDisabledForAFileThatIsNotOnTheDisk() {
-        loadRecorded()
+        panel.loadRecorded()
         FileEditorManager.getInstance(project).openFile(LightVirtualFile("scratch.txt", "text"), true)
-        assertFalse(update())
+        assertFalse(update().isEnabled)
     }
 
     fun testActionIsHiddenWithoutThePanel() {
-        val action = SelectOpenedFileAction()
-        val e = TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
-        action.update(e)
-        assertFalse(e.presentation.isVisible)
+        assertFalse(update(withPanel = false).isVisible)
     }
 
     fun testActionSelectsTheProjectOfTheOpenedFile() {
-        loadRecorded()
+        panel.loadRecorded()
         openInEditor("packages/ui/icons/moon.yml")
         val action = SelectOpenedFileAction()
-        action.actionPerformed(event(action))
+        action.actionPerformed(tasksPanelEvent(action, project, panel))
         assertEquals("icons", selectedProject())
     }
 }
