@@ -11,6 +11,7 @@ import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.settings.MoonSettings
+import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import java.awt.event.KeyEvent
 import java.beans.PropertyChangeListener
@@ -25,8 +26,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
+        project.service<MoonSettings>().resetForTests()
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
         panel.render(TasksState.Loaded(tasks))
@@ -35,8 +35,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             panel.speedSearch.hidePopup()
-            project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-            project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
+            project.service<MoonSettings>().resetForTests()
         } finally {
             super.tearDown()
         }

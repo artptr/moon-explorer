@@ -12,6 +12,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.settings.MoonSettings
+import io.github.artptr.moonexplorer.settings.resetForTests
 
 class GroupByActionsTest : BasePlatformTestCase() {
 
@@ -19,16 +20,14 @@ class GroupByActionsTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
+        project.service<MoonSettings>().resetForTests()
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
     }
 
     override fun tearDown() {
         try {
-            project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-            project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
+            project.service<MoonSettings>().resetForTests()
         } finally {
             super.tearDown()
         }
@@ -38,6 +37,8 @@ class GroupByActionsTest : BasePlatformTestCase() {
         action,
         SimpleDataContext.builder().add(CommonDataKeys.PROJECT, project).add(TASKS_PANEL, panel).build(),
     )
+
+    private fun selected(action: TasksPanelToggleAction) = action.isSelected(event(action))
 
     fun testGroupByControlHasTheCategoryAndTheMainGroupWithASeparator() {
         val actionManager = ActionManager.getInstance()
@@ -58,11 +59,11 @@ class GroupByActionsTest : BasePlatformTestCase() {
     }
 
     fun testSelectedActionsShowTheCurrentValues() {
-        assertTrue(GroupByProjectAction().let { it.isSelected(event(it)) })
-        assertFalse(GroupByTaskNameAction().let { it.isSelected(event(it)) })
-        assertTrue(CategoryNoneAction().let { it.isSelected(event(it)) })
-        assertFalse(CategoryStackAction().let { it.isSelected(event(it)) })
-        assertFalse(CategoryLayerAction().let { it.isSelected(event(it)) })
+        assertTrue(selected(GroupByProjectAction()))
+        assertFalse(selected(GroupByTaskNameAction()))
+        assertTrue(selected(CategoryNoneAction()))
+        assertFalse(selected(CategoryStackAction()))
+        assertFalse(selected(CategoryLayerAction()))
     }
 
     fun testGroupByActionChangesOnlyTheMainGroup() {
@@ -71,7 +72,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
         action.setSelected(event(action), true)
         assertEquals(TaskGrouping.TASK_NAME, panel.mainGroup)
         assertEquals(TaskCategory.STACK, panel.category)
-        assertTrue(action.isSelected(event(action)))
+        assertTrue(selected(action))
     }
 
     fun testCategoryActionChangesOnlyTheCategory() {
@@ -80,8 +81,8 @@ class GroupByActionsTest : BasePlatformTestCase() {
         action.setSelected(event(action), true)
         assertEquals(TaskCategory.LAYER, panel.category)
         assertEquals(TaskGrouping.TASK_NAME, panel.mainGroup)
-        assertTrue(action.isSelected(event(action)))
-        assertFalse(CategoryNoneAction().let { it.isSelected(event(it)) })
+        assertTrue(selected(action))
+        assertFalse(selected(CategoryNoneAction()))
     }
 
     fun testActionsAreHiddenWithoutThePanel() {

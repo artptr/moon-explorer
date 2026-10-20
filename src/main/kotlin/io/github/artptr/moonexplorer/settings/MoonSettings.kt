@@ -34,14 +34,8 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
     override fun loadState(state: SettingsState) {
         super.loadState(state)
         val oldGrouping = state.taskGrouping ?: return
-        when (oldGrouping) {
-            "STACK" -> {
-                state.taskCategory = TaskCategory.STACK
-                state.mainGroup = TaskGrouping.PROJECT
-            }
-            "TASK_NAME" -> state.mainGroup = TaskGrouping.TASK_NAME
-            else -> state.mainGroup = TaskGrouping.PROJECT
-        }
+        state.mainGroup = if (oldGrouping == "TASK_NAME") TaskGrouping.TASK_NAME else TaskGrouping.PROJECT
+        if (oldGrouping == "STACK") state.taskCategory = TaskCategory.STACK
         // Do not write the old value again.
         state.taskGrouping = null
     }

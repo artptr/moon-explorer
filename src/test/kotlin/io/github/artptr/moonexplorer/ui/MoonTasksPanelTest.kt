@@ -16,6 +16,7 @@ import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.settings.MoonSettings
+import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.LargeQueryProjectsJson
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlin.system.measureTimeMillis
@@ -30,16 +31,14 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     override fun setUp() {
         super.setUp()
         // The light project is the same for all tests. Start each test with the default category and main group.
-        project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
+        project.service<MoonSettings>().resetForTests()
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
     }
 
     override fun tearDown() {
         try {
-            project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-            project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
+            project.service<MoonSettings>().resetForTests()
         } finally {
             super.tearDown()
         }
