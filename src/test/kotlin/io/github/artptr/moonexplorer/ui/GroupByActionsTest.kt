@@ -1,7 +1,6 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
@@ -33,10 +32,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
         }
     }
 
-    private fun event(action: TasksPanelToggleAction) = TestActionEvent.createTestEvent(
-        action,
-        SimpleDataContext.builder().add(CommonDataKeys.PROJECT, project).add(TASKS_PANEL, panel).build(),
-    )
+    private fun event(action: TasksPanelToggleAction) = tasksPanelEvent(action, project, panel)
 
     private fun selected(action: TasksPanelToggleAction) = action.isSelected(event(action))
 

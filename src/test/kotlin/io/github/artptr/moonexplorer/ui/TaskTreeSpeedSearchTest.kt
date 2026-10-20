@@ -29,7 +29,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         project.service<MoonSettings>().resetForTests()
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
-        panel.render(TasksState.Loaded(tasks))
+        panel.render(TasksState.Loaded(tasks, TestData.workspaceRoot))
     }
 
     override fun tearDown() {
@@ -79,7 +79,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
 
     fun testSearchOperatesAfterARefresh() {
         panel.render(TasksState.Loading)
-        panel.render(TasksState.Loaded(tasks))
+        panel.render(TasksState.Loaded(tasks, TestData.workspaceRoot))
         panel.speedSearch.findAndSelectElement("audit")
         assertEquals("api:audit", selectedTask.task.target)
     }

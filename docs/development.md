@@ -76,7 +76,10 @@ The test workspace contains these items:
 - Tasks with a description and tasks without a description
 - The project `ui` has the internal task `generate-icons`. moon does not write internal tasks in the key `tasks` in the output of `moon query projects`.
 - The project `config` has no tasks.
+- The project `icons` in `packages/ui/icons` is a nested project in the project `ui`. The key `sources` in `.moon/workspace.yml` adds it.
 - `build` tasks with the optional output `dist`. The commands do not make output files. Thus `moon run` completes for each task.
+
+**NOTE:** To add a nested project, use the map form of `projects` and put the project ID and the path in `sources`. If you add the nested project to the list form of `projects` or to `projects.globs`, moon also adds the directory `packages` as a project.
 
 **NOTE:** In `moon/query-projects.json`, the project `config` has no key `tasks`. moon does not write this key for a project without tasks.
 

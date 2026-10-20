@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Select Opened File** action in the toolbar of the **Moon** tool window. The action selects the project of the file in the editor and expands it. For a file in a nested project, the action selects the nested project. The action is available when the main group is **Project**.
+
 ### Changed
 
 - The **Group By** menu of the **Moon** tool window has two selections. The main group (**Project** or **Task Name**) sets the structure of the tree. Below it, **Category** (**None**, **Stack**, or **Layer**) adds a node for each value at the top of the tree. The projects without a value are in the "(none)" node.

@@ -31,6 +31,9 @@
             <action id="MoonExplorer.RefreshTasks"
                     class="io.github.artptr.moonexplorer.ui.RefreshTasksAction"
                     icon="AllIcons.Actions.Refresh"/>
+            <action id="MoonExplorer.SelectOpenedFile"
+                    class="io.github.artptr.moonexplorer.ui.SelectOpenedFileAction"
+                    icon="AllIcons.General.Locate"/>
             <group id="MoonExplorer.GroupBy" popup="true" icon="AllIcons.Actions.GroupBy">
                 <action id="MoonExplorer.GroupByProject"
                         class="io.github.artptr.moonexplorer.ui.GroupByProjectAction"/>

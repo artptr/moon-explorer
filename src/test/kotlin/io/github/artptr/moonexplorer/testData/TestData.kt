@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.testData
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import java.io.File
+import java.nio.file.Path
 
 /** Paths to the test data in `src/test/testData/`. Refer to `docs/development.md`. */
 object TestData {
@@ -11,6 +12,9 @@ object TestData {
 
     /** The test workspace with sample data. */
     val workspace = File(root, "workspace")
+
+    /** The absolute path of [workspace]. The plugin gives this path as the workspace root. */
+    val workspaceRoot: Path get() = workspace.toPath().toAbsolutePath().normalize()
 
     /** The recorded moon CLI output for the test workspace. */
     val moon = File(root, "moon")

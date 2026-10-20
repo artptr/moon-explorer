@@ -30,6 +30,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Tool window **Moon** | `ui.MoonToolWindowFactory`, `ui.MoonTasksPanel` | `plugin.xml` |
 | Tree nodes, renderer, and the text for the speed search | `ui.TaskTreeModel.kt` | None |
 | Action **Refresh** in the group `MoonExplorer.TasksToolbar` | `ui.RefreshTasksAction` | `plugin.xml` |
+| Action **Select Opened File** in the group `MoonExplorer.TasksToolbar`, and the search for the project of a file | `ui.SelectOpenedFileAction`, `model.findProjectForFile` | `plugin.xml` |
 | State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
 | Load of the tasks when the IDE project opens | `model.MoonTasksStartupActivity` | `plugin.xml` |
 | Load of the tasks and the result state | `model.TasksLoader`, `model.TasksState` | None |

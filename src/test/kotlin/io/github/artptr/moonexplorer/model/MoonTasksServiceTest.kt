@@ -37,9 +37,9 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testRefreshLoadsTheTasks() {
         service.queryProjects = { CliResult.Success(recorded) }
         service.refresh()
-        val expected = TasksState.Loaded(TestData.recordedTasks())
+        val expected = TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot)
         service.awaitState(expected)
-        assertEquals(8, expected.tasks.projects.size)
+        assertEquals(9, expected.tasks.projects.size)
     }
 
     fun testDefaultQueryRunsMoonQueryProjects() {
@@ -58,7 +58,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             service.projectDir = { TestData.workspace.toPath() }
             service.refresh()
             val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
-            service.awaitState(TasksState.Loaded(WorkspaceTasks(listOf(expected))))
+            service.awaitState(TasksState.Loaded(WorkspaceTasks(listOf(expected)), TestData.workspaceRoot))
         } finally {
             settings.executablePath = ""
         }
@@ -158,7 +158,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.refresh()
         runBlocking { withTimeout(10_000) { started.await() } }
         service.refresh()
-        service.awaitState(TasksState.Loaded(TestData.recordedTasks()))
+        service.awaitState(TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot))
         assertTrue("The first load must be cancelled", cancelled.isCompleted)
         assertEquals(2, calls.get())
     }

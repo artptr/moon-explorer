@@ -31,7 +31,7 @@ class TestDataTest {
 
     @Test
     fun outputContainsAllProjectsWithTasks() {
-        assertEquals(setOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), tasks.keys)
+        assertEquals(setOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), tasks.keys)
     }
 
     @Test

@@ -15,8 +15,17 @@ data class MoonTask(val id: String, val target: String, val description: String?
  */
 data class MoonProject(val id: String, val tasks: List<MoonTask>, val stack: String? = null, val layer: String? = null)
 
-/** All projects of a workspace that have tasks, sorted by ID. */
-data class WorkspaceTasks(val projects: List<MoonProject>)
+/**
+ * The location of a moon project. [source] is the path from the workspace root to the project directory.
+ * The path uses `/` as the separator, for example `packages/ui`.
+ */
+data class ProjectSource(val id: String, val source: String)
+
+/**
+ * All projects of a workspace that have tasks, sorted by ID.
+ * [sources] contains the location of each project, sorted by ID. This list also contains the projects without tasks.
+ */
+data class WorkspaceTasks(val projects: List<MoonProject>, val sources: List<ProjectSource> = emptyList())
 
 /** The main group of the tree of the Moon tool window. It sets the structure in each [TaskCategory] node. */
 enum class TaskGrouping {

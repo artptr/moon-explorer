@@ -13,10 +13,15 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.TreeSpeedSearch
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBScrollPane
@@ -24,6 +29,7 @@ import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.tree.TreeUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
@@ -31,6 +37,7 @@ import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.model.findProjectForFile
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
 import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable
@@ -40,6 +47,7 @@ import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.event.MouseEvent
+import java.nio.file.Path
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -107,8 +115,19 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      */
     internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
 
-    /** The tasks that the tree shows now. The value is null if the panel shows a message. */
-    private var shownTasks: WorkspaceTasks? = null
+    /**
+     * Shows an information message to the user. [text] is plain text, not HTML. The default value shows a balloon below the toolbar.
+     * Tests change this value to a fake. Change it only on the EDT.
+     */
+    internal var showInfo: (String) -> Unit = { text ->
+        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(balloonHtml(text), MessageType.INFO, null)
+            .setFadeoutTime(INFO_FADEOUT_MILLIS)
+            .createBalloon()
+            .show(RelativePoint.getSouthWestOf(toolbar ?: this), Balloon.Position.below)
+    }
+
+    /** The loaded state that the tree shows now. The value is null if the panel shows a message. */
+    private var shown: TasksState.Loaded? = null
 
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
@@ -192,6 +211,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
                 if (state.tasks.projects.isEmpty()) {
                     showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
                 } else {
+                    shown = state
                     showTree(state.tasks)
                 }
             }
@@ -217,14 +237,14 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     internal fun changeMainGroup(value: TaskGrouping) {
         if (value == mainGroup) return
         settings.mainGroup = value
-        shownTasks?.let(::showTree)
+        shown?.tasks?.let(::showTree)
     }
 
     /** Saves [value] and shows the tree again with this category. Call this function on the EDT. */
     internal fun changeCategory(value: TaskCategory) {
         if (value == category) return
         settings.taskCategory = value
-        shownTasks?.let(::showTree)
+        shown?.tasks?.let(::showTree)
     }
 
     private fun showTree(tasks: WorkspaceTasks) {
@@ -236,7 +256,6 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         val selectedKeys = selectedPaths.map(::keyPath).toSet()
         val selectedTargets = selectedPaths.mapNotNull { (it.lastPathComponent as? TaskNode)?.task?.target }.toSet()
 
-        shownTasks = tasks
         (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, category, mainGroup))
 
         val newPaths = allPaths()
@@ -259,8 +278,40 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     private fun keyPath(path: TreePath): List<String> = path.path.drop(1).map { (it as TaskTreeNode).key }
 
+    /**
+     * Gives true if the panel can select the project of a file. The tree must show the tasks, and the main group must be
+     * [TaskGrouping.PROJECT]. If the main group is [TaskGrouping.TASK_NAME], the tree has no project nodes.
+     * During a load, the tree shows the old tasks. Thus the function gives false.
+     */
+    internal fun canSelectProject(): Boolean = shown != null && !loadingPanel.isLoading && mainGroup == TaskGrouping.PROJECT
+
+    /**
+     * Selects the node of the project that contains [file]. The function expands the node and its parent nodes, and scrolls to the node.
+     * If no project contains the file, or if the project has no tasks, the function shows a message and does not change the selection.
+     * Call this function on the EDT.
+     */
+    internal fun selectProjectOf(file: Path) {
+        val state = shown?.takeIf { canSelectProject() } ?: return
+        val source = findProjectForFile(state.root, file, state.tasks.sources)
+        if (source == null) {
+            showInfo(MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", file.fileName?.toString() ?: file.toString()))
+            return
+        }
+        val root = tree.model.root as? DefaultMutableTreeNode ?: return
+        val node = root.preorderEnumeration().asSequence().filterIsInstance<ProjectNode>().firstOrNull { it.project.id == source.id }
+        if (node == null) {
+            // The tree shows only the projects with tasks.
+            showInfo(MoonExplorerBundle.message("tasks.selectOpenedFile.noTasks", source.id))
+            return
+        }
+        val path = TreePath(node.path)
+        // TreeUtil.selectPath expands the parent nodes, but not the project node. Expand it to show the tasks.
+        tree.expandPath(path)
+        TreeUtil.selectPath(tree, path)
+    }
+
     private fun showMessage(text: String, showSettingsLink: Boolean = false) {
-        shownTasks = null
+        shown = null
         messageArea.text = text
         settingsLink.isVisible = showSettingsLink
         messageArea.caretPosition = 0
@@ -284,5 +335,12 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         const val TASK_POPUP_GROUP_ID = "MoonExplorer.TaskPopup"
         const val TASK_POPUP_PLACE = "MoonExplorer.TaskPopup"
         const val RUN_TASK_ACTION_ID = "MoonExplorer.RunTask"
+        const val INFO_FADEOUT_MILLIS = 5_000L
     }
 }
+
+/**
+ * Gives the HTML text of a balloon for the plain text [text]. The balloon reads its text as HTML.
+ * Thus a file name with `<`, `>`, or `&` must change into HTML entities.
+ */
+internal fun balloonHtml(text: String): String = StringUtil.escapeXmlEntities(text)
