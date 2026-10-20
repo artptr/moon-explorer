@@ -8,8 +8,8 @@ import com.google.gson.JsonObject
  */
 object QueryProjectsParser {
 
-    /** moon gives this `stack` value if a project does not set `stack`. */
-    private const val UNKNOWN_STACK = "unknown"
+    /** moon gives this `stack` value or `layer` value if a project does not set the value. */
+    private const val UNKNOWN_VALUE = "unknown"
 
     /**
      * Reads [json] and gives the projects that have tasks, sorted by ID. The function also sorts the tasks of each project by ID.
@@ -32,14 +32,22 @@ object QueryProjectsParser {
                 )
             }
             if (tasks.isEmpty()) return@mapNotNull null
-            MoonProject(projectId, tasks.sortedWith(compareBy(ID_ORDER) { it.id }), stack(project))
+            MoonProject(
+                id = projectId,
+                tasks = tasks.sortedWith(compareBy(ID_ORDER) { it.id }),
+                stack = metadata(project, "stack"),
+                layer = metadata(project, "layer"),
+            )
         }
         return WorkspaceTasks(result.sortedWith(compareBy(ID_ORDER) { it.id }))
     }
 
-    /** Gives the `stack` value of [project], or null if the project does not set `stack`. */
-    private fun stack(project: JsonObject): String? {
-        val stack = project.string("stack") ?: project.get("config")?.objectOrNull()?.string("stack")
-        return stack?.takeUnless { it.isBlank() || it.equals(UNKNOWN_STACK, ignoreCase = true) }
+    /**
+     * Gives the value of [key] of [project], for example `stack` or `layer`. If the project has no top-level key, the function reads the key
+     * in `config`. Gives null if the project does not set the value.
+     */
+    private fun metadata(project: JsonObject, key: String): String? {
+        val value = project.string(key) ?: project.get("config")?.objectOrNull()?.string(key)
+        return value?.takeUnless { it.isBlank() || it.equals(UNKNOWN_VALUE, ignoreCase = true) }
     }
 }

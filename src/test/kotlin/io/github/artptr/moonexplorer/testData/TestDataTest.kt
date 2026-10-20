@@ -31,7 +31,7 @@ class TestDataTest {
 
     @Test
     fun outputContainsAllProjectsWithTasks() {
-        assertEquals(setOf("admin", "api", "db", "ui", "utils", "web", "worker"), tasks.keys)
+        assertEquals(setOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), tasks.keys)
     }
 
     @Test
@@ -99,6 +99,20 @@ class TestDataTest {
         assertEquals("application", web.get("layer").asString)
         assertEquals("typescript", web.get("language").asString)
         assertEquals(listOf("react", "public"), web.getAsJsonObject("config").getAsJsonArray("tags").map { it.asString })
+    }
+
+    /** The groups by `stack` and by `layer` use a "(none)" node. moon gives the value `unknown` if a project does not set the value. */
+    @Test
+    fun projectWithoutStackAndLayerHasUnknownValues() {
+        val scripts = projects.single { it.get("id").asString == "scripts" }
+        assertEquals("unknown", scripts.get("stack").asString)
+        assertEquals("unknown", scripts.get("layer").asString)
+    }
+
+    @Test
+    fun projectsWithTasksHaveDifferentLayers() {
+        val layers = projects.filter { it.has("tasks") }.map { it.get("layer").asString }.toSet()
+        assertEquals(setOf("application", "library", "unknown"), layers)
     }
 
     /**

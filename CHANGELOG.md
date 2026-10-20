@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The **Group By** menu of the **Moon** tool window has two selections. The main group (**Project** or **Task Name**) sets the structure of the tree. Below it, **Category** (**None**, **Stack**, or **Layer**) adds a node for each value at the top of the tree. The projects without a value are in the "(none)" node.
+- If the old setting is **Stack**, the plugin changes it to the category **Stack** and the main group **Project**.
+
 ## [0.1.0] - 2026-10-16
 
 ### Added

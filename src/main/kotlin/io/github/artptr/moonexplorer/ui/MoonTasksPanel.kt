@@ -27,6 +27,7 @@ import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
@@ -206,13 +207,23 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         }
     }
 
-    /** How the tree puts the tasks into groups. The plugin keeps the value in the settings of the IDE project. */
-    internal val grouping: TaskGrouping get() = settings.taskGrouping
+    /** The main group of the tree. The plugin keeps the value in the settings of the IDE project. */
+    internal val mainGroup: TaskGrouping get() = settings.mainGroup
 
-    /** Saves [value] and shows the tree again with this group mode. Call this function on the EDT. */
-    internal fun changeGrouping(value: TaskGrouping) {
-        if (value == grouping) return
-        settings.taskGrouping = value
+    /** The category nodes at the top of the tree. The plugin keeps the value in the settings of the IDE project. */
+    internal val category: TaskCategory get() = settings.taskCategory
+
+    /** Saves [value] and shows the tree again with this main group. Call this function on the EDT. */
+    internal fun changeMainGroup(value: TaskGrouping) {
+        if (value == mainGroup) return
+        settings.mainGroup = value
+        shownTasks?.let(::showTree)
+    }
+
+    /** Saves [value] and shows the tree again with this category. Call this function on the EDT. */
+    internal fun changeCategory(value: TaskCategory) {
+        if (value == category) return
+        settings.taskCategory = value
         shownTasks?.let(::showTree)
     }
 
@@ -226,13 +237,13 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         val selectedTargets = selectedPaths.mapNotNull { (it.lastPathComponent as? TaskNode)?.task?.target }.toSet()
 
         shownTasks = tasks
-        (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, grouping))
+        (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, category, mainGroup))
 
         val newPaths = allPaths()
         newPaths.filter { keyPath(it) in expanded }.forEach(tree::expandPath)
         var selection = newPaths.filter { keyPath(it) in selectedKeys }
         if (selection.isEmpty() && selectedTargets.isNotEmpty()) {
-            // After a change of the group mode, the paths are different. Select the same tasks in the new tree.
+            // After a change of the category or the main group, the paths are different. Select the same tasks in the new tree.
             selection = newPaths.filter { (it.lastPathComponent as? TaskNode)?.task?.target in selectedTargets }
             selection.firstOrNull()?.let(tree::scrollPathToVisible)
         }

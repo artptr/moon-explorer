@@ -11,10 +11,12 @@ import com.intellij.ui.ClickListener
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.settings.MoonSettings
+import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.LargeQueryProjectsJson
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlin.system.measureTimeMillis
@@ -28,15 +30,15 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        // The light project is the same for all tests. Start each test with the default group mode.
-        project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+        // The light project is the same for all tests. Start each test with the default category and main group.
+        project.service<MoonSettings>().resetForTests()
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
     }
 
     override fun tearDown() {
         try {
-            project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+            project.service<MoonSettings>().resetForTests()
         } finally {
             super.tearDown()
         }
@@ -102,7 +104,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     fun testLoadedShowsTree() {
         panel.render(TasksState.Loaded(TestData.recordedTasks()))
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
-        assertEquals(7, panel.tree.model.getChildCount(panel.tree.model.root))
+        assertEquals(8, panel.tree.model.getChildCount(panel.tree.model.root))
         assertFalse(panel.loadingPanel.isLoading)
     }
 
@@ -216,37 +218,53 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     private fun topNodeNames() = (panel.tree.model.root as DefaultMutableTreeNode).children().toList().map { it.toString() }
 
-    fun testChangeGroupingShowsTheNewStructure() {
+    fun testChangeCategoryAndMainGroupShowsTheNewStructure() {
         loadRecorded()
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertTrue("lint" in topNodeNames())
-        panel.changeGrouping(TaskGrouping.STACK)
-        assertEquals(listOf("backend", "frontend"), topNodeNames())
-        panel.changeGrouping(TaskGrouping.PROJECT)
-        assertEquals(7, topNodeNames().size)
+        panel.changeCategory(TaskCategory.STACK)
+        assertEquals(listOf("backend", "frontend", "(none)"), topNodeNames())
+        panel.changeCategory(TaskCategory.LAYER)
+        assertEquals(listOf("application", "library", "(none)"), topNodeNames())
+        panel.changeCategory(TaskCategory.NONE)
+        panel.changeMainGroup(TaskGrouping.PROJECT)
+        assertEquals(8, topNodeNames().size)
     }
 
-    fun testGroupingIsSavedInTheSettings() {
-        panel.changeGrouping(TaskGrouping.STACK)
-        assertEquals(TaskGrouping.STACK, project.service<MoonSettings>().taskGrouping)
-        // A new panel, for example after a restart of the IDE, uses the saved group mode.
+    fun testCategoryAndMainGroupAreSavedInTheSettings() {
+        panel.changeCategory(TaskCategory.LAYER)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        assertEquals(TaskCategory.LAYER, project.service<MoonSettings>().taskCategory)
+        assertEquals(TaskGrouping.TASK_NAME, project.service<MoonSettings>().mainGroup)
+        // A new panel, for example after a restart of the IDE, uses the saved values.
         val other = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, other)
-        assertEquals(TaskGrouping.STACK, other.grouping)
+        assertEquals(TaskCategory.LAYER, other.category)
+        assertEquals(TaskGrouping.TASK_NAME, other.mainGroup)
     }
 
-    fun testChangeGroupingKeepsTheSelectedTask() {
+    fun testChangeMainGroupKeepsTheExpandedCategoryNode() {
+        loadRecorded()
+        panel.changeCategory(TaskCategory.STACK)
+        val backend = panel.allPaths().single { it.lastPathComponent.toString() == "backend" }
+        panel.tree.expandPath(backend)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        val again = panel.allPaths().single { it.lastPathComponent.toString() == "backend" }
+        assertTrue(panel.tree.isExpanded(again))
+    }
+
+    fun testChangeMainGroupKeepsTheSelectedTask() {
         loadRecorded()
         panel.tree.selectionPath = taskPath("web:build")
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         val selected = panel.tree.selectionPath?.lastPathComponent as TaskNode
         assertEquals("web:build", selected.task.target)
         assertEquals("build", selected.parent.toString())
     }
 
-    fun testRefreshKeepsExpandedNodesInStackGrouping() {
+    fun testRefreshKeepsExpandedNodesInStackCategory() {
         loadRecorded()
-        panel.changeGrouping(TaskGrouping.STACK)
+        panel.changeCategory(TaskCategory.STACK)
         val frontendWeb = panel.allPaths().single { (it.lastPathComponent as? ProjectNode)?.project?.id == "web" }
         panel.tree.expandPath(frontendWeb)
         loadRecorded()
@@ -254,9 +272,9 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue(panel.tree.isExpanded(again))
     }
 
-    fun testChangeGroupingWithAMessageShowsTheMessage() {
+    fun testChangeCategoryWithAMessageShowsTheMessage() {
         panel.render(TasksState.NoWorkspace)
-        panel.changeGrouping(TaskGrouping.STACK)
+        panel.changeCategory(TaskCategory.STACK)
         assertEquals(MoonTasksPanel.MESSAGE_CARD, panel.visibleCard)
     }
 }

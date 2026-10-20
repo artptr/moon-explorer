@@ -1,0 +1,10 @@
+# This project has no stack value and no layer value. moon gives the value "unknown" for both.
+project:
+  title: 'Release scripts'
+  description: 'Scripts for the release of the shop.'
+tasks:
+  changelog:
+    command: 'echo changelog'
+    description: 'Make the changelog for the next release.'
+    options:
+      cache: false

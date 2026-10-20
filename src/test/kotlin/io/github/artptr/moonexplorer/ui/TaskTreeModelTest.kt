@@ -7,6 +7,7 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.testData.TestData
@@ -26,7 +27,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
 
     fun testTopNodesAreProjectsInOrder() {
         val ids = root.childNodes().map { (it.userObject as MoonProject).id }
-        assertEquals(listOf("admin", "api", "db", "ui", "utils", "web", "worker"), ids)
+        assertEquals(listOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), ids)
     }
 
     fun testProjectNodesContainTasksInOrder() {
@@ -48,7 +49,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     }
 
     fun testGroupByTaskNameHasANodeForEachTaskName() {
-        val byName = buildTaskTree(tasks, TaskGrouping.TASK_NAME)
+        val byName = buildTaskTree(tasks, grouping = TaskGrouping.TASK_NAME)
         val names = byName.childNodes().map { (it as TaskNameNode).name }
         assertEquals(names.sortedWith(String.CASE_INSENSITIVE_ORDER), names)
         assertTrue(names.containsAll(listOf("audit", "build", "lint", "typecheck")))
@@ -56,46 +57,87 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     }
 
     fun testTaskNameNodeContainsTheProjectsWithTheTask() {
-        val byName = buildTaskTree(tasks, TaskGrouping.TASK_NAME)
+        val byName = buildTaskTree(tasks, grouping = TaskGrouping.TASK_NAME)
         val lint = byName.childNodes().single { (it as TaskNameNode).name == "lint" }
         val children = lint.childNodes().map { it as TaskNode }
-        assertEquals(listOf("admin", "api", "db", "ui", "utils", "web", "worker"), children.map { it.projectId })
+        assertEquals(listOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), children.map { it.projectId })
         assertTrue(children.all { it.task.id == "lint" && it.showProject && it.isLeaf })
         val audit = byName.childNodes().single { (it as TaskNameNode).name == "audit" }
         assertEquals(listOf("api", "db", "worker"), audit.childNodes().map { (it as TaskNode).projectId })
     }
 
     fun testTaskNodeInTaskNameGroupShowsTheProject() {
-        val byName = buildTaskTree(tasks, TaskGrouping.TASK_NAME)
+        val byName = buildTaskTree(tasks, grouping = TaskGrouping.TASK_NAME)
         val build = byName.childNodes().single { (it as TaskNameNode).name == "build" }
         val web = build.childNodes().single { (it as TaskNode).projectId == "web" }
         assertEquals("web", render(web)[0].first)
     }
 
-    fun testGroupByStackHasStackNodesWithProjects() {
-        val byStack = buildTaskTree(tasks, TaskGrouping.STACK)
-        assertEquals(listOf("backend", "frontend"), byStack.childNodes().map { (it as StackNode).stack })
-        val backend = byStack.childNodes().first()
-        assertEquals(listOf("api", "db", "worker"), backend.childNodes().map { (it as ProjectNode).project.id })
-        val api = backend.childNodes().first()
-        assertTrue(api.childNodes().all { it is TaskNode })
-        assertTrue(api.childNodes().isNotEmpty())
+    /** Gives the node below [this] at the path of node texts [names]. */
+    private fun DefaultMutableTreeNode.child(vararg names: String): DefaultMutableTreeNode =
+        names.fold(this) { node, name -> node.childNodes().single { it.toString() == name } }
+
+    private fun DefaultMutableTreeNode.childNames() = childNodes().map { it.toString() }
+
+    private val none = MoonExplorerBundle.message("tasks.tree.noValue")
+
+    fun testStackAndProjectHasStackNodesWithProjectsAndTasks() {
+        val tree = buildTaskTree(tasks, TaskCategory.STACK, TaskGrouping.PROJECT)
+        assertEquals(listOf("backend", "frontend", none), tree.childNames())
+        assertEquals(listOf("api", "db", "worker"), tree.child("backend").childNames())
+        assertTrue(tree.child("backend").childNodes().all { it is ProjectNode })
+        assertEquals(listOf("changelog", "format", "lint"), tree.child(none, "scripts").childNames())
+        assertTrue(tree.child(none, "scripts").childNodes().all { it is TaskNode && it.isLeaf })
     }
 
-    fun testProjectsWithoutStackAreInTheNoneNode() {
-        // The project config has no stack value. It also has no tasks. Thus give it a task.
-        val config = MoonProject("config", listOf(MoonTask("check", "config:check", null)), stack = null)
-        val withConfig = WorkspaceTasks(tasks.projects + config)
-        val byStack = buildTaskTree(withConfig, TaskGrouping.STACK)
-        val none = byStack.childNodes().last() as StackNode
-        assertNull(none.stack)
-        assertEquals(MoonExplorerBundle.message("tasks.tree.noStack"), none.toString())
-        assertEquals(listOf("config"), none.childNodes().map { (it as ProjectNode).project.id })
+    fun testStackAndTaskNameHasStackNodesWithTaskNames() {
+        val tree = buildTaskTree(tasks, TaskCategory.STACK, TaskGrouping.TASK_NAME)
+        assertEquals(listOf("backend", "frontend", none), tree.childNames())
+        assertEquals(listOf("audit", "build", "format", "lint", "migrate", "start", "test"), tree.child("backend").childNames())
+        assertEquals(listOf("api", "db", "worker"), tree.child("backend", "audit").childNames())
+        assertTrue(tree.child("backend", "audit").childNodes().all { it is TaskNode && it.showProject && it.isLeaf })
+        assertEquals(listOf("changelog", "format", "lint"), tree.child(none).childNames())
     }
 
-    fun testNoNoneNodeIfAllProjectsHaveAStack() {
-        val byStack = buildTaskTree(tasks, TaskGrouping.STACK)
-        assertTrue(byStack.childNodes().all { (it as StackNode).stack != null })
+    fun testLayerAndProjectHasLayerNodesWithProjectsAndTasks() {
+        val tree = buildTaskTree(tasks, TaskCategory.LAYER, TaskGrouping.PROJECT)
+        assertEquals(listOf("application", "library", none), tree.childNames())
+        assertEquals(listOf("admin", "api", "web", "worker"), tree.child("application").childNames())
+        assertEquals(listOf("db", "ui", "utils"), tree.child("library").childNames())
+        assertEquals(listOf("scripts"), tree.child(none).childNames())
+        assertEquals(listOf("audit", "build", "format", "lint", "migrate", "test"), tree.child("library", "db").childNames())
+    }
+
+    fun testLayerAndTaskNameHasLayerNodesWithTaskNames() {
+        val tree = buildTaskTree(tasks, TaskCategory.LAYER, TaskGrouping.TASK_NAME)
+        assertEquals(listOf("application", "library", none), tree.childNames())
+        assertEquals(listOf("db", "ui", "utils"), tree.child("library", "build").childNames())
+        assertEquals(listOf("admin", "api", "web", "worker"), tree.child("application", "build").childNames())
+        assertEquals(listOf("scripts"), tree.child(none, "changelog").childNames())
+    }
+
+    fun testNoneNodeIsLastAndGray() {
+        val tree = buildTaskTree(tasks, TaskCategory.LAYER)
+        val noneNode = tree.childNodes().last() as CategoryNode
+        assertNull(noneNode.value)
+        assertEquals(TaskCategory.LAYER, noneNode.category)
+        assertEquals(none, noneNode.toString())
+        assertEquals(SimpleTextAttributes.GRAYED_ATTRIBUTES, render(noneNode)[0].second)
+        val library = tree.childNodes().first { it.toString() == "library" }
+        assertEquals(SimpleTextAttributes.REGULAR_ATTRIBUTES, render(library)[0].second)
+    }
+
+    fun testOnlyOneCategoryValueStillShowsTheCategoryNode() {
+        val single = WorkspaceTasks(listOf(MoonProject("a", listOf(MoonTask("build", "a:build", null)), stack = "frontend")))
+        val tree = buildTaskTree(single, TaskCategory.STACK)
+        assertEquals(listOf("frontend"), tree.childNames())
+        assertEquals(listOf("a"), tree.child("frontend").childNames())
+    }
+
+    fun testCategoryNodeKeysAreDifferentForEachCategory() {
+        val stackNone = buildTaskTree(tasks, TaskCategory.STACK).childNodes().last() as CategoryNode
+        val layerNone = buildTaskTree(tasks, TaskCategory.LAYER).childNodes().last() as CategoryNode
+        assertFalse(stackNone.key == layerNone.key)
     }
 
     private fun render(node: DefaultMutableTreeNode): List<Pair<String, SimpleTextAttributes>> {

@@ -7,9 +7,11 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.speedSearch.SpeedSearchSupply
 import com.intellij.ui.treeStructure.Tree
+import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.settings.MoonSettings
+import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import java.awt.event.KeyEvent
 import java.beans.PropertyChangeListener
@@ -24,7 +26,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+        project.service<MoonSettings>().resetForTests()
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
         panel.render(TasksState.Loaded(tasks))
@@ -33,7 +35,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             panel.speedSearch.hidePopup()
-            project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+            project.service<MoonSettings>().resetForTests()
         } finally {
             super.tearDown()
         }
@@ -82,8 +84,8 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         assertEquals("api:audit", selectedTask.task.target)
     }
 
-    fun testSearchOperatesInTaskNameGrouping() {
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+    fun testSearchOperatesInTaskNameMainGroup() {
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         panel.speedSearch.findAndSelectElement("typecheck")
         assertEquals("typecheck", selectedPath.lastPathComponent.toString())
         panel.tree.collapsePath(selectedPath)
@@ -92,8 +94,8 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         assertEquals("worker", selectedTask.projectId)
     }
 
-    fun testSearchOperatesInStackGrouping() {
-        panel.changeGrouping(TaskGrouping.STACK)
+    fun testSearchOperatesInStackCategory() {
+        panel.changeCategory(TaskCategory.STACK)
         panel.speedSearch.findAndSelectElement("audit")
         assertEquals("api:audit", selectedTask.task.target)
         assertEquals("backend", selectedPath.parentPath.parentPath.lastPathComponent.toString())
