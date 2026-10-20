@@ -27,7 +27,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
 
     fun testTopNodesAreProjectsInOrder() {
         val ids = root.childNodes().map { (it.userObject as MoonProject).id }
-        assertEquals(listOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), ids)
+        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), ids)
     }
 
     fun testProjectNodesContainTasksInOrder() {
@@ -60,7 +60,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         val byName = buildTaskTree(tasks, grouping = TaskGrouping.TASK_NAME)
         val lint = byName.childNodes().single { (it as TaskNameNode).name == "lint" }
         val children = lint.childNodes().map { it as TaskNode }
-        assertEquals(listOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), children.map { it.projectId })
+        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), children.map { it.projectId })
         assertTrue(children.all { it.task.id == "lint" && it.showProject && it.isLeaf })
         val audit = byName.childNodes().single { (it as TaskNameNode).name == "audit" }
         assertEquals(listOf("api", "db", "worker"), audit.childNodes().map { (it as TaskNode).projectId })
@@ -103,7 +103,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         val tree = buildTaskTree(tasks, TaskCategory.LAYER, TaskGrouping.PROJECT)
         assertEquals(listOf("application", "library", none), tree.childNames())
         assertEquals(listOf("admin", "api", "web", "worker"), tree.child("application").childNames())
-        assertEquals(listOf("db", "ui", "utils"), tree.child("library").childNames())
+        assertEquals(listOf("db", "icons", "ui", "utils"), tree.child("library").childNames())
         assertEquals(listOf("scripts"), tree.child(none).childNames())
         assertEquals(listOf("audit", "build", "format", "lint", "migrate", "test"), tree.child("library", "db").childNames())
     }

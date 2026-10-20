@@ -48,7 +48,7 @@ class TasksLoaderTest {
 
     @Test
     fun successGivesLoaded() {
-        assertEquals(TasksState.Loaded(TestData.recordedTasks()), load(workspace, recorded))
+        assertEquals(TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot), load(workspace, recorded))
     }
 
     @Test

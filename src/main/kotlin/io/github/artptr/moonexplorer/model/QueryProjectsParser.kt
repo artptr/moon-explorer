@@ -13,12 +13,18 @@ object QueryProjectsParser {
 
     /**
      * Reads [json] and gives the projects that have tasks, sorted by ID. The function also sorts the tasks of each project by ID.
+     * The result also contains the `source` value of each project. This includes the projects without tasks.
      * Throws [MoonOutputException] if the JSON is not correct.
      */
     fun parse(json: String): WorkspaceTasks {
         val projects = parseMoonJson(json).objectOrNull()?.get("projects")?.takeIf { it.isJsonArray }?.asJsonArray
             ?: throw MoonOutputException("The output does not contain the array \"projects\"")
 
+        val sources = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
+            val id = project.string("id") ?: return@mapNotNull null
+            val source = project.string("source") ?: return@mapNotNull null
+            ProjectSource(id, source)
+        }
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
             val projectId = project.string("id") ?: return@mapNotNull null
             // moon does not write the key "tasks" if the project has no tasks.
@@ -39,7 +45,10 @@ object QueryProjectsParser {
                 layer = metadata(project, "layer"),
             )
         }
-        return WorkspaceTasks(result.sortedWith(compareBy(ID_ORDER) { it.id }))
+        return WorkspaceTasks(
+            projects = result.sortedWith(compareBy(ID_ORDER) { it.id }),
+            sources = sources.sortedWith(compareBy(ID_ORDER) { it.id }),
+        )
     }
 
     /**

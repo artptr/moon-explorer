@@ -1,5 +1,9 @@
 # Test workspace for Moon Explorer. It contains sample data only.
 projects:
-  - 'apps/*'
-  - 'packages/*'
-  - 'tools/*'
+  globs:
+    - 'apps/*'
+    - 'packages/*'
+    - 'tools/*'
+  # A nested project in the project ui. The globs do not find it.
+  sources:
+    icons: 'packages/ui/icons'

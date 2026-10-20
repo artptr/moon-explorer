@@ -20,7 +20,7 @@ object TasksLoader {
         return try {
             val result = queryProjects(root)
             if (result !is CliResult.Success) return errorState(result)
-            TasksState.Loaded(QueryProjectsParser.parse(result.stdout))
+            TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
         } catch (e: MoonOutputException) {
             TasksState.InvalidOutput(e.message.orEmpty())
         } catch (e: CancellationException) {

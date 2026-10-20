@@ -7,8 +7,8 @@ sealed interface TasksState {
     /** The plugin runs `moon query projects`. */
     data object Loading : TasksState
 
-    /** The plugin read the tasks of the workspace. */
-    data class Loaded(val tasks: WorkspaceTasks) : TasksState
+    /** The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`. */
+    data class Loaded(val tasks: WorkspaceTasks, val root: Path) : TasksState
 
     /** The IDE project does not contain a moon workspace. */
     data object NoWorkspace : TasksState

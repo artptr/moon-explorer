@@ -1,0 +1,11 @@
+# A nested project in the project ui. The plugin selects this project for the files in its directory.
+language: 'typescript'
+layer: 'library'
+stack: 'frontend'
+project:
+  title: 'Icons'
+  description: 'The SVG files of the icons.'
+tasks:
+  optimize:
+    command: 'echo optimize icons'
+    description: 'Make the SVG files smaller.'

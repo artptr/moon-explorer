@@ -18,7 +18,35 @@ class QueryProjectsParserTest {
     @Test
     fun recordedOutputHasAllProjectsWithTasksInOrder() {
         // The project config has no tasks. Thus it is not in the result.
-        assertEquals(listOf("admin", "api", "db", "scripts", "ui", "utils", "web", "worker"), recorded.projects.map { it.id })
+        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), recorded.projects.map { it.id })
+    }
+
+    @Test
+    fun recordedOutputHasTheSourceOfAllProjectsInOrder() {
+        // The project config has no tasks. Its source is also in the result.
+        val expected = listOf(
+            ProjectSource("admin", "apps/admin"),
+            ProjectSource("api", "apps/api"),
+            ProjectSource("config", "packages/config"),
+            ProjectSource("db", "packages/db"),
+            ProjectSource("icons", "packages/ui/icons"),
+            ProjectSource("scripts", "tools/scripts"),
+            ProjectSource("ui", "packages/ui"),
+            ProjectSource("utils", "packages/utils"),
+            ProjectSource("web", "apps/web"),
+            ProjectSource("worker", "apps/worker"),
+        )
+        assertEquals(expected, recorded.sources)
+    }
+
+    @Test
+    fun projectsWithoutIdOrSourceHaveNoSource() {
+        val json = """
+            {"projects": [
+              {"id": "a", "source": "apps/a"}, {"source": "apps/b"}, {"id": "c"}, {"id": "d", "source": 5}
+            ]}
+        """
+        assertEquals(listOf(ProjectSource("a", "apps/a")), QueryProjectsParser.parse(json).sources)
     }
 
     @Test
@@ -56,6 +84,7 @@ class QueryProjectsParserTest {
             "admin" to "frontend",
             "api" to "backend",
             "db" to "backend",
+            "icons" to "frontend",
             "scripts" to null,
             "ui" to "frontend",
             "utils" to "frontend",
@@ -180,6 +209,7 @@ class QueryProjectsParserTest {
             "admin" to "application",
             "api" to "application",
             "db" to "library",
+            "icons" to "library",
             "scripts" to null,
             "ui" to "library",
             "utils" to "library",

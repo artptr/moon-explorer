@@ -92,7 +92,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testEmptyWorkspaceShowsMessage() {
-        panel.render(TasksState.Loaded(WorkspaceTasks(emptyList())))
+        panel.render(TasksState.Loaded(WorkspaceTasks(emptyList()), TestData.workspaceRoot))
         assertMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
     }
 
@@ -102,16 +102,16 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testLoadedShowsTree() {
-        panel.render(TasksState.Loaded(TestData.recordedTasks()))
+        panel.render(TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot))
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
-        assertEquals(8, panel.tree.model.getChildCount(panel.tree.model.root))
+        assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
         assertFalse(panel.loadingPanel.isLoading)
     }
 
     fun testLargeWorkspaceLoadsInLessThanTwoSeconds() {
         val json = LargeQueryProjectsJson.generate()
         val millis = measureTimeMillis {
-            panel.render(TasksState.Loaded(QueryProjectsParser.parse(json)))
+            panel.render(TasksState.Loaded(QueryProjectsParser.parse(json), TestData.workspaceRoot))
         }
         assertEquals(17, panel.tree.model.getChildCount(panel.tree.model.root))
         assertTrue("The tree loaded in $millis ms", millis < 2_000)
@@ -132,7 +132,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     fun testRefreshKeepsExpandedNodesWhenADescriptionChanges() {
         val tasks = TestData.recordedTasks()
-        panel.render(TasksState.Loaded(tasks))
+        panel.render(TasksState.Loaded(tasks, TestData.workspaceRoot))
         panel.tree.expandPath(projectPath("web"))
         assertTrue(panel.tree.isExpanded(projectPath("web")))
 
@@ -140,12 +140,12 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
             project.copy(tasks = project.tasks.map { it.copy(description = "Changed") })
         })
         panel.tree.selectionPath = taskPath("web:build")
-        panel.render(TasksState.Loaded(changed))
+        panel.render(TasksState.Loaded(changed, TestData.workspaceRoot))
         assertTrue("The web node must stay expanded", panel.tree.isExpanded(projectPath("web")))
         assertEquals("web:build", (panel.tree.selectionPath?.lastPathComponent as TaskNode).task.target)
     }
 
-    private fun loadRecorded() = panel.render(TasksState.Loaded(TestData.recordedTasks()))
+    private fun loadRecorded() = panel.render(TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot))
 
     fun testSelectedTaskIsTheSelectedTaskNode() {
         loadRecorded()
@@ -228,7 +228,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(listOf("application", "library", "(none)"), topNodeNames())
         panel.changeCategory(TaskCategory.NONE)
         panel.changeMainGroup(TaskGrouping.PROJECT)
-        assertEquals(8, topNodeNames().size)
+        assertEquals(9, topNodeNames().size)
     }
 
     fun testCategoryAndMainGroupAreSavedInTheSettings() {
