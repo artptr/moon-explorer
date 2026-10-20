@@ -85,7 +85,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         assertEquals("api:audit", selectedTask.task.target)
     }
 
-    fun testSearchOperatesInTaskNameGrouping() {
+    fun testSearchOperatesInTaskNameMainGroup() {
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
         panel.speedSearch.findAndSelectElement("typecheck")
         assertEquals("typecheck", selectedPath.lastPathComponent.toString())

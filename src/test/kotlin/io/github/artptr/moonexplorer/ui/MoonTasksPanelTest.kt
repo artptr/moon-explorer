@@ -219,7 +219,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     private fun topNodeNames() = (panel.tree.model.root as DefaultMutableTreeNode).children().toList().map { it.toString() }
 
-    fun testChangeGroupingShowsTheNewStructure() {
+    fun testChangeCategoryAndMainGroupShowsTheNewStructure() {
         loadRecorded()
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertTrue("lint" in topNodeNames())
@@ -232,7 +232,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(8, topNodeNames().size)
     }
 
-    fun testCategoryAndGroupingAreSavedInTheSettings() {
+    fun testCategoryAndMainGroupAreSavedInTheSettings() {
         panel.changeCategory(TaskCategory.LAYER)
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertEquals(TaskCategory.LAYER, project.service<MoonSettings>().taskCategory)
@@ -244,7 +244,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(TaskGrouping.TASK_NAME, other.mainGroup)
     }
 
-    fun testChangeGroupingKeepsTheExpandedCategoryNode() {
+    fun testChangeMainGroupKeepsTheExpandedCategoryNode() {
         loadRecorded()
         panel.changeCategory(TaskCategory.STACK)
         val backend = panel.allPaths().single { it.lastPathComponent.toString() == "backend" }
@@ -254,7 +254,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue(panel.tree.isExpanded(again))
     }
 
-    fun testChangeGroupingKeepsTheSelectedTask() {
+    fun testChangeMainGroupKeepsTheSelectedTask() {
         loadRecorded()
         panel.tree.selectionPath = taskPath("web:build")
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
@@ -273,7 +273,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue(panel.tree.isExpanded(again))
     }
 
-    fun testChangeGroupingWithAMessageShowsTheMessage() {
+    fun testChangeCategoryWithAMessageShowsTheMessage() {
         panel.render(TasksState.NoWorkspace)
         panel.changeCategory(TaskCategory.STACK)
         assertEquals(MoonTasksPanel.MESSAGE_CARD, panel.visibleCard)
