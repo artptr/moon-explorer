@@ -63,7 +63,7 @@ intellijPlatform {
                 // The first IDE is the IDE of the build. It is also the minimum IDE version for the plugin.
                 current()
                 // The second IDE is the newest released IDE. The check does not use EAP builds.
-                // Each new EAP build changes the key of the IDE cache in the Build workflow.
+                // JetBrains often releases a new EAP build. If the check uses EAP builds, each new EAP build changes the key of the IDE cache in the 'Build' workflow.
                 latest {
                     channels = listOf(ProductRelease.Channel.RELEASE)
                 }

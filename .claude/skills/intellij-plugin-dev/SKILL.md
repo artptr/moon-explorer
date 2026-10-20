@@ -18,8 +18,9 @@ Read the applicable page before you use an API that you do not know.
 ## Build configuration
 
 - `settings.gradle.kts` contains the plugin versions for Gradle.
-- `build.gradle.kts` contains the target IDE (`intellijIdea(...)`) and the test framework.
-- `gradle.properties` contains the plugin version and the group.
+- `build.gradle.kts` contains the test framework and the IDEs for the Plugin Verifier.
+- `gradle.properties` contains the plugin version, the group, and the IDE of the build (`platformVersion`). This IDE is also the target IDE of the plugin.
+- The `Build` workflow uses `platformVersion` in the key of the IDE cache. To change the target IDE, change only `platformVersion`.
 - The `since-build` value comes from the target IDE. Do not set it manually without an ADR.
 
 ## Extension types

@@ -159,7 +159,8 @@ jobs:
           java-version: 21
 
       # Setup Gradle
-      # The job does not write the Gradle cache, because the IDE archives are large. The job keeps the extracted IDEs in a separate cache.
+      # The job does not save the Gradle cache. If the 'Restore IDE Cache' step does not find the IDE cache, Gradle downloads the IDE archives into the Gradle home directory.
+      # The archives are large. The job keeps the extracted IDEs in a separate cache.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
@@ -169,9 +170,17 @@ jobs:
       # The 'printProductsReleases' task does not download the IDEs.
       - name: Get IDE Versions
         id: ides
+        # The step keeps the Gradle output in a variable. Then the step reads the first line.
+        # Do not send the Gradle output to 'head'. 'head' can close the pipe before Gradle completes. With 'pipefail', this causes a failure of the step.
         run: |
-          PLATFORM_VERSION=$(grep '^platformVersion' gradle.properties | cut -d '=' -f 2 | tr -d ' ')
-          NEWEST_IDE=$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain | head -n 1)
+          set -euo pipefail
+          PLATFORM_VERSION="$(sed -n 's/^platformVersion[[:space:]]*=[[:space:]]*//p' gradle.properties)"
+          RELEASES="$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain)"
+          NEWEST_IDE="$(printf '%s\n' "$RELEASES" | sed -n '1p')"
+          if [[ -z "$PLATFORM_VERSION" || -z "$NEWEST_IDE" ]]; then
+            echo "::error::The step cannot get the IDE versions."
+            exit 1
+          fi
           echo "minimum=IU-$PLATFORM_VERSION" >> "$GITHUB_OUTPUT"
           echo "newest=$NEWEST_IDE" >> "$GITHUB_OUTPUT"
 
@@ -184,7 +193,8 @@ jobs:
           path: |
             .intellijPlatform/ides/${{ steps.ides.outputs.minimum }}
             .intellijPlatform/ides/${{ steps.ides.outputs.newest }}
-          key: plugin-verifier-ides-${{ runner.os }}-${{ steps.ides.outputs.minimum }}-${{ steps.ides.outputs.newest }}
+          # If you change the paths or the contents of the IDE cache, change 'v1' to the next number (for example, 'v2').
+          key: plugin-verifier-ides-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.ides.outputs.minimum }}-${{ steps.ides.outputs.newest }}
 
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       # For a pull request, the job does the quick check. The quick check uses two IDEs in offline mode. Refer to 'quickVerification' in build.gradle.kts.
@@ -194,9 +204,12 @@ jobs:
         run: ./gradlew verifyPlugin -PquickVerification=$QUICK_VERIFICATION -Porg.jetbrains.intellij.platform.intellijPlatformIdesCacheEnabled=true
 
       # If the 'Restore IDE Cache' step did not find the IDE cache, save the IDE cache.
-      # A cache from a pull request is available only to that pull request. The cache from 'main' is available to all pull requests.
+      # Only a push to 'main' saves the IDE cache. Thus the repository has only one IDE cache for each key.
+      # The cache from 'main' is available to all pull requests.
+      # If the cache service has a failure, the job continues.
       - name: Save IDE Cache
-        if: steps.ide-cache.outputs.cache-hit != 'true'
+        if: github.event_name != 'pull_request' && steps.ide-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
