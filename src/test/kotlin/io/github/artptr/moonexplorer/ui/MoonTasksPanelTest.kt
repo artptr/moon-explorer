@@ -31,7 +31,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         super.setUp()
         // The light project is the same for all tests. Start each test with the default category and main group.
         project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+        project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
     }
@@ -39,7 +39,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-            project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+            project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
         } finally {
             super.tearDown()
         }
@@ -221,27 +221,27 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     fun testChangeGroupingShowsTheNewStructure() {
         loadRecorded()
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertTrue("lint" in topNodeNames())
         panel.changeCategory(TaskCategory.STACK)
         assertEquals(listOf("backend", "frontend", "(none)"), topNodeNames())
         panel.changeCategory(TaskCategory.LAYER)
         assertEquals(listOf("application", "library", "(none)"), topNodeNames())
         panel.changeCategory(TaskCategory.NONE)
-        panel.changeGrouping(TaskGrouping.PROJECT)
+        panel.changeMainGroup(TaskGrouping.PROJECT)
         assertEquals(8, topNodeNames().size)
     }
 
     fun testCategoryAndGroupingAreSavedInTheSettings() {
         panel.changeCategory(TaskCategory.LAYER)
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertEquals(TaskCategory.LAYER, project.service<MoonSettings>().taskCategory)
-        assertEquals(TaskGrouping.TASK_NAME, project.service<MoonSettings>().taskGrouping)
+        assertEquals(TaskGrouping.TASK_NAME, project.service<MoonSettings>().mainGroup)
         // A new panel, for example after a restart of the IDE, uses the saved values.
         val other = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, other)
         assertEquals(TaskCategory.LAYER, other.category)
-        assertEquals(TaskGrouping.TASK_NAME, other.grouping)
+        assertEquals(TaskGrouping.TASK_NAME, other.mainGroup)
     }
 
     fun testChangeGroupingKeepsTheExpandedCategoryNode() {
@@ -249,7 +249,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.changeCategory(TaskCategory.STACK)
         val backend = panel.allPaths().single { it.lastPathComponent.toString() == "backend" }
         panel.tree.expandPath(backend)
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         val again = panel.allPaths().single { it.lastPathComponent.toString() == "backend" }
         assertTrue(panel.tree.isExpanded(again))
     }
@@ -257,7 +257,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     fun testChangeGroupingKeepsTheSelectedTask() {
         loadRecorded()
         panel.tree.selectionPath = taskPath("web:build")
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         val selected = panel.tree.selectionPath?.lastPathComponent as TaskNode
         assertEquals("web:build", selected.task.target)
         assertEquals("build", selected.parent.toString())

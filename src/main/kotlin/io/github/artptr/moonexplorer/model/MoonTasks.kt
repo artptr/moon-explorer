@@ -43,7 +43,7 @@ enum class TaskCategory {
     ;
 
     /** Gives the value of [project] for this category, or null if the project has no value. For [NONE], the value is always null. */
-    fun valueOf(project: MoonProject): String? = when (this) {
+    fun valueFor(project: MoonProject): String? = when (this) {
         NONE -> null
         STACK -> project.stack
         LAYER -> project.layer

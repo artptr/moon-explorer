@@ -36,8 +36,8 @@ abstract class TasksPanelToggleAction : ToggleAction(), DumbAware {
 
 /** Selects the main group of the tree. */
 abstract class GroupByAction(private val grouping: TaskGrouping) : TasksPanelToggleAction() {
-    override fun isSelected(panel: MoonTasksPanel): Boolean = panel.grouping == grouping
-    override fun select(panel: MoonTasksPanel) = panel.changeGrouping(grouping)
+    override fun isSelected(panel: MoonTasksPanel): Boolean = panel.mainGroup == grouping
+    override fun select(panel: MoonTasksPanel) = panel.changeMainGroup(grouping)
 }
 
 class GroupByProjectAction : GroupByAction(TaskGrouping.PROJECT)

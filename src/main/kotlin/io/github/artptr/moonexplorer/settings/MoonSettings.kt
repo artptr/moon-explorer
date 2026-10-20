@@ -26,6 +26,7 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
         /**
          * The group mode of version 0.1.0: `PROJECT`, `TASK_NAME`, or `STACK`. [loadState] changes it to [taskCategory] and [mainGroup].
          * The value is text, thus the plugin can read the old value `STACK`.
+         * Do not change the name of this property. The name is the name of the option in the workspace file.
          */
         var taskGrouping by string()
     }
@@ -60,7 +61,7 @@ class MoonSettings : SimplePersistentStateComponent<MoonSettings.SettingsState>(
         }
 
     /** The main group of the tree of the Moon tool window. It sets the structure in each category node. */
-    var taskGrouping: TaskGrouping
+    var mainGroup: TaskGrouping
         get() = state.mainGroup
         set(value) {
             state.mainGroup = value

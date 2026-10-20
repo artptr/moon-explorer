@@ -26,7 +26,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     override fun setUp() {
         super.setUp()
         project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+        project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
         panel.render(TasksState.Loaded(tasks))
@@ -36,7 +36,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         try {
             panel.speedSearch.hidePopup()
             project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-            project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+            project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
         } finally {
             super.tearDown()
         }
@@ -86,7 +86,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     }
 
     fun testSearchOperatesInTaskNameGrouping() {
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         panel.speedSearch.findAndSelectElement("typecheck")
         assertEquals("typecheck", selectedPath.lastPathComponent.toString())
         panel.tree.collapsePath(selectedPath)

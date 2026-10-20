@@ -68,7 +68,7 @@ The unit tests read the recorded output. They do not start the moon CLI.
 
 The test workspace contains these items:
 
-- Application projects and library projects. Each of these projects has the `stack` value `frontend` or `backend`.
+- Application projects and library projects. Each of these projects has the `layer` value `application` or `library`, and the `stack` value `frontend` or `backend`.
 - The project `scripts` has no `stack` value and no `layer` value. moon gives the value `unknown` for `stack` and for `layer`.
 - Tags. Some tags are on more than one project.
 - Three files in `.moon/tasks/`. All projects inherit `all.yml`. Frontend projects inherit `frontend.yml`. Backend projects inherit `backend.yml`.

@@ -20,7 +20,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
     override fun setUp() {
         super.setUp()
         project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+        project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
         panel = MoonTasksPanel(project)
         Disposer.register(testRootDisposable, panel)
     }
@@ -28,7 +28,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             project.service<MoonSettings>().taskCategory = TaskCategory.NONE
-        project.service<MoonSettings>().taskGrouping = TaskGrouping.PROJECT
+            project.service<MoonSettings>().mainGroup = TaskGrouping.PROJECT
         } finally {
             super.tearDown()
         }
@@ -69,17 +69,17 @@ class GroupByActionsTest : BasePlatformTestCase() {
         panel.changeCategory(TaskCategory.STACK)
         val action = GroupByTaskNameAction()
         action.setSelected(event(action), true)
-        assertEquals(TaskGrouping.TASK_NAME, panel.grouping)
+        assertEquals(TaskGrouping.TASK_NAME, panel.mainGroup)
         assertEquals(TaskCategory.STACK, panel.category)
         assertTrue(action.isSelected(event(action)))
     }
 
     fun testCategoryActionChangesOnlyTheCategory() {
-        panel.changeGrouping(TaskGrouping.TASK_NAME)
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
         val action = CategoryLayerAction()
         action.setSelected(event(action), true)
         assertEquals(TaskCategory.LAYER, panel.category)
-        assertEquals(TaskGrouping.TASK_NAME, panel.grouping)
+        assertEquals(TaskGrouping.TASK_NAME, panel.mainGroup)
         assertTrue(action.isSelected(event(action)))
         assertFalse(CategoryNoneAction().let { it.isSelected(event(it)) })
     }

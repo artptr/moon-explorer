@@ -208,15 +208,15 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     }
 
     /** The main group of the tree. The plugin keeps the value in the settings of the IDE project. */
-    internal val grouping: TaskGrouping get() = settings.taskGrouping
+    internal val mainGroup: TaskGrouping get() = settings.mainGroup
 
     /** The category nodes at the top of the tree. The plugin keeps the value in the settings of the IDE project. */
     internal val category: TaskCategory get() = settings.taskCategory
 
     /** Saves [value] and shows the tree again with this main group. Call this function on the EDT. */
-    internal fun changeGrouping(value: TaskGrouping) {
-        if (value == grouping) return
-        settings.taskGrouping = value
+    internal fun changeMainGroup(value: TaskGrouping) {
+        if (value == mainGroup) return
+        settings.mainGroup = value
         shownTasks?.let(::showTree)
     }
 
@@ -237,7 +237,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         val selectedTargets = selectedPaths.mapNotNull { (it.lastPathComponent as? TaskNode)?.task?.target }.toSet()
 
         shownTasks = tasks
-        (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, category, grouping))
+        (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, category, mainGroup))
 
         val newPaths = allPaths()
         newPaths.filter { keyPath(it) in expanded }.forEach(tree::expandPath)

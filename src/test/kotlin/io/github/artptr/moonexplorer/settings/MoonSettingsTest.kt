@@ -19,32 +19,32 @@ class MoonSettingsTest : BasePlatformTestCase() {
     fun testOldStackValueBecomesStackAndProject() {
         val settings = oldGrouping("STACK")
         assertEquals(TaskCategory.STACK, settings.taskCategory)
-        assertEquals(TaskGrouping.PROJECT, settings.taskGrouping)
+        assertEquals(TaskGrouping.PROJECT, settings.mainGroup)
         assertNull(settings.state.taskGrouping)
     }
 
     fun testOldTaskNameValueBecomesNoneAndTaskName() {
         val settings = oldGrouping("TASK_NAME")
         assertEquals(TaskCategory.NONE, settings.taskCategory)
-        assertEquals(TaskGrouping.TASK_NAME, settings.taskGrouping)
+        assertEquals(TaskGrouping.TASK_NAME, settings.mainGroup)
         assertNull(settings.state.taskGrouping)
     }
 
     fun testDefaultValuesAreNoneAndProject() {
         val settings = load("""<component name="MoonExplorerSettings" />""")
         assertEquals(TaskCategory.NONE, settings.taskCategory)
-        assertEquals(TaskGrouping.PROJECT, settings.taskGrouping)
+        assertEquals(TaskGrouping.PROJECT, settings.mainGroup)
     }
 
     fun testNewValuesAreKeptAfterSaveAndLoad() {
         val settings = MoonSettings()
         settings.taskCategory = TaskCategory.LAYER
-        settings.taskGrouping = TaskGrouping.TASK_NAME
+        settings.mainGroup = TaskGrouping.TASK_NAME
         val xml = JDOMUtil.write(XmlSerializer.serialize(settings.state))
         assertFalse(xml.contains("\"taskGrouping\""))
 
         val loaded = load(xml)
         assertEquals(TaskCategory.LAYER, loaded.taskCategory)
-        assertEquals(TaskGrouping.TASK_NAME, loaded.taskGrouping)
+        assertEquals(TaskGrouping.TASK_NAME, loaded.mainGroup)
     }
 }

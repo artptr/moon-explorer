@@ -34,7 +34,7 @@ fun buildTaskTree(
     if (category == TaskCategory.NONE) {
         addGroups(root, tasks.projects, grouping)
     } else {
-        tasks.projects.groupBy(category::valueOf)
+        tasks.projects.groupBy(category::valueFor)
             .toSortedMap(nullsLast(ID_ORDER))
             .forEach { (value, projects) -> root.add(CategoryNode(category, value).also { addGroups(it, projects, grouping) }) }
     }
