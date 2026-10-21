@@ -1,7 +1,5 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.notification.Notification
-import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.TestActionEvent
@@ -17,7 +15,7 @@ import kotlinx.coroutines.runBlocking
 class ShowRefreshFailureActionTest : BasePlatformTestCase() {
 
     private lateinit var service: MoonTasksService
-    private val loaded get() = TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot)
+    private val loaded get() = TestData.recordedState()
     private val stale get() = TasksState.Stale(loaded, TasksState.MoonError("bad config"))
 
     override fun setUp() {
@@ -71,15 +69,7 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
 
     fun testActionShowsTheNotificationAgain() {
         loadStale()
-        val shown = mutableListOf<Notification>()
-        project.messageBus.connect(testRootDisposable).subscribe(
-            Notifications.TOPIC,
-            object : Notifications {
-                override fun notify(notification: Notification) {
-                    if (notification.groupId == RefreshFailureNotifier.GROUP_ID) shown += notification
-                }
-            },
-        )
+        val shown = collectRefreshNotifications(project, testRootDisposable)
         val action = ShowRefreshFailureAction()
         action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
         assertTrue(shown.single().content.contains("bad config"))

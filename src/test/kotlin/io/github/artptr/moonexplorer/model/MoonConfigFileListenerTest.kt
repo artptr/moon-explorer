@@ -6,6 +6,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.testData.TestData
@@ -65,10 +66,9 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
         VfsUtil.markDirtyAndRefresh(false, false, false, file)
     }
 
-    /** Waits until the service ran [expected] queries. If this does not occur in [millis], the test fails. */
-    private fun awaitCalls(expected: Int, millis: Long = 3_000) {
-        val end = System.currentTimeMillis() + millis
-        while (calls.get() < expected && System.currentTimeMillis() < end) Thread.sleep(20)
+    /** Waits until the service ran [expected] queries. If this does not occur in 3 seconds, the test fails. */
+    private fun awaitCalls(expected: Int) {
+        PlatformTestUtil.waitWithEventsDispatching({ "Expected $expected queries, but the service ran ${calls.get()}" }, { calls.get() >= expected }, 3)
         assertEquals(expected, calls.get())
     }
 

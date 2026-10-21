@@ -11,12 +11,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.TestOnly
@@ -81,14 +80,9 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         val wait = refreshDelay
         pending = scope.launch {
             delay(wait)
-            val self = currentCoroutineContext().job
             synchronized(this@MoonTasksService) {
                 // A new call can cancel this job after the delay. Then the new job refreshes.
-                if (pending === self) {
-                    // Set the value to null first. Thus refresh does not cancel this job.
-                    pending = null
-                    refresh()
-                }
+                if (isActive) refresh()
             }
         }
     }
@@ -116,7 +110,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
                 val root = TasksLoader.findRoot(dir)
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
                 configWatch = ConfigWatch(root, dir, lastLoaded?.tasks?.sources.orEmpty())
-                publish(dir, root, TasksLoader.loadTasksIn(root, queryProjectsFn))
+                publish(TasksLoader.loadTasksIn(root, queryProjectsFn))
             }
         }
     }
@@ -124,16 +118,17 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     /**
      * Gives the state for the [result] of a load, and keeps the data for the next loads.
      * A failure after a successful load gives [TasksState.Stale]. Thus the tree keeps the last correct tasks.
-     * [dir] is the IDE project directory, and [root] is the workspace root of the load.
+     * If the last successful load changes, the function also changes the sources in [configWatch].
      */
-    private fun publish(dir: Path?, root: Path?, result: TasksState): TasksState {
+    private fun publish(result: TasksState): TasksState {
         val state = when (result) {
+            is TasksState.Failure -> return lastLoaded?.let { TasksState.Stale(it, result) } ?: result
             is TasksState.Loaded -> result.also { lastLoaded = it }
-            is TasksState.Failure -> lastLoaded?.let { TasksState.Stale(it, result) } ?: result
             // The workspace is not there. The old tasks are not correct.
             else -> result.also { lastLoaded = null }
         }
-        configWatch = ConfigWatch(root, dir, lastLoaded?.tasks?.sources.orEmpty())
+        val watch = configWatch
+        configWatch = ConfigWatch(watch.root, watch.projectDir, lastLoaded?.tasks?.sources.orEmpty())
         return state
     }
 

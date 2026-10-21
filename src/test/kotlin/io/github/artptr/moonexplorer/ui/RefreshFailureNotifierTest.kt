@@ -1,7 +1,6 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.notification.Notification
-import com.intellij.notification.Notifications
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
@@ -11,21 +10,14 @@ import io.github.artptr.moonexplorer.testData.TestData
 class RefreshFailureNotifierTest : BasePlatformTestCase() {
 
     private lateinit var notifier: RefreshFailureNotifier
-    private val shown = mutableListOf<Notification>()
+    private lateinit var shown: List<Notification>
 
-    private val loaded get() = TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot)
+    private val loaded get() = TestData.recordedState()
 
     override fun setUp() {
         super.setUp()
         notifier = project.service<RefreshFailureNotifier>()
-        project.messageBus.connect(testRootDisposable).subscribe(
-            Notifications.TOPIC,
-            object : Notifications {
-                override fun notify(notification: Notification) {
-                    if (notification.groupId == RefreshFailureNotifier.GROUP_ID) shown += notification
-                }
-            },
-        )
+        shown = collectRefreshNotifications(project, testRootDisposable)
     }
 
     override fun tearDown() {

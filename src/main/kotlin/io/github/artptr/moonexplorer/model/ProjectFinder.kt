@@ -12,9 +12,15 @@ fun findProjectForFile(root: Path, file: Path, sources: List<ProjectSource>): Pr
     val normalizedFile = file.toAbsolutePath().normalize()
     val normalizedRoot = root.toAbsolutePath().normalize()
     return sources
-        // A source that is not a valid path on this computer does not contain the file.
-        .mapNotNull { source -> runCatching { source to normalizedRoot.resolve(source.source).normalize() }.getOrNull() }
+        .mapNotNull { source -> resolveSourceDir(normalizedRoot, source)?.let { source to it } }
         .filter { (_, dir) -> normalizedFile.startsWith(dir) }
         .maxByOrNull { (_, dir) -> dir.nameCount }
         ?.first
 }
+
+/**
+ * Gives the directory of [source] in the workspace [root]. [root] must be absolute and normalized.
+ * Gives null if the source is not a valid path on this computer. Such a source contains no files.
+ */
+internal fun resolveSourceDir(root: Path, source: ProjectSource): Path? =
+    runCatching { root.resolve(source.source).normalize() }.getOrNull()

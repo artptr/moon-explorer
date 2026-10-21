@@ -11,7 +11,6 @@ import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
@@ -80,7 +79,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     /** Opens the settings page. The panel shows this link only if the plugin cannot find moon. */
     internal val settingsLink = ActionLink(MoonExplorerBundle.message("tasks.link.openSettings")) {
-        ShowSettingsUtil.getInstance().showSettingsDialog(project, MoonSettingsConfigurable::class.java)
+        MoonSettingsConfigurable.show(project)
     }.apply {
         border = JBUI.Borders.empty(0, 8, 8, 8)
         isVisible = false

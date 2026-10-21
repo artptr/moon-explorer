@@ -5,13 +5,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
-import com.intellij.openapi.vfs.newvfs.events.VFileCopyEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
 
 /**
  * Starts a refresh of the tasks after a change of a moon configuration file. [MoonConfigFiles] decides which changes apply.
@@ -20,10 +16,13 @@ import java.nio.file.Path
  */
 class MoonConfigFileListener(private val project: Project) : BulkFileListener {
 
+    private val service by lazy { project.service<MoonTasksService>() }
+
     override fun after(events: List<VFileEvent>) {
         if (project.isDisposed) return
-        val service = project.service<MoonTasksService>()
         val watch = service.configWatch
+        // Before the first load, the plugin does not know the directories. No change applies.
+        if (watch.root == null && watch.projectDir == null) return
         if (events.any { isConfigChange(it, watch) }) service.scheduleRefresh()
     }
 
@@ -31,21 +30,12 @@ class MoonConfigFileListener(private val project: Project) : BulkFileListener {
         // moon reads only the local disk. Files in archives or in other file systems do not apply.
         if (event.fileSystem !is LocalFileSystem) return false
         return when (event) {
-            is VFileMoveEvent -> changed(event.oldPath, event.file.isDirectory, watch) || changed(event.newPath, false, watch)
+            is VFileMoveEvent -> changed(event.oldPath, watch) || changed(event.newPath, watch)
             is VFilePropertyChangeEvent -> event.propertyName == VirtualFile.PROP_NAME &&
-                (changed(event.oldPath, event.file.isDirectory, watch) || changed(event.newPath, false, watch))
-            is VFileDeleteEvent -> changed(event.path, event.file.isDirectory, watch)
-            is VFileCopyEvent -> changed(event.path, false, watch)
-            else -> changed(event.path, false, watch)
+                (changed(event.oldPath, watch) || changed(event.newPath, watch))
+            else -> changed(event.path, watch)
         }
     }
 
-    private fun changed(path: String, removedDirectory: Boolean, watch: ConfigWatch): Boolean {
-        val file = try {
-            Path.of(path)
-        } catch (_: InvalidPathException) {
-            return false
-        }
-        return MoonConfigFiles.isConfigChange(file, removedDirectory, watch)
-    }
+    private fun changed(path: String, watch: ConfigWatch): Boolean = MoonConfigFiles.isConfigChange(path, watch)
 }

@@ -7,7 +7,6 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import io.github.artptr.moonexplorer.MoonExplorerBundle
@@ -30,13 +29,8 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
     internal var notification: Notification? = null
         private set
 
-    private var started = false
-
-    /** Starts to monitor the state of [MoonTasksService]. A second call has no effect. */
-    @Synchronized
-    fun start() {
-        if (started) return
-        started = true
+    init {
+        // The IDE makes a service one time. Thus only one coroutine monitors the state.
         val service = project.service<MoonTasksService>()
         scope.launch(Dispatchers.EDT) {
             service.state.collect(::onState)
@@ -71,7 +65,7 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
         if (hasSettingsLink(failure)) {
             created.addAction(
                 NotificationAction.createSimple(MoonExplorerBundle.message("notification.action.openSettings")) {
-                    ShowSettingsUtil.getInstance().showSettingsDialog(project, MoonSettingsConfigurable::class.java)
+                    MoonSettingsConfigurable.show(project)
                 },
             )
         }
@@ -90,9 +84,12 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
     }
 }
 
-/** Starts [RefreshFailureNotifier] when the user opens the IDE project. */
+/**
+ * Starts [RefreshFailureNotifier] when the user opens the IDE project. The service starts to monitor the state when the IDE makes it.
+ * The model layer does not use the UI layer. Thus `MoonTasksStartupActivity` does not start the notifier.
+ */
 class RefreshFailureNotifierStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
-        project.service<RefreshFailureNotifier>().start()
+        project.service<RefreshFailureNotifier>()
     }
 }

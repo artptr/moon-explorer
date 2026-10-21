@@ -108,7 +108,7 @@ The plugin refreshes the tree when a moon configuration file changes. These file
 - A directory that contains a project, if you delete, move, or rename it.
 
 Files in `.moon/cache/` do not apply. moon writes these files when it runs a task.
-A new `.moon/workspace.*` file in the IDE project directory or in one of its parent directories also applies. If the plugin knows the workspace root, the file must be below the root. In this condition, the file can make a nearer root. If a load finds no workspace, only this file applies.
+A `.moon/workspace.*` file in the IDE project directory or in one of its parent directories also applies. A new file of this type can make a workspace or a nearer workspace root. If a load finds no workspace, only this file applies.
 
 `model.MoonConfigFileListener` gets the changes from the VFS. The VFS also sends the changes from outside the IDE, for example from `git checkout`.
 
