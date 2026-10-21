@@ -95,12 +95,15 @@ jobs:
         run: scripts/record-test-data.sh
 
       # The file moon-version.txt changes for each new moon version. Thus the step does not include this file.
+      # The step keeps the output of 'git status' in a variable. If 'git status' fails, 'set -e' stops the step.
+      # A command substitution in a condition does not stop the step.
       - name: Find changes
         id: changes
         if: steps.record.outcome == 'success'
         run: |
           set -euo pipefail
-          if [[ -n "$(git status --porcelain -- "$RECORDED" ":(exclude)$RECORDED/moon-version.txt")" ]]; then
+          STATUS="$(git status --porcelain -- "$RECORDED" ":(exclude)$RECORDED/moon-version.txt")"
+          if [[ -n "$STATUS" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -165,13 +168,15 @@ jobs:
           echo "found=true" >> "$GITHUB_OUTPUT"
 
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "The run is not on main. The job does not change an issue."
+            echo "The run is not on main. The job does not change an issue." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
           # A GitHub issue text can have a maximum of 65536 characters. Thus the step writes only the first lines of the diff.
           # The step cuts the diff at the end of a line. Thus the step does not cut a UTF-8 character.
           # Each diff line starts with '+', '-', ' ', '@', or a letter. Thus a diff line cannot close the code block.
+          # 'git diff' does not show a new file that Git does not track. Thus the step adds new files with '--intent-to-add'.
+          git add --intent-to-add -- "$RECORDED"
           git diff -- "$RECORDED" > "$RUNNER_TEMP/recorded.diff"
           awk '{ size += length($0) + 1; if (size > 50000) exit; print }' "$RUNNER_TEMP/recorded.diff" > "$RUNNER_TEMP/short.diff"
           BODY="$RUNNER_TEMP/issue.md"
@@ -207,21 +212,32 @@ jobs:
 
           NUMBER="$(gh issue list --state open --label "$ISSUE_LABEL" --limit 1 --json number --jq '.[0].number // empty')"
           if [[ -z "$NUMBER" ]]; then
-            gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/cli,$ISSUE_LABEL" --body-file "$BODY"
-            exit 0
+            # The 'Labels' workflow creates the label from .github/labels.yml. This workflow can run before the 'Labels' workflow.
+            # Thus the step also creates the label. Use the same color and description as in .github/labels.yml.
+            gh label create "$ISSUE_LABEL" --color EDEDED --description "Issue from the Moon output workflow" --force
+            ISSUE_URL="$(gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/cli,$ISSUE_LABEL" --body-file "$BODY")"
+          else
+            PREVIOUS="$(gh issue view "$NUMBER" --json body --jq .body | sed -n 's/^<!-- moon-version: \(.*\) -->\r\{0,1\}$/\1/p')"
+            gh issue edit "$NUMBER" --body-file "$BODY"
+            if [[ "$PREVIOUS" != "$NEW_VERSION" ]]; then
+              gh issue comment "$NUMBER" --body "The workflow found a change with $NEW_VERSION. The issue text shows the new result. Workflow run: $RUN_URL"
+            fi
+            ISSUE_URL="$(gh issue view "$NUMBER" --json url --jq .url)"
           fi
-
-          PREVIOUS="$(gh issue view "$NUMBER" --json body --jq .body | sed -n 's/^<!-- moon-version: \(.*\) -->\r\{0,1\}$/\1/p')"
-          gh issue edit "$NUMBER" --body-file "$BODY"
-          if [[ "$PREVIOUS" != "$NEW_VERSION" ]]; then
-            gh issue comment "$NUMBER" --body "The workflow found a change with $NEW_VERSION. The issue text shows the new result. Workflow run: $RUN_URL"
-          fi
+          echo "issue=$ISSUE_URL" >> "$GITHUB_OUTPUT"
+          echo "Issue: $ISSUE_URL" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # The run fails if it finds a change. Thus the list of workflow runs also shows the change.
+      # A run that is not on 'main' also fails, but it does not change an issue. Then the message refers only to the job summary.
       - name: Fail on change
         if: ${{ !cancelled() && steps.report.outputs.found == 'true' }}
         env:
           NEW_VERSION: ${{ steps.install.outputs.version }}
+          ISSUE_URL: ${{ steps.report.outputs.issue }}
         run: |
-          echo "::error::The moon output changed, the record script failed, or the tests failed with $NEW_VERSION. Refer to the job summary and to the issue with the label '$ISSUE_LABEL'."
+          if [[ -n "$ISSUE_URL" ]]; then
+            echo "::error::The moon output changed, the record script failed, or the tests failed with $NEW_VERSION. Refer to $ISSUE_URL."
+          else
+            echo "::error::The moon output changed, the record script failed, or the tests failed with $NEW_VERSION. The run is not on main, thus it did not change an issue. Refer to the job summary."
+          fi
           exit 1
