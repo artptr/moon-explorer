@@ -20,3 +20,4 @@
 - { name: "help wanted",        color: "008672", description: "Extra attention is necessary" }
 - { name: "dependencies",       color: "0366D6", description: "Dependency update" }
 - { name: "release changelog",  color: "EDEDED", description: "Pull requests with release changelog update" }
+- { name: "moon-output",        color: "EDEDED", description: "Issue from the Moon output workflow" }

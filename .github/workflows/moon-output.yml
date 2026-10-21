@@ -4,7 +4,7 @@
 # - Run the tests with the recorded output.
 # - If the recorded output changes, the record script fails, or the tests fail, create or update one issue.
 #
-# The workflow does not commit or push changes.
+# The workflow does not commit or push changes. Only a run on 'main' changes an issue.
 #
 # GitHub Actions reference: https://docs.github.com/actions
 #
@@ -36,21 +36,27 @@ jobs:
   check:
     name: Record and test
     runs-on: ubuntu-latest
+    # The limit stops a run that does not end, for example because an npm or Gradle command does not end.
+    timeout-minutes: 30
     permissions:
       contents: read
       issues: write
     env:
       # A scheduled run has no inputs. Then the job installs the newest moon 2.x.
       MOON_VERSION: ${{ inputs.moon-version || '2' }}
-      # The job finds the open issue from a previous run by this title.
-      ISSUE_TITLE: A new moon version changes the recorded moon output
+      # The job finds the open issue from a previous run by this label. Refer to .github/labels.yml.
+      ISSUE_LABEL: moon-output
+      ISSUE_TITLE: The moon output check found a change or a failure
       WORKSPACE: src/test/testData/workspace
       RECORDED: src/test/testData/moon
     steps:
 
       # Check out the current repository
+      # The job does not push. Thus the job does not keep the GITHUB_TOKEN in .git/config, where npm packages and tests can read it.
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Set up Node.js and npm for the moon CLI
       - name: Setup Node.js
@@ -101,6 +107,7 @@ jobs:
           fi
 
       # Run the tests with the new recorded output
+      # The test data is an input of the 'test' task. Thus Gradle does not use a cached result for changed test data. Refer to build.gradle.kts.
       - name: Run Tests
         id: tests
         if: steps.record.outcome == 'success'
@@ -108,8 +115,11 @@ jobs:
         run: ./gradlew test
 
       # Keep the recorded output and the test reports. A maintainer can compare them with the test data.
+      # A cancelled run does not upload, report, or fail on a change, because its results are not complete.
+      # If the artifact service has a failure, the job continues.
       - name: Upload moon output
-        if: ${{ always() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: moon-output
@@ -120,11 +130,13 @@ jobs:
       # Create an issue, or update the open issue from a previous run.
       # The issue text has a marker with the moon version. The step adds a comment only if the moon version changes.
       # Thus each new moon version causes one notification, not one notification each week.
+      # A manual run on a different branch writes only the job summary. Thus the issue shows only the result for 'main'.
       - name: Report
         id: report
-        if: ${{ always() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           NEW_VERSION: ${{ steps.install.outputs.version }}
           RECORD_RESULT: ${{ steps.record.outcome }}
           CHANGED: ${{ steps.changes.outputs.changed }}
@@ -152,13 +164,20 @@ jobs:
           fi
           echo "found=true" >> "$GITHUB_OUTPUT"
 
-          # A GitHub issue text can have a maximum of 65536 characters. Thus the step writes only the start of the diff.
-          # The step writes the diff to a file first. If 'head' closes a pipe from 'git diff', the step fails because of 'pipefail'.
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "The run is not on main. The job does not change an issue."
+            exit 0
+          fi
+
+          # A GitHub issue text can have a maximum of 65536 characters. Thus the step writes only the first lines of the diff.
+          # The step cuts the diff at the end of a line. Thus the step does not cut a UTF-8 character.
+          # Each diff line starts with '+', '-', ' ', '@', or a letter. Thus a diff line cannot close the code block.
           git diff -- "$RECORDED" > "$RUNNER_TEMP/recorded.diff"
+          awk '{ size += length($0) + 1; if (size > 50000) exit; print }' "$RUNNER_TEMP/recorded.diff" > "$RUNNER_TEMP/short.diff"
           BODY="$RUNNER_TEMP/issue.md"
           {
             echo "<!-- moon-version: $NEW_VERSION -->"
-            echo "The \`Moon output\` workflow recorded the moon output with **$NEW_VERSION**. The test data has the output of **$OLD_VERSION**."
+            echo "The \`Moon output\` workflow installed **$NEW_VERSION**. The test data has the output of **$OLD_VERSION**."
             echo
             cat "$RUNNER_TEMP/result.md"
             echo
@@ -166,6 +185,8 @@ jobs:
             echo "The artifact \`moon-output\` of the run contains the recorded output and the test reports."
             echo
             echo "To update the test data, refer to \`docs/development.md\`, section 4.3."
+            echo
+            echo "The workflow replaces this text at each run. Write notes in comments."
             echo
             echo "### Changed files"
             echo
@@ -175,16 +196,18 @@ jobs:
             echo
             echo "### Diff"
             echo
+            if ! cmp -s "$RUNNER_TEMP/recorded.diff" "$RUNNER_TEMP/short.diff"; then
+              echo "The diff is too long for the issue. The text shows only the first lines. The artifact contains all files."
+              echo
+            fi
             echo '````diff'
-            head -c 50000 "$RUNNER_TEMP/recorded.diff"
-            echo
+            cat "$RUNNER_TEMP/short.diff"
             echo '````'
           } > "$BODY"
 
-          NUMBER="$(gh issue list --state open --label area/cli --limit 100 --json number,title \
-            --jq 'map(select(.title == env.ISSUE_TITLE)) | first | .number // empty')"
+          NUMBER="$(gh issue list --state open --label "$ISSUE_LABEL" --limit 1 --json number --jq '.[0].number // empty')"
           if [[ -z "$NUMBER" ]]; then
-            gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/cli" --body-file "$BODY"
+            gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/cli,$ISSUE_LABEL" --body-file "$BODY"
             exit 0
           fi
 
@@ -196,9 +219,9 @@ jobs:
 
       # The run fails if it finds a change. Thus the list of workflow runs also shows the change.
       - name: Fail on change
-        if: ${{ always() && steps.report.outputs.found == 'true' }}
+        if: ${{ !cancelled() && steps.report.outputs.found == 'true' }}
         env:
           NEW_VERSION: ${{ steps.install.outputs.version }}
         run: |
-          echo "::error::The moon output or the tests changed with $NEW_VERSION. Refer to the issue \"$ISSUE_TITLE\"."
+          echo "::error::The moon output changed, the record script failed, or the tests failed with $NEW_VERSION. Refer to the job summary and to the issue with the label '$ISSUE_LABEL'."
           exit 1
