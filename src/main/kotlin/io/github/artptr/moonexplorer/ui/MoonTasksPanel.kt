@@ -128,6 +128,12 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             .show(RelativePoint.getSouthWestOf(toolbar ?: this), Balloon.Position.below)
     }
 
+    /**
+     * Updates the actions of the toolbar. The default value starts an update of the toolbar. Tests change this value to a fake.
+     * Change it only on the EDT.
+     */
+    internal var updateToolbar: () -> Unit = { actionToolbar.updateActionsAsync() }
+
     /** The loaded state that the tree shows now. The value is null if the panel shows a message. */
     private var shown: TasksState.Loaded? = null
 
@@ -206,7 +212,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      */
     internal fun render(state: TasksState) {
         // The action ShowRefreshFailureAction is visible only in the Stale state. This call updates the toolbar for all states, also for the Loading state.
-        actionToolbar.updateActionsAsync()
+        updateToolbar()
         if (state is TasksState.Loading) {
             loadingPanel.startLoading()
             return

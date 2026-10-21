@@ -300,4 +300,23 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.render(TasksState.InvalidOutput("bad JSON"))
         assertEquals(failureText(TasksState.InvalidOutput("bad JSON")), panel.messageArea.text)
     }
+
+    fun testEachStateUpdatesTheToolbar() {
+        // The action ShowRefreshFailureAction must hide when a new refresh starts after a failure.
+        val updated = mutableListOf<TasksState>()
+        var current: TasksState = TasksState.Loading
+        panel.updateToolbar = { updated += current }
+        val states = listOf(
+            TestData.recordedState(),
+            TasksState.Stale(TestData.recordedState(), TasksState.MoonError("bad config")),
+            TasksState.Loading,
+            TasksState.NoWorkspace,
+            TasksState.MoonTimeout,
+        )
+        states.forEach {
+            current = it
+            panel.render(it)
+        }
+        assertEquals(states, updated)
+    }
 }
