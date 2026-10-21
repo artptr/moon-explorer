@@ -1,0 +1,204 @@
+# Find changes in the moon output when a new moon version is available. Refer to docs/development.md, section 4.3.
+# - Install the newest moon 2.x in the test workspace.
+# - Record the moon output again.
+# - Run the tests with the recorded output.
+# - If the recorded output changes, the record script fails, or the tests fail, create or update one issue.
+#
+# The workflow does not commit or push changes.
+#
+# GitHub Actions reference: https://docs.github.com/actions
+#
+
+name: Moon output
+on:
+  schedule:
+    # Each Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      moon-version:
+        description: 'The version of @moonrepo/cli to install. The value "2" installs the newest moon 2.x.'
+        required: true
+        default: '2'
+        type: string
+
+# Give the GITHUB_TOKEN read access only. Jobs that write data set their own permissions.
+permissions:
+  contents: read
+
+# The runs occur in sequence. Thus two runs do not create two issues.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+
+  check:
+    name: Record and test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      # A scheduled run has no inputs. Then the job installs the newest moon 2.x.
+      MOON_VERSION: ${{ inputs.moon-version || '2' }}
+      # The job finds the open issue from a previous run by this title.
+      ISSUE_TITLE: A new moon version changes the recorded moon output
+      WORKSPACE: src/test/testData/workspace
+      RECORDED: src/test/testData/moon
+    steps:
+
+      # Check out the current repository
+      - name: Fetch Sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Set up Node.js and npm for the moon CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+
+      # Set up the Java environment for the tests
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # Set up Gradle
+      # The job does not save the Gradle cache. Only the 'Build' workflow puts data into the cache.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      # Change package.json and package-lock.json to the new moon version. Then the record script installs this version.
+      - name: Install moon
+        id: install
+        working-directory: ${{ env.WORKSPACE }}
+        run: |
+          set -euo pipefail
+          npm install --save-exact --no-audit --no-fund "@moonrepo/cli@$MOON_VERSION"
+          VERSION="$(node -p "require('./package.json').devDependencies['@moonrepo/cli']")"
+          echo "version=moon $VERSION" >> "$GITHUB_OUTPUT"
+
+      # If moon changes a command or an option that the script uses, the script fails. The Report step writes this failure in the issue.
+      - name: Record moon output
+        id: record
+        continue-on-error: true
+        run: scripts/record-test-data.sh
+
+      # The file moon-version.txt changes for each new moon version. Thus the step does not include this file.
+      - name: Find changes
+        id: changes
+        if: steps.record.outcome == 'success'
+        run: |
+          set -euo pipefail
+          if [[ -n "$(git status --porcelain -- "$RECORDED" ":(exclude)$RECORDED/moon-version.txt")" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Run the tests with the new recorded output
+      - name: Run Tests
+        id: tests
+        if: steps.record.outcome == 'success'
+        continue-on-error: true
+        run: ./gradlew test
+
+      # Keep the recorded output and the test reports. A maintainer can compare them with the test data.
+      - name: Upload moon output
+        if: ${{ always() && steps.install.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: moon-output
+          path: |
+            ${{ env.RECORDED }}
+            ${{ github.workspace }}/build/reports/tests
+
+      # Create an issue, or update the open issue from a previous run.
+      # The issue text has a marker with the moon version. The step adds a comment only if the moon version changes.
+      # Thus each new moon version causes one notification, not one notification each week.
+      - name: Report
+        id: report
+        if: ${{ always() && steps.install.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_VERSION: ${{ steps.install.outputs.version }}
+          RECORD_RESULT: ${{ steps.record.outcome }}
+          CHANGED: ${{ steps.changes.outputs.changed }}
+          TEST_RESULT: ${{ steps.tests.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          OLD_VERSION="$(git show "HEAD:$RECORDED/moon-version.txt" | tr -d '\n')"
+
+          {
+            echo "| Item | Result |"
+            echo "|------|--------|"
+            echo "| Version of the test data | $OLD_VERSION |"
+            echo "| New version | $NEW_VERSION |"
+            echo "| Record script | $RECORD_RESULT |"
+            echo "| Change in the recorded output | ${CHANGED:-unknown} |"
+            echo "| Tests | ${TEST_RESULT:-skipped} |"
+          } > "$RUNNER_TEMP/result.md"
+          cat "$RUNNER_TEMP/result.md" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$RECORD_RESULT" == "success" && "$CHANGED" == "false" && "$TEST_RESULT" == "success" ]]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No change. The job does not create an issue."
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+
+          # A GitHub issue text can have a maximum of 65536 characters. Thus the step writes only the start of the diff.
+          # The step writes the diff to a file first. If 'head' closes a pipe from 'git diff', the step fails because of 'pipefail'.
+          git diff -- "$RECORDED" > "$RUNNER_TEMP/recorded.diff"
+          BODY="$RUNNER_TEMP/issue.md"
+          {
+            echo "<!-- moon-version: $NEW_VERSION -->"
+            echo "The \`Moon output\` workflow recorded the moon output with **$NEW_VERSION**. The test data has the output of **$OLD_VERSION**."
+            echo
+            cat "$RUNNER_TEMP/result.md"
+            echo
+            echo "Workflow run: $RUN_URL"
+            echo "The artifact \`moon-output\` of the run contains the recorded output and the test reports."
+            echo
+            echo "To update the test data, refer to \`docs/development.md\`, section 4.3."
+            echo
+            echo "### Changed files"
+            echo
+            echo '````'
+            git diff --stat -- "$RECORDED"
+            echo '````'
+            echo
+            echo "### Diff"
+            echo
+            echo '````diff'
+            head -c 50000 "$RUNNER_TEMP/recorded.diff"
+            echo
+            echo '````'
+          } > "$BODY"
+
+          NUMBER="$(gh issue list --state open --label area/cli --limit 100 --json number,title \
+            --jq 'map(select(.title == env.ISSUE_TITLE)) | first | .number // empty')"
+          if [[ -z "$NUMBER" ]]; then
+            gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/cli" --body-file "$BODY"
+            exit 0
+          fi
+
+          PREVIOUS="$(gh issue view "$NUMBER" --json body --jq .body | sed -n 's/^<!-- moon-version: \(.*\) -->\r\{0,1\}$/\1/p')"
+          gh issue edit "$NUMBER" --body-file "$BODY"
+          if [[ "$PREVIOUS" != "$NEW_VERSION" ]]; then
+            gh issue comment "$NUMBER" --body "The workflow found a change with $NEW_VERSION. The issue text shows the new result. Workflow run: $RUN_URL"
+          fi
+
+      # The run fails if it finds a change. Thus the list of workflow runs also shows the change.
+      - name: Fail on change
+        if: ${{ always() && steps.report.outputs.found == 'true' }}
+        env:
+          NEW_VERSION: ${{ steps.install.outputs.version }}
+        run: |
+          echo "::error::The moon output or the tests changed with $NEW_VERSION. Refer to the issue \"$ISSUE_TITLE\"."
+          exit 1
