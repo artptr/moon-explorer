@@ -104,6 +104,13 @@ tasks.printProductsReleases {
 tasks.test {
     // The tests read the test data with this path. Refer to TestData.kt.
     systemProperty("moonExplorer.testData", layout.projectDirectory.dir("src/test/testData").asFile.absolutePath)
+    // The test data is an input of the task. Thus Gradle runs the tests again when the test data changes.
+    // The files that Git ignores in the test workspace are not inputs. Refer to src/test/testData/workspace/.gitignore.
+    inputs.files(
+        fileTree("src/test/testData") {
+            exclude("workspace/node_modules/**", "workspace/.moon/cache/**", "workspace/.moon/docker/**", "workspace/.idea/**", "**/dist/**")
+        },
+    ).withPropertyName("moonExplorerTestData").withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 changelog {
