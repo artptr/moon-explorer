@@ -7,7 +7,7 @@ import com.google.gson.JsonParser
 
 /** Tells why the plugin cannot read the output of moon. */
 sealed interface OutputProblem {
-    /** The output is not valid JSON. [detail] is the error text from the JSON parser, or null if the parser gave no text. [detail] is not blank. */
+    /** The output is not valid JSON. [detail] is the error text from the JSON parser, or null if the parser gave no text. [detail] can be blank. */
     data class NotJson(val detail: String?) : OutputProblem
 
     /** The output does not contain the array `projects`. */
@@ -21,7 +21,7 @@ class MoonOutputException(val problem: OutputProblem, cause: Throwable? = null) 
 internal fun parseMoonJson(json: String): JsonElement = try {
     JsonParser.parseString(json)
 } catch (e: JsonParseException) {
-    throw MoonOutputException(OutputProblem.NotJson(e.message?.takeIf { it.isNotBlank() }), e)
+    throw MoonOutputException(OutputProblem.NotJson(e.message), e)
 }
 
 internal fun JsonElement.objectOrNull(): JsonObject? = if (isJsonObject) asJsonObject else null

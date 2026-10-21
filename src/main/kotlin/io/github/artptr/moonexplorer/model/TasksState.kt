@@ -16,7 +16,7 @@ sealed interface MoonFailure {
     /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
     data object Cancelled : MoonFailure
 
-    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. */
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. [detail] can be blank. */
     data class StartFailed(val detail: String?) : MoonFailure
 
     /** The `moon` command did not complete in the time limit. The plugin stopped the moon process. */

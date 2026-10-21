@@ -377,7 +377,7 @@ private fun invalidOutputText(problem: OutputProblem): String = when (problem) {
 
 /** Gives the message [key] with [detail]. If [detail] is null or blank, gives the message [noDetailKey]. */
 private fun detailText(detail: String?, key: String, noDetailKey: String): String =
-    detail?.takeIf { it.isNotBlank() }?.let { MoonExplorerBundle.message(key, it) } ?: MoonExplorerBundle.message(noDetailKey)
+    StringUtil.nullize(detail, true)?.let { MoonExplorerBundle.message(key, it) } ?: MoonExplorerBundle.message(noDetailKey)
 
 /** Gives true if the user can correct [failure] in the settings. Then the plugin shows a link to the settings. */
 internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =

@@ -57,7 +57,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
     }
 
-    fun testMoonNotFoundShowsTheExaminedLocationsAndTheSettingsLink() {
+    fun testNotFoundShowsTheExaminedLocationsAndTheSettingsLink() {
         val examined = listOf(Path.of("/work/node_modules/.bin/moon"), Path.of("/home/.proto/shims/moon"))
         panel.render(TasksState.MoonFailed(MoonFailure.NotFound(examined)))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonNotFound", examined.joinToString("\n") { "  $it" }))
@@ -74,13 +74,13 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertFalse("The link must not stay after the timeout message", panel.settingsLink.isVisible)
     }
 
-    fun testMoonErrorShowsTheErrorText() {
+    fun testErrorShowsTheErrorText() {
         panel.render(TasksState.MoonFailed(MoonFailure.Error("Error: moon.yml is not valid")))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonError", "Error: moon.yml is not valid"))
         assertTrue(panel.messageArea.text.contains("Error: moon.yml is not valid"))
     }
 
-    fun testMoonTimeoutShowsMessage() {
+    fun testTimedOutShowsMessage() {
         panel.render(TasksState.Loading)
         panel.render(TasksState.MoonFailed(MoonFailure.TimedOut))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
@@ -88,26 +88,26 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue(panel.settingsLink.isVisible)
     }
 
-    fun testMoonExitCodeShowsMessage() {
+    fun testExitCodeShowsMessage() {
         panel.render(TasksState.MoonFailed(MoonFailure.ExitCode(3)))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonExitCode", "3"))
         assertFalse(panel.settingsLink.isVisible)
     }
 
-    fun testMoonCancelledShowsMessage() {
+    fun testCancelledShowsMessage() {
         panel.render(TasksState.MoonFailed(MoonFailure.Cancelled))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonCancelled"))
         assertFalse(panel.settingsLink.isVisible)
     }
 
-    fun testMoonStartFailedShowsTheDetailAndTheSettingsLink() {
+    fun testStartFailedShowsTheDetailAndTheSettingsLink() {
         panel.render(TasksState.MoonFailed(MoonFailure.StartFailed("Cannot run program")))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailed", "Cannot run program"))
         // Usually, the plugin cannot start moon because the path to moon in the settings is not correct.
         assertTrue(panel.settingsLink.isVisible)
     }
 
-    fun testMoonStartFailedWithoutDetailShowsMessage() {
+    fun testStartFailedWithoutDetailShowsMessage() {
         for (detail in listOf(null, " ")) {
             panel.render(TasksState.MoonFailed(MoonFailure.StartFailed(detail)))
             assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailedNoDetail"))

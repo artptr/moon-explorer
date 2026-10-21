@@ -30,7 +30,7 @@ class RefreshFailureNotifierTest : BasePlatformTestCase() {
         }
     }
 
-    fun testStaleShowsANotificationWithTheMoonError() {
+    fun testStaleShowsANotificationWithTheErrorText() {
         notifier.onState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("Error: moon.yml is not valid"))))
         val notification = shown.single()
         assertTrue(notification.content.contains("Error: moon.yml is not valid"))

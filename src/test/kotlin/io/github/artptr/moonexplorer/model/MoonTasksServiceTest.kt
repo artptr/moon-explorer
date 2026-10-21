@@ -98,7 +98,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         }
     }
 
-    fun testRefreshShowsTheMoonError() {
+    fun testRefreshShowsTheErrorText() {
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
         service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
