@@ -78,7 +78,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         border = JBUI.Borders.empty(8)
     }
 
-    /** Opens the settings page. The panel shows this link only if the plugin cannot find moon. */
+    /** Opens the settings page. The panel shows this link only if the user can correct the failure in the settings. Refer to [hasSettingsLink]. */
     internal val settingsLink = ActionLink(MoonExplorerBundle.message("tasks.link.openSettings")) {
         MoonSettingsConfigurable.show(project)
     }.apply {
@@ -359,7 +359,9 @@ internal fun failureText(failure: TasksState.Failure): String = when (failure) {
     is TasksState.MoonError -> MoonExplorerBundle.message("tasks.message.moonError", failure.text)
     is TasksState.MoonExitCode -> MoonExplorerBundle.message("tasks.message.moonExitCode", failure.code.toString())
     TasksState.MoonCancelled -> MoonExplorerBundle.message("tasks.message.moonCancelled")
-    is TasksState.MoonStartFailed -> MoonExplorerBundle.message("tasks.message.moonStartFailed", failure.detail)
+    is TasksState.MoonStartFailed -> failure.detail?.takeIf { it.isNotBlank() }
+        ?.let { MoonExplorerBundle.message("tasks.message.moonStartFailed", it) }
+        ?: MoonExplorerBundle.message("tasks.message.moonStartFailedNoDetail")
     TasksState.MoonTimeout -> MoonExplorerBundle.message("tasks.message.moonTimeout")
     is TasksState.InvalidOutput -> invalidOutputText(failure.problem)
     TasksState.UnexpectedError -> MoonExplorerBundle.message("tasks.message.unexpectedError")

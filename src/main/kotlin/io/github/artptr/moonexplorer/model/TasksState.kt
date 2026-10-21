@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 /** The state of the task data for the tool window. */
 sealed interface TasksState {
-    /** A load that failed. The tool window shows the error text. */
+    /** A load that failed. The tool window shows a message for the failure. */
     sealed interface Failure : TasksState
 
     /** The plugin runs `moon query projects`. */
@@ -34,8 +34,8 @@ sealed interface TasksState {
     /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
     data object MoonCancelled : Failure
 
-    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform. */
-    data class MoonStartFailed(val detail: String) : Failure
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. */
+    data class MoonStartFailed(val detail: String?) : Failure
 
     /** The `moon` command did not complete in the time limit. The plugin stopped the moon process. */
     data object MoonTimeout : Failure

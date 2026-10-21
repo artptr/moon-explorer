@@ -74,6 +74,19 @@ class RefreshFailureNotifierTest : BasePlatformTestCase() {
         assertTrue(MoonExplorerBundle.message("notification.action.openSettings") in actions)
     }
 
+    fun testMoonStartFailedHasTheSettingsAction() {
+        notifier.onState(TasksState.Stale(loaded, TasksState.MoonStartFailed("Cannot run program")))
+        val notification = shown.single()
+        assertTrue(notification.content.contains("Cannot run program"))
+        assertTrue(MoonExplorerBundle.message("notification.action.openSettings") in notification.actions.map { it.templateText })
+    }
+
+    fun testMoonTimeoutHasTheSettingsAction() {
+        notifier.onState(TasksState.Stale(loaded, TasksState.MoonTimeout))
+        val actions = shown.single().actions.map { it.templateText }
+        assertTrue(MoonExplorerBundle.message("notification.action.openSettings") in actions)
+    }
+
     fun testFailureWithoutAnEarlierLoadShowsNoNotification() {
         notifier.onState(TasksState.MoonError("bad"))
         assertEmpty(shown)
