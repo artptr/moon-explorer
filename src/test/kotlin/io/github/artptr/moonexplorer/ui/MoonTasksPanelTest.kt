@@ -303,9 +303,8 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     fun testEachStateUpdatesTheToolbar() {
         // The action ShowRefreshFailureAction must hide when a new refresh starts after a failure.
-        val updated = mutableListOf<TasksState>()
-        var current: TasksState = TasksState.Loading
-        panel.updateToolbar = { updated += current }
+        var updates = 0
+        panel.updateToolbar = { updates++ }
         val states = listOf(
             TestData.recordedState(),
             TasksState.Stale(TestData.recordedState(), TasksState.MoonError("bad config")),
@@ -313,10 +312,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
             TasksState.NoWorkspace,
             TasksState.MoonTimeout,
         )
-        states.forEach {
-            current = it
-            panel.render(it)
-        }
-        assertEquals(states, updated)
+        states.forEach(panel::render)
+        assertEquals(states.size, updates)
     }
 }

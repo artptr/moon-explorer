@@ -82,11 +82,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
             delay(wait)
             synchronized(this@MoonTasksService) {
                 // A new call can cancel this job after the delay. Then the new job refreshes.
-                if (isActive) {
-                    // Set the value to null first. Thus refresh does not cancel this job.
-                    pending = null
-                    refresh()
-                }
+                if (isActive) startLoad()
             }
         }
     }
@@ -99,6 +95,11 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     fun refresh() {
         pending?.cancel()
         pending = null
+        startLoad()
+    }
+
+    /** Starts a new load. If a load runs now, the function cancels it. Call this function only with the lock of the service. */
+    private fun startLoad() {
         val previous = job
         // Cancel the previous load now. Thus two moon processes do not run at the same time for long.
         previous?.cancel()
