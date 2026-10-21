@@ -92,9 +92,15 @@ The file `workspace/package.json` sets the moon version. Node.js and npm are nec
 2. Run `./gradlew test`.
 3. Commit the changes in `src/test/testData/`.
 
-The script installs the moon version that `package.json` gives. Then it writes the files in `moon/`.
+The script installs the moon version that `package.json` gives. Then it removes `workspace/.moon/cache/` and writes the files in `moon/`.
+A different moon version cannot always read the cache of the previous version.
+If a moon command fails, the script stops, and the files in `moon/` do not change.
+
 The output of `moon query projects` contains the absolute path of each project. The script replaces the path of the workspace with `/workspace`.
 The script stops with an error if a recorded file contains the path of the repository on your computer.
+
+The test data is an input of the Gradle task `test`. Thus Gradle runs the tests again when a file in `src/test/testData/` changes.
+Gradle does not use the files that Git ignores in the test workspace, for example `node_modules/`.
 
 ### 4.2 Test data for a large workspace
 
@@ -115,14 +121,17 @@ The workflow does these steps:
 3. It runs `./gradlew test`.
 4. If the recorded output changes, the record script fails, or the tests fail, it creates an issue.
 
-If the issue from a previous run is open, the workflow updates the text of this issue.
-The workflow adds a comment only when the moon version changes.
-The issue has the title "A new moon version changes the recorded moon output".
+The workflow finds the issue from a previous run with the label `moon-output`. If this issue is open, the workflow replaces the text of the issue.
+The workflow adds a comment only when the moon version changes. Write your notes in comments, not in the issue text.
 The issue text shows the two moon versions, the result of each step, and the start of the diff.
 The artifact `moon-output` of the workflow run contains the recorded output and the test reports.
 
 The file `moon-version.txt` changes for each new moon version. If only this file changes, the workflow does not create an issue.
 The workflow does not commit or push changes.
+Only a run on `main` creates or changes an issue. A manual run on a different branch shows the result only in the job summary.
+A cancelled run does not create or change an issue.
+
+**NOTE:** The workflow does not add the issue to the project board. The `GITHUB_TOKEN` cannot change a user project. Add the issue to the board manually.
 
 To start the workflow manually, do these steps:
 
