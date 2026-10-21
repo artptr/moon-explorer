@@ -25,7 +25,7 @@ sealed interface CliResult {
     /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
     data object Cancelled : CliResult
 
-    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. */
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. [detail] is not blank. */
     data class StartFailed(val detail: String?) : CliResult
 
     /** The command did not complete in the time limit. The plugin stopped the moon process. */
@@ -72,7 +72,7 @@ object MoonCli {
         val handler = try {
             CapturingProcessHandler(commandLine)
         } catch (e: ExecutionException) {
-            return CliResult.StartFailed(e.message)
+            return CliResult.StartFailed(e.message?.takeIf { it.isNotBlank() })
         }
         return runWithTimeout(handler, timeoutMillis)
     }

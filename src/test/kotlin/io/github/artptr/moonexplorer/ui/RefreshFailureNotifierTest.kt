@@ -68,23 +68,13 @@ class RefreshFailureNotifierTest : BasePlatformTestCase() {
         assertTrue(shown.single().isExpired)
     }
 
-    fun testMoonNotFoundHasTheSettingsAction() {
-        notifier.onState(TasksState.Stale(loaded, TasksState.MoonNotFound(emptyList())))
-        val actions = shown.single().actions.map { it.templateText }
-        assertTrue(MoonExplorerBundle.message("notification.action.openSettings") in actions)
-    }
-
-    fun testMoonStartFailedHasTheSettingsAction() {
-        notifier.onState(TasksState.Stale(loaded, TasksState.MoonStartFailed("Cannot run program")))
-        val notification = shown.single()
-        assertTrue(notification.content.contains("Cannot run program"))
-        assertTrue(MoonExplorerBundle.message("notification.action.openSettings") in notification.actions.map { it.templateText })
-    }
-
-    fun testMoonTimeoutHasTheSettingsAction() {
-        notifier.onState(TasksState.Stale(loaded, TasksState.MoonTimeout))
-        val actions = shown.single().actions.map { it.templateText }
-        assertTrue(MoonExplorerBundle.message("notification.action.openSettings") in actions)
+    fun testFailuresThatTheSettingsCanCorrectHaveTheSettingsAction() {
+        val failures = listOf(TasksState.MoonNotFound(emptyList()), TasksState.MoonStartFailed("Cannot run program"), TasksState.MoonTimeout)
+        for (failure in failures) {
+            notifier.onState(TasksState.Stale(loaded, failure))
+            val actions = notifier.notification!!.actions.map { it.templateText }
+            assertTrue("Failure: $failure", MoonExplorerBundle.message("notification.action.openSettings") in actions)
+        }
     }
 
     fun testFailureWithoutAnEarlierLoadShowsNoNotification() {

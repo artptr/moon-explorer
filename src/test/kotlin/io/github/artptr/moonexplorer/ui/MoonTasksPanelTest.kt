@@ -107,11 +107,9 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testMoonStartFailedWithoutDetailShowsMessage() {
-        for (detail in listOf(null, " ")) {
-            panel.render(TasksState.MoonStartFailed(detail))
-            assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailedNoDetail"))
-            assertTrue(panel.settingsLink.isVisible)
-        }
+        panel.render(TasksState.MoonStartFailed(null))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailedNoDetail"))
+        assertTrue(panel.settingsLink.isVisible)
     }
 
     fun testOutputThatIsNotJsonShowsTheDetail() {

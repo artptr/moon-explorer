@@ -359,20 +359,20 @@ internal fun failureText(failure: TasksState.Failure): String = when (failure) {
     is TasksState.MoonError -> MoonExplorerBundle.message("tasks.message.moonError", failure.text)
     is TasksState.MoonExitCode -> MoonExplorerBundle.message("tasks.message.moonExitCode", failure.code.toString())
     TasksState.MoonCancelled -> MoonExplorerBundle.message("tasks.message.moonCancelled")
-    is TasksState.MoonStartFailed -> failure.detail?.takeIf { it.isNotBlank() }
-        ?.let { MoonExplorerBundle.message("tasks.message.moonStartFailed", it) }
-        ?: MoonExplorerBundle.message("tasks.message.moonStartFailedNoDetail")
+    is TasksState.MoonStartFailed -> detailText(failure.detail, "tasks.message.moonStartFailed", "tasks.message.moonStartFailedNoDetail")
     TasksState.MoonTimeout -> MoonExplorerBundle.message("tasks.message.moonTimeout")
     is TasksState.InvalidOutput -> invalidOutputText(failure.problem)
     TasksState.UnexpectedError -> MoonExplorerBundle.message("tasks.message.unexpectedError")
 }
 
 private fun invalidOutputText(problem: OutputProblem): String = when (problem) {
-    is OutputProblem.NotJson -> problem.detail?.takeIf { it.isNotBlank() }
-        ?.let { MoonExplorerBundle.message("tasks.message.invalidOutput.notJson", it) }
-        ?: MoonExplorerBundle.message("tasks.message.invalidOutput.notJsonNoDetail")
+    is OutputProblem.NotJson -> detailText(problem.detail, "tasks.message.invalidOutput.notJson", "tasks.message.invalidOutput.notJsonNoDetail")
     OutputProblem.NoProjects -> MoonExplorerBundle.message("tasks.message.invalidOutput.noProjects")
 }
+
+/** Gives the message [key] with [detail]. If there is no [detail], gives the message [noDetailKey]. */
+private fun detailText(detail: String?, key: String, noDetailKey: String): String =
+    detail?.let { MoonExplorerBundle.message(key, it) } ?: MoonExplorerBundle.message(noDetailKey)
 
 /** Gives true if the user can correct [failure] in the settings. Then the plugin shows a link to the settings. */
 internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =
