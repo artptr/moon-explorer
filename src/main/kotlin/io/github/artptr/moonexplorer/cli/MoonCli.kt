@@ -16,8 +16,17 @@ sealed interface CliResult {
     /** The plugin cannot find the `moon` executable. [examined] contains the files that the plugin examined before `PATH`. */
     data class NotFound(val examined: List<Path>) : CliResult
 
-    /** The command did not complete correctly. [message] is the error text from moon. */
+    /** The command did not complete correctly. [message] is the error text from moon. It is not blank. */
     data class Failed(val message: String) : CliResult
+
+    /** The command stopped with the exit code [code], which is not 0. moon gave no error text. */
+    data class ExitCode(val code: Int) : CliResult
+
+    /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
+    data object Cancelled : CliResult
+
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform. */
+    data class StartFailed(val detail: String) : CliResult
 
     /** The command did not complete in the time limit. The plugin stopped the moon process. */
     data object TimedOut : CliResult
@@ -63,7 +72,7 @@ object MoonCli {
         val handler = try {
             CapturingProcessHandler(commandLine)
         } catch (e: ExecutionException) {
-            return CliResult.Failed(e.message.orEmpty())
+            return CliResult.StartFailed(e.message.orEmpty())
         }
         return runWithTimeout(handler, timeoutMillis)
     }
@@ -82,12 +91,10 @@ object MoonCli {
         if (output.isTimeout) return CliResult.TimedOut
         if (output.exitCode == 0 && !output.isCancelled) return CliResult.Success(output.stdout)
         val text = output.stderr.ifBlank { output.stdout }.replace(ANSI_ESCAPE, "").trim()
-        return CliResult.Failed(text.ifEmpty { statusText(output) })
-    }
-
-    /** Tells why the process stopped, if moon did not write an error text. */
-    private fun statusText(output: ProcessOutput): String = when {
-        output.isCancelled -> "The moon process was stopped."
-        else -> "The moon process stopped with exit code ${output.exitCode}."
+        return when {
+            text.isNotEmpty() -> CliResult.Failed(text)
+            output.isCancelled -> CliResult.Cancelled
+            else -> CliResult.ExitCode(output.exitCode)
+        }
     }
 }

@@ -28,9 +28,21 @@ sealed interface TasksState {
     /** The `moon` command gave an error. [text] is the error text from moon. */
     data class MoonError(val text: String) : Failure
 
+    /** The `moon` command stopped with the exit code [code] and gave no error text. */
+    data class MoonExitCode(val code: Int) : Failure
+
+    /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
+    data object MoonCancelled : Failure
+
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform. */
+    data class MoonStartFailed(val detail: String) : Failure
+
     /** The `moon` command did not complete in the time limit. The plugin stopped the moon process. */
     data object MoonTimeout : Failure
 
-    /** The plugin cannot read the output of moon. [text] tells the cause. */
-    data class InvalidOutput(val text: String) : Failure
+    /** The plugin cannot read the output of moon. [problem] tells the cause. */
+    data class InvalidOutput(val problem: OutputProblem) : Failure
+
+    /** An unexpected error occurred during the load. The IDE log contains the exception. */
+    data object UnexpectedError : Failure
 }

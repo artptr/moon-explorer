@@ -33,6 +33,7 @@ import com.intellij.util.ui.tree.TreeUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.OutputProblem
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
@@ -356,13 +357,24 @@ internal fun failureText(failure: TasksState.Failure): String = when (failure) {
         MoonExplorerBundle.message("tasks.message.moonNotFound", locations)
     }
     is TasksState.MoonError -> MoonExplorerBundle.message("tasks.message.moonError", failure.text)
+    is TasksState.MoonExitCode -> MoonExplorerBundle.message("tasks.message.moonExitCode", failure.code.toString())
+    TasksState.MoonCancelled -> MoonExplorerBundle.message("tasks.message.moonCancelled")
+    is TasksState.MoonStartFailed -> MoonExplorerBundle.message("tasks.message.moonStartFailed", failure.detail)
     TasksState.MoonTimeout -> MoonExplorerBundle.message("tasks.message.moonTimeout")
-    is TasksState.InvalidOutput -> MoonExplorerBundle.message("tasks.message.invalidOutput", failure.text)
+    is TasksState.InvalidOutput -> invalidOutputText(failure.problem)
+    TasksState.UnexpectedError -> MoonExplorerBundle.message("tasks.message.unexpectedError")
+}
+
+private fun invalidOutputText(problem: OutputProblem): String = when (problem) {
+    is OutputProblem.NotJson -> problem.detail?.takeIf { it.isNotBlank() }
+        ?.let { MoonExplorerBundle.message("tasks.message.invalidOutput.notJson", it) }
+        ?: MoonExplorerBundle.message("tasks.message.invalidOutput.notJsonNoDetail")
+    OutputProblem.NoProjects -> MoonExplorerBundle.message("tasks.message.invalidOutput.noProjects")
 }
 
 /** Gives true if the user can correct [failure] in the settings. Then the plugin shows a link to the settings. */
 internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =
-    failure is TasksState.MoonNotFound || failure == TasksState.MoonTimeout
+    failure is TasksState.MoonNotFound || failure is TasksState.MoonStartFailed || failure == TasksState.MoonTimeout
 
 /**
  * Gives the HTML text of a balloon or a notification for the plain text [text]. Balloons and notifications read their text as HTML.

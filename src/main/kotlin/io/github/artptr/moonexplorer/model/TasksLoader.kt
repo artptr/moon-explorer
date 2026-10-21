@@ -28,19 +28,22 @@ object TasksLoader {
             if (result !is CliResult.Success) return errorState(result)
             TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
         } catch (e: MoonOutputException) {
-            TasksState.InvalidOutput(e.message.orEmpty())
+            TasksState.InvalidOutput(e.problem)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // An unexpected error must not keep the tool window in the Loading state.
             thisLogger().warn("Cannot get the moon tasks", e)
-            TasksState.InvalidOutput(e.message ?: e.javaClass.name)
+            TasksState.UnexpectedError
         }
     }
 
     private fun errorState(result: CliResult): TasksState.Failure = when (result) {
         is CliResult.NotFound -> TasksState.MoonNotFound(result.examined)
         is CliResult.Failed -> TasksState.MoonError(result.message)
+        is CliResult.ExitCode -> TasksState.MoonExitCode(result.code)
+        CliResult.Cancelled -> TasksState.MoonCancelled
+        is CliResult.StartFailed -> TasksState.MoonStartFailed(result.detail)
         CliResult.TimedOut -> TasksState.MoonTimeout
         is CliResult.Success -> error("A successful result is not an error")
     }

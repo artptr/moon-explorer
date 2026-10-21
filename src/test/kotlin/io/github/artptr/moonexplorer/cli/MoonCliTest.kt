@@ -39,7 +39,12 @@ class MoonCliTest {
 
     @Test
     fun errorWithoutTextGivesTheExitCode() {
-        assertEquals(CliResult.Failed("The moon process stopped with exit code 3."), MoonCli.toResult(ProcessOutput("", " ", 3, false, false)))
+        assertEquals(CliResult.ExitCode(3), MoonCli.toResult(ProcessOutput("", " ", 3, false, false)))
+    }
+
+    @Test
+    fun cancelledProcessWithoutTextGivesCancelled() {
+        assertEquals(CliResult.Cancelled, MoonCli.toResult(ProcessOutput("", "", -1, false, true)))
     }
 
     @Test

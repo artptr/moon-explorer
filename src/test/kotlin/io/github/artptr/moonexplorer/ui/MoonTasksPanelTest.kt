@@ -10,6 +10,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ClickListener
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.OutputProblem
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
@@ -86,9 +87,44 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertTrue(panel.settingsLink.isVisible)
     }
 
-    fun testInvalidOutputShowsMessage() {
-        panel.render(TasksState.InvalidOutput("bad JSON"))
-        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput", "bad JSON"))
+    fun testMoonExitCodeShowsMessage() {
+        panel.render(TasksState.MoonExitCode(3))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonExitCode", "3"))
+        assertFalse(panel.settingsLink.isVisible)
+    }
+
+    fun testMoonCancelledShowsMessage() {
+        panel.render(TasksState.MoonCancelled)
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonCancelled"))
+        assertFalse(panel.settingsLink.isVisible)
+    }
+
+    fun testMoonStartFailedShowsTheDetailAndTheSettingsLink() {
+        panel.render(TasksState.MoonStartFailed("Cannot run program"))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailed", "Cannot run program"))
+        // Usually, the plugin cannot start moon because the path to moon in the settings is not correct.
+        assertTrue(panel.settingsLink.isVisible)
+    }
+
+    fun testOutputThatIsNotJsonShowsTheDetail() {
+        panel.render(TasksState.InvalidOutput(OutputProblem.NotJson("line 1 column 7")))
+        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput.notJson", "line 1 column 7"))
+    }
+
+    fun testOutputThatIsNotJsonWithoutDetailShowsMessage() {
+        panel.render(TasksState.InvalidOutput(OutputProblem.NotJson(null)))
+        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput.notJsonNoDetail"))
+    }
+
+    fun testOutputWithoutProjectsShowsMessage() {
+        panel.render(TasksState.InvalidOutput(OutputProblem.NoProjects))
+        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput.noProjects"))
+    }
+
+    fun testUnexpectedErrorShowsMessage() {
+        panel.render(TasksState.UnexpectedError)
+        assertMessage(MoonExplorerBundle.message("tasks.message.unexpectedError"))
+        assertFalse(panel.settingsLink.isVisible)
     }
 
     fun testEmptyWorkspaceShowsMessage() {
@@ -297,8 +333,8 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testFailureTextIsTheSameAsTheMessage() {
-        panel.render(TasksState.InvalidOutput("bad JSON"))
-        assertEquals(failureText(TasksState.InvalidOutput("bad JSON")), panel.messageArea.text)
+        panel.render(TasksState.InvalidOutput(OutputProblem.NoProjects))
+        assertEquals(failureText(TasksState.InvalidOutput(OutputProblem.NoProjects)), panel.messageArea.text)
     }
 
     fun testEachStateUpdatesTheToolbar() {
