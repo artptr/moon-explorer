@@ -103,6 +103,48 @@ For tests with a large workspace, use the test function `LargeQueryProjectsJson.
 The function copies the recorded projects and tasks and gives them new IDs.
 The default output has 17 projects with 14 tasks each.
 
+### 4.3 Find changes in the moon output
+
+The tests use the recorded output of one moon version. Thus the tests do not find a change in the output of a newer moon version.
+The `Moon output` workflow does this check one time each week. You can also start the workflow manually.
+
+The workflow does these steps:
+
+1. It installs the newest moon 2.x in the test workspace.
+2. It runs `scripts/record-test-data.sh`.
+3. It runs `./gradlew test`.
+4. If the recorded output changes, the record script fails, or the tests fail, it creates an issue.
+
+If the issue from a previous run is open, the workflow updates the text of this issue.
+The workflow adds a comment only when the moon version changes.
+The issue has the title "A new moon version changes the recorded moon output".
+The issue text shows the two moon versions, the result of each step, and the start of the diff.
+The artifact `moon-output` of the workflow run contains the recorded output and the test reports.
+
+The file `moon-version.txt` changes for each new moon version. If only this file changes, the workflow does not create an issue.
+The workflow does not commit or push changes.
+
+To start the workflow manually, do these steps:
+
+1. On GitHub, open **Actions** > **Moon output**.
+2. Click **Run workflow**.
+3. In **moon-version**, type the version of `@moonrepo/cli`. The default value `2` installs the newest moon 2.x.
+4. Click **Run workflow**.
+
+To update the test data to a new moon version, do these steps:
+
+1. In `src/test/testData/workspace/`, run `npm install --save-exact @moonrepo/cli@<version>`.
+2. Run `scripts/record-test-data.sh`.
+3. Run `./gradlew test`.
+4. If a test fails, correct the plugin or the test.
+5. Commit the changes in `src/test/testData/`, which include `workspace/package.json` and `workspace/package-lock.json`.
+6. In the pull request text, write `Closes #<issue-number>` for the issue from the workflow.
+
+The test `recordedWithMoonVersionOfWorkspace` compares `moon/moon-version.txt` with the moon version in `workspace/package.json`.
+If you change only `package.json`, this test fails.
+
+**NOTE:** You can use the plugin with moon 2.2.3 and later versions. If you record the output with a newer moon version, no test uses the output of moon 2.2.3.
+
 ## 5. Do a check of compatibility
 
 Run `./gradlew verifyPlugin`.
@@ -139,6 +181,7 @@ GitHub Actions runs these workflows:
 | `Build` | Push to `main`, pull request. A change to documentation only does not start the workflow. | Build, test, verification of the plugin, draft release |
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
+| `Moon output` | Each Monday, manual start | Record of the output of the newest moon 2.x, tests, issue for a change. Refer to section 4.3. |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace |
 
 **NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
