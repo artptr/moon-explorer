@@ -99,8 +99,10 @@ If a moon command fails, the script stops, and the files in `moon/` do not chang
 The output of `moon query projects` contains the absolute path of each project. The script replaces the path of the workspace with `/workspace`.
 The script stops with an error if a recorded file contains the path of the repository on your computer.
 
-The test data is an input of the Gradle task `test`. Thus Gradle runs the tests again when a file in `src/test/testData/` changes.
-Gradle does not use the files that Git ignores in the test workspace, for example `node_modules/`.
+The test data is an input of the Gradle task `test`. Thus Gradle runs the tests again when the test data changes.
+The input does not include the directories that tools make in the test workspace, for example `node_modules/` and `.moon/cache/`.
+The list of these directories is in `build.gradle.kts`. Gradle does not read `.gitignore`.
+If you add a directory to `workspace/.gitignore`, also add it to the list in `build.gradle.kts`.
 
 ### 4.2 Test data for a large workspace
 
@@ -122,6 +124,8 @@ The workflow does these steps:
 4. If the recorded output changes, the record script fails, or the tests fail, it creates an issue.
 
 The workflow finds the issue from a previous run with the label `moon-output`. If this issue is open, the workflow replaces the text of the issue.
+If the label does not exist, the workflow creates it before it creates the issue.
+
 The workflow adds a comment only when the moon version changes. Write your notes in comments, not in the issue text.
 The issue text shows the two moon versions, the result of each step, and the start of the diff.
 The artifact `moon-output` of the workflow run contains the recorded output and the test reports.
