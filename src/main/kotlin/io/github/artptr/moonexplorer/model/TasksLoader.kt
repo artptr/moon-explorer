@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.diagnostic.thisLogger
+import io.github.artptr.moonexplorer.cli.CliFailure
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import java.nio.file.Path
@@ -24,9 +25,10 @@ object TasksLoader {
     suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult): TasksState {
         if (root == null) return TasksState.NoWorkspace
         return try {
-            val result = queryProjects(root)
-            if (result !is CliResult.Success) return errorState(result)
-            TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
+            when (val result = queryProjects(root)) {
+                is CliResult.Success -> TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
+                is CliFailure -> TasksState.MoonFailed(result)
+            }
         } catch (e: MoonOutputException) {
             TasksState.InvalidOutput(e.problem)
         } catch (e: CancellationException) {
@@ -36,15 +38,5 @@ object TasksLoader {
             thisLogger().warn("Cannot get the moon tasks", e)
             TasksState.UnexpectedError
         }
-    }
-
-    private fun errorState(result: CliResult): TasksState.Failure = when (result) {
-        is CliResult.NotFound -> TasksState.MoonNotFound(result.examined)
-        is CliResult.Failed -> TasksState.MoonError(result.message)
-        is CliResult.ExitCode -> TasksState.MoonExitCode(result.code)
-        CliResult.Cancelled -> TasksState.MoonCancelled
-        is CliResult.StartFailed -> TasksState.MoonStartFailed(result.detail)
-        CliResult.TimedOut -> TasksState.MoonTimeout
-        is CliResult.Success -> error("A successful result is not an error")
     }
 }

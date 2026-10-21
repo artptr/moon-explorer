@@ -31,6 +31,8 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.tree.TreeUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.cli.CliFailure
+import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.OutputProblem
@@ -352,17 +354,21 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
 /** Gives the text that tells the user about [failure]. The text is plain text, not HTML. */
 internal fun failureText(failure: TasksState.Failure): String = when (failure) {
-    is TasksState.MoonNotFound -> {
-        val locations = failure.examined.joinToString("\n") { "  $it" }
-        MoonExplorerBundle.message("tasks.message.moonNotFound", locations)
-    }
-    is TasksState.MoonError -> MoonExplorerBundle.message("tasks.message.moonError", failure.text)
-    is TasksState.MoonExitCode -> MoonExplorerBundle.message("tasks.message.moonExitCode", failure.code.toString())
-    TasksState.MoonCancelled -> MoonExplorerBundle.message("tasks.message.moonCancelled")
-    is TasksState.MoonStartFailed -> detailText(failure.detail, "tasks.message.moonStartFailed", "tasks.message.moonStartFailedNoDetail")
-    TasksState.MoonTimeout -> MoonExplorerBundle.message("tasks.message.moonTimeout")
+    is TasksState.MoonFailed -> cliFailureText(failure.cause)
     is TasksState.InvalidOutput -> invalidOutputText(failure.problem)
     TasksState.UnexpectedError -> MoonExplorerBundle.message("tasks.message.unexpectedError")
+}
+
+private fun cliFailureText(cause: CliFailure): String = when (cause) {
+    is CliResult.NotFound -> {
+        val locations = cause.examined.joinToString("\n") { "  $it" }
+        MoonExplorerBundle.message("tasks.message.moonNotFound", locations)
+    }
+    is CliResult.Failed -> MoonExplorerBundle.message("tasks.message.moonError", cause.message)
+    is CliResult.ExitCode -> MoonExplorerBundle.message("tasks.message.moonExitCode", cause.code.toString())
+    CliResult.Cancelled -> MoonExplorerBundle.message("tasks.message.moonCancelled")
+    is CliResult.StartFailed -> detailText(cause.detail, "tasks.message.moonStartFailed", "tasks.message.moonStartFailedNoDetail")
+    CliResult.TimedOut -> MoonExplorerBundle.message("tasks.message.moonTimeout")
 }
 
 private fun invalidOutputText(problem: OutputProblem): String = when (problem) {
@@ -376,7 +382,10 @@ private fun detailText(detail: String?, key: String, noDetailKey: String): Strin
 
 /** Gives true if the user can correct [failure] in the settings. Then the plugin shows a link to the settings. */
 internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =
-    failure is TasksState.MoonNotFound || failure is TasksState.MoonStartFailed || failure == TasksState.MoonTimeout
+    failure is TasksState.MoonFailed && when (failure.cause) {
+        is CliResult.NotFound, is CliResult.StartFailed, CliResult.TimedOut -> true
+        is CliResult.Failed, is CliResult.ExitCode, CliResult.Cancelled -> false
+    }
 
 /**
  * Gives the HTML text of a balloon or a notification for the plain text [text]. Balloons and notifications read their text as HTML.

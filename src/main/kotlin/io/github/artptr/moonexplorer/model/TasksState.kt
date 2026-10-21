@@ -1,5 +1,6 @@
 package io.github.artptr.moonexplorer.model
 
+import io.github.artptr.moonexplorer.cli.CliFailure
 import java.nio.file.Path
 
 /** The state of the task data for the tool window. */
@@ -22,23 +23,8 @@ sealed interface TasksState {
     /** The IDE project does not contain a moon workspace. */
     data object NoWorkspace : TasksState
 
-    /** The plugin cannot find the `moon` executable. [examined] contains the files that the plugin examined before `PATH`. */
-    data class MoonNotFound(val examined: List<Path>) : Failure
-
-    /** The `moon` command gave an error. [text] is the error text from moon. */
-    data class MoonError(val text: String) : Failure
-
-    /** The `moon` command stopped with the exit code [code] and gave no error text. */
-    data class MoonExitCode(val code: Int) : Failure
-
-    /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
-    data object MoonCancelled : Failure
-
-    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. */
-    data class MoonStartFailed(val detail: String?) : Failure
-
-    /** The `moon` command did not complete in the time limit. The plugin stopped the moon process. */
-    data object MoonTimeout : Failure
+    /** The `moon` command failed. [cause] tells the cause. */
+    data class MoonFailed(val cause: CliFailure) : Failure
 
     /** The plugin cannot read the output of moon. [problem] tells the cause. */
     data class InvalidOutput(val problem: OutputProblem) : Failure

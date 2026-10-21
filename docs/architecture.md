@@ -59,7 +59,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 4. The service sets the new state. The tool window shows the tree or a message. If the load fails after a successful load, the tree keeps the last tasks. Refer to section 6.
 5. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.
 
-**NOTE:** The `cli` and `model` packages give the cause of a failure as a type, for example `CliResult.ExitCode` or `OutputProblem.NoProjects`. These packages contain no user interface text. The `ui` package gets the text for each cause from `MoonExplorerBundle`. Some messages also contain an error text from moon, from the IntelliJ Platform, or from the JSON parser. The bundle message contains this text without change.
+**NOTE:** The `cli` and `model` packages give the cause of a failure as a type, for example `CliResult.ExitCode` or `OutputProblem.NoProjects`. These packages contain no user interface text. The state `TasksState.MoonFailed` contains the `CliFailure` from the `cli` package without change. The `ui` package gets the text for each cause from `MoonExplorerBundle`. Some messages also contain an error text from moon, from the IntelliJ Platform, or from the JSON parser. The bundle message contains this text without change.
 
 The output of `moon query projects` contains the `stack` value, the `layer` value, and the tasks of each project. Thus the plugin starts only one moon process for each load.
 The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.

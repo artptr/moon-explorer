@@ -112,7 +112,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
             assertTrue(configurable.isModified)
             configurable.apply()
             assertEquals(moon.toString(), settings.executablePath)
-            tasks.awaitState(TasksState.MoonError("from apply"))
+            tasks.awaitState(TasksState.MoonFailed(CliResult.Failed("from apply")))
         } finally {
             runBlocking { tasks.resetForTests() }
         }
@@ -207,7 +207,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
             configurable.apply()
             assertEquals(300, settings.timeoutSeconds)
             assertFalse(configurable.isModified)
-            tasks.awaitState(TasksState.MoonError("from timeout"))
+            tasks.awaitState(TasksState.MoonFailed(CliResult.Failed("from timeout")))
         } finally {
             runBlocking { tasks.resetForTests() }
         }

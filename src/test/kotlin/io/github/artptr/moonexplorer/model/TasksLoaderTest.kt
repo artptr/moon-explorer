@@ -62,34 +62,16 @@ class TasksLoaderTest {
     }
 
     @Test
-    fun notFoundGivesMoonNotFound() {
-        val examined = listOf(workspace.resolve("node_modules/.bin/moon"))
-        assertEquals(TasksState.MoonNotFound(examined), load(workspace, CliResult.NotFound(examined)))
-    }
-
-    @Test
-    fun failureGivesMoonError() {
-        assertEquals(TasksState.MoonError("bad config"), load(workspace, CliResult.Failed("bad config")))
-    }
-
-    @Test
-    fun exitCodeGivesMoonExitCode() {
-        assertEquals(TasksState.MoonExitCode(3), load(workspace, CliResult.ExitCode(3)))
-    }
-
-    @Test
-    fun cancelledGivesMoonCancelled() {
-        assertEquals(TasksState.MoonCancelled, load(workspace, CliResult.Cancelled))
-    }
-
-    @Test
-    fun startFailureGivesMoonStartFailed() {
-        assertEquals(TasksState.MoonStartFailed("cannot start"), load(workspace, CliResult.StartFailed("cannot start")))
-    }
-
-    @Test
-    fun timeoutGivesMoonTimeout() {
-        assertEquals(TasksState.MoonTimeout, load(workspace, CliResult.TimedOut))
+    fun cliFailureGivesMoonFailedWithTheSameCause() {
+        val failures = listOf(
+            CliResult.NotFound(listOf(workspace.resolve("node_modules/.bin/moon"))),
+            CliResult.Failed("bad config"),
+            CliResult.ExitCode(3),
+            CliResult.Cancelled,
+            CliResult.StartFailed("cannot start"),
+            CliResult.TimedOut,
+        )
+        failures.forEach { assertEquals(TasksState.MoonFailed(it), load(workspace, it)) }
     }
 
     @Test

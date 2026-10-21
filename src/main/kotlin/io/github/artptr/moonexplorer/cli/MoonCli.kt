@@ -14,23 +14,26 @@ sealed interface CliResult {
     data class Success(val stdout: String) : CliResult
 
     /** The plugin cannot find the `moon` executable. [examined] contains the files that the plugin examined before `PATH`. */
-    data class NotFound(val examined: List<Path>) : CliResult
+    data class NotFound(val examined: List<Path>) : CliFailure
 
     /** The command did not complete correctly. [message] is the error text from moon. It is not blank. */
-    data class Failed(val message: String) : CliResult
+    data class Failed(val message: String) : CliFailure
 
     /** The command stopped with the exit code [code], which is not 0. moon gave no error text. */
-    data class ExitCode(val code: Int) : CliResult
+    data class ExitCode(val code: Int) : CliFailure
 
     /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
-    data object Cancelled : CliResult
+    data object Cancelled : CliFailure
 
     /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. [detail] is not blank. */
-    data class StartFailed(val detail: String?) : CliResult
+    data class StartFailed(val detail: String?) : CliFailure
 
     /** The command did not complete in the time limit. The plugin stopped the moon process. */
-    data object TimedOut : CliResult
+    data object TimedOut : CliFailure
 }
+
+/** A result of a moon CLI command that is not [CliResult.Success]. Each subtype tells the cause of the failure. */
+sealed interface CliFailure : CliResult
 
 /** Starts the `moon` executable. */
 object MoonCli {
