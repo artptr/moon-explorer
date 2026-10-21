@@ -222,7 +222,7 @@ This table gives the decision for each function of the extension, version 0.16.6
 | The action graph, the project graph, and the task graph | No | An action that starts the moon commands is in section 7. The plugin does not show the graph itself. Refer to section 8. |
 | A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual configuration is necessary for `template.yml`. A setting for the local schemas in `.moon/cache/schemas` is possible. Issue [#78](https://github.com/artptr/moon-explorer/issues/78) records the check. |
 | An MCP server for AI agents | No | The team does not plan this function. Refer to principle 7 in section 5. |
-| An update of the tree when `moon.yml` or a file in `.moon/` changes | No | Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. |
+| An update of the tree when `moon.yml` or a file in `.moon/` changes | An automatic refresh 1 second after the change | Complete. Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. If the refresh fails, the tree keeps the last tasks and a notification shows the error. |
 | An action that updates the tree | The **Refresh** action | Complete. |
 | An action that opens the configuration file of a project | No | Issue [#69](https://github.com/artptr/moon-explorer/issues/69) records this function. The action also opens the files in `.moon/tasks/`. |
 | The setting `moon.binPath` for the path to the `moon` executable | A setting for the path. The plugin also finds the executable automatically (section 4.4). | Complete. |

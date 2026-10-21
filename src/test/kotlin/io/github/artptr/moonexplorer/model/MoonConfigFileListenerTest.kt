@@ -28,7 +28,7 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
         service.prepareForTests()
         // Use the real path. Thus the paths of the VFS and of the service are the same also if the temp directory is a symbolic link.
         dir = FileUtil.createTempDirectory("moon-workspace", null, true).toPath().toRealPath()
-        listOf(".moon/workspace.yml", ".moon/tasks/all.yml", ".moon/cache/states/x.json", "apps/web/moon.yml", "README.md").forEach {
+        listOf(".moon/workspace.yml", ".moon/tasks/all.yml", ".moon/cache/states/x.json", "apps/web/moon.yml", "README.md", "other/keep.txt").forEach {
             Files.createDirectories(dir.resolve(it).parent)
             Files.writeString(dir.resolve(it), "a: 1\n")
         }
@@ -96,6 +96,40 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
 
     fun testChangeOfOtherFilesDoesNotRefresh() {
         changeInIde("README.md")
+        Thread.sleep(delay.inWholeMilliseconds * 3)
+        assertEquals(0, calls.get())
+    }
+
+    fun testRenameOfAProjectConfigFileRefreshes() {
+        val file = file("apps/web/moon.yml")
+        runWriteAction { file.rename(this, "moon.yml.bak") }
+        awaitCalls(1)
+    }
+
+    fun testMoveOfATasksFileRefreshes() {
+        val file = file(".moon/tasks/all.yml")
+        val target = file("other")
+        runWriteAction { file.move(this, target) }
+        awaitCalls(1)
+    }
+
+    fun testDeleteOfAProjectDirectoryRefreshes() {
+        // The recorded output has the project web in apps/web. The VFS sends one event for the directory, not for its moon.yml.
+        val dir = file("apps/web")
+        runWriteAction { dir.delete(this) }
+        awaitCalls(1)
+    }
+
+    fun testRenameOfAParentOfAProjectDirectoryRefreshes() {
+        val dir = file("apps")
+        runWriteAction { dir.rename(this, "applications") }
+        awaitCalls(1)
+    }
+
+    fun testMoveOfOtherFilesDoesNotRefresh() {
+        val file = file("README.md")
+        val target = file("other")
+        runWriteAction { file.move(this, target) }
         Thread.sleep(delay.inWholeMilliseconds * 3)
         assertEquals(0, calls.get())
     }

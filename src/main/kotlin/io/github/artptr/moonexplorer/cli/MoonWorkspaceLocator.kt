@@ -7,7 +7,7 @@ import java.nio.file.Path
 object MoonWorkspaceLocator {
 
     /** The file extensions that moon accepts for its configuration files, for example `.moon/workspace.*` and `moon.*`. */
-    internal val WORKSPACE_FILE_EXTENSIONS = listOf("yml", "yaml", "json", "jsonc", "pkl", "hcl", "toml")
+    internal val CONFIG_FILE_EXTENSIONS = listOf("yml", "yaml", "json", "jsonc", "pkl", "hcl", "toml")
 
     /**
      * Goes up from [start] through its parent directories and gives the first workspace root.
@@ -21,6 +21,6 @@ object MoonWorkspaceLocator {
     private fun isWorkspaceRoot(dir: Path): Boolean {
         val moonDir = dir.resolve(".moon")
         return Files.isDirectory(moonDir) &&
-            WORKSPACE_FILE_EXTENSIONS.any { Files.isRegularFile(moonDir.resolve("workspace.$it")) }
+            CONFIG_FILE_EXTENSIONS.any { Files.isRegularFile(moonDir.resolve("workspace.$it")) }
     }
 }

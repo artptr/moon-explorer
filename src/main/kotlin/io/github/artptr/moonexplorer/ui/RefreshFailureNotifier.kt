@@ -10,7 +10,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.openapi.util.text.StringUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
@@ -61,7 +60,7 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
 
     private fun show(failure: TasksState.Failure) {
         expire()
-        val content = MoonExplorerBundle.message("notification.refreshFailed.content") + "<br><br>" + notificationHtml(failureText(failure))
+        val content = MoonExplorerBundle.message("notification.refreshFailed.content") + "<br><br>" + plainTextHtml(failureText(failure))
         val created = NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
             .createNotification(MoonExplorerBundle.message("notification.refreshFailed.title"), content, NotificationType.ERROR)
         created.addAction(
@@ -97,6 +96,3 @@ class RefreshFailureNotifierStartupActivity : ProjectActivity {
         project.service<RefreshFailureNotifier>().start()
     }
 }
-
-/** Gives the HTML text of a notification for the plain text [text]. The notification reads its text as HTML. */
-internal fun notificationHtml(text: String): String = StringUtil.escapeXmlEntities(text).replace("\n", "<br>")

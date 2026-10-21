@@ -10,15 +10,6 @@ import kotlin.coroutines.cancellation.CancellationException
 object TasksLoader {
 
     /**
-     * Finds the workspace from [projectDir], runs [queryProjects] in the workspace root, and reads the output.
-     * The output of `moon query projects` contains the tasks, the `stack` value, and the `layer` value of each project.
-     * Thus the function starts only one moon process.
-     * Call this function on a background thread.
-     */
-    suspend fun loadTasks(projectDir: Path?, queryProjects: suspend (Path) -> CliResult): TasksState =
-        loadTasksIn(findRoot(projectDir), queryProjects)
-
-    /**
      * Finds the workspace root from [projectDir]. Gives null if there is no workspace.
      * Call this function on a background thread.
      */
@@ -26,6 +17,8 @@ object TasksLoader {
 
     /**
      * Runs [queryProjects] in the workspace [root] and reads the output. If [root] is null, the function gives [TasksState.NoWorkspace].
+     * The output of `moon query projects` contains the tasks, the `stack` value, and the `layer` value of each project.
+     * Thus the function starts only one moon process.
      * Call this function on a background thread.
      */
     suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult): TasksState {

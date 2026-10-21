@@ -153,7 +153,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
 
     fun testBalloonTextEscapesHtml() {
         val text = MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", "a<b>&c.ts")
-        assertEquals("The file a&lt;b&gt;&amp;c.ts is not in a moon project.", balloonHtml(text))
+        assertEquals("The file a&lt;b&gt;&amp;c.ts is not in a moon project.", plainTextHtml(text))
     }
 
     fun testActionIsDisabledForAFileThatIsNotOnTheDisk() {

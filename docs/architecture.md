@@ -34,7 +34,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
 | Load of the tasks when the IDE project opens | `model.MoonTasksStartupActivity` | `plugin.xml` |
 | Automatic refresh after a change of a moon configuration file | `model.MoonConfigFileListener`, `model.MoonConfigFiles` | `plugin.xml` (`projectListeners`) |
-| Notification when a refresh fails after a successful load | `ui.RefreshFailureNotifier`, `ui.RefreshFailureNotifierStartupActivity`, notification group `Moon Explorer` | `plugin.xml` |
+| Notification when a refresh fails after a successful load | `ui.RefreshFailureNotifier`, `ui.RefreshFailureNotifierStartupActivity`, notification group `Moon Explorer` | `plugin.xml` for the startup activity and the notification group. `RefreshFailureNotifier` is a light service. |
 | Action **Show Refresh Error** in the group `MoonExplorer.TasksToolbar` | `ui.ShowRefreshFailureAction` | `plugin.xml` |
 | Load of the tasks and the result state | `model.TasksLoader`, `model.TasksState` | None |
 | Parser of `moon query projects` | `model.QueryProjectsParser` | None |
@@ -108,10 +108,12 @@ The plugin refreshes the tree when a moon configuration file changes. These file
 - A directory that contains a project, if you delete, move, or rename it.
 
 Files in `.moon/cache/` do not apply. moon writes these files when it runs a task.
-If a load finds no workspace, only a new `.moon/workspace.*` file applies. The file must be in the IDE project directory or in one of its parent directories.
+A new `.moon/workspace.*` file in the IDE project directory or in one of its parent directories also applies. If the plugin knows the workspace root, the file must be below the root. In this condition, the file can make a nearer root. If a load finds no workspace, only this file applies.
 
 `model.MoonConfigFileListener` gets the changes from the VFS. The VFS also sends the changes from outside the IDE, for example from `git checkout`.
-The listener does not read files and does not start moon. It calls `MoonTasksService.scheduleRefresh`.
+
+The listener does not read files and does not start moon. It calls `MoonTasksService.scheduleRefresh`. The service gives the root to the listener before moon starts. Thus a change during a load also causes a refresh.
+
 The service waits 1 second. If more changes occur in this time, the service starts to wait again. Then it runs `moon query projects` one time.
 A change in an IDE editor applies when the IDE saves the document. moon reads only the files on the disk.
 

@@ -15,7 +15,7 @@ object MoonConfigFiles {
 
     private const val MOON_DIR = ".moon"
     private const val CACHE_DIR = "cache"
-    private val CONFIG_EXTENSIONS = MoonWorkspaceLocator.WORKSPACE_FILE_EXTENSIONS.toSet()
+    private val CONFIG_EXTENSIONS = MoonWorkspaceLocator.CONFIG_FILE_EXTENSIONS.toSet()
 
     /**
      * Gives true if a change of [path] can change the output of `moon query projects`.
@@ -27,8 +27,11 @@ object MoonConfigFiles {
      */
     fun isConfigChange(path: Path, removedDirectory: Boolean, watch: ConfigWatch): Boolean {
         val file = path.toAbsolutePath().normalize()
-        val root = watch.root?.toAbsolutePath()?.normalize() ?: return isNewWorkspaceFile(file, watch.projectDir)
-        if (!file.startsWith(root)) return false
+        val root = watch.root?.toAbsolutePath()?.normalize()
+        // A new workspace file below the root makes a nearer workspace root, for example after `moon init` in a subdirectory.
+        // Without a root, a new workspace file makes a workspace.
+        if (isNewWorkspaceFile(file, watch.projectDir) && (root == null || file.startsWith(root))) return true
+        if (root == null || !file.startsWith(root)) return false
         val rel = root.relativize(file)
         if (rel.nameCount > 0 && rel.getName(0).toString() == MOON_DIR) {
             return !(rel.nameCount > 1 && rel.getName(1).toString() == CACHE_DIR)
@@ -46,7 +49,7 @@ object MoonConfigFiles {
 
     /**
      * Gives true if [file] is `.moon/workspace.<ext>` in [projectDir] or in one of its parent directories.
-     * The plugin looks for the workspace root in these directories. Thus a new workspace file can make a workspace.
+     * The plugin looks for the workspace root in these directories. Thus a new workspace file can make a workspace or change the root.
      */
     private fun isNewWorkspaceFile(file: Path, projectDir: Path?): Boolean {
         val name = file.fileName?.toString() ?: return false

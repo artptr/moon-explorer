@@ -83,4 +83,15 @@ class MoonConfigFilesTest {
     fun withoutDataNothingIsAChange() {
         assertFalse(changed(".moon/workspace.yml", data = ConfigWatch(null, null)))
     }
+
+    @Test
+    fun newWorkspaceFileBetweenTheProjectDirectoryAndTheRootIsAChange() {
+        val nested = watch.copy(projectDir = root.resolve("packages/ui/icons"))
+        assertTrue(changed("packages/ui/.moon/workspace.yml", data = nested))
+        assertTrue(changed("packages/ui/icons/.moon/workspace.yml", data = nested))
+        // The plugin does not look in other directories.
+        assertFalse(changed("apps/web/.moon/workspace.yml", data = nested))
+        // A workspace file above the root does not change the root. The nearer root remains.
+        assertFalse(MoonConfigFiles.isConfigChange(root.parent.resolve(".moon/workspace.yml"), false, nested))
+    }
 }

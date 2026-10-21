@@ -210,24 +210,33 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
     }
 
+    fun testConfigWatchHasTheRootDuringTheFirstLoad() {
+        val started = CompletableDeferred<Unit>()
+        service.queryProjects = { started.complete(Unit); awaitCancellation() }
+        service.refresh()
+        runBlocking { withTimeout(10_000) { started.await() } }
+        // A change during the first load must cause a refresh. Thus the listener must know the root before moon completes.
+        assertEquals(TestData.workspaceRoot, service.configWatch.root)
+    }
+
     fun testTenChangesInOneSecondCauseOneQuery() {
         val calls = AtomicInteger()
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
-        service.refreshDelay = 500.milliseconds
+        // The default delay is 1 second. The time between the changes is much shorter. Thus a slow computer does not cause a second query.
         repeat(10) {
             service.scheduleRefresh()
             Thread.sleep(100)
         }
         service.awaitState(loaded)
         // Wait longer than the delay. No other refresh must start.
-        Thread.sleep(1_000)
+        Thread.sleep(2_000)
         assertEquals(1, calls.get())
     }
 
     fun testScheduledRefreshWaitsForTheDelay() {
         val calls = AtomicInteger()
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
-        service.refreshDelay = 500.milliseconds
+        service.refreshDelay = 2_000.milliseconds
         service.scheduleRefresh()
         Thread.sleep(200)
         assertEquals(0, calls.get())
@@ -242,7 +251,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.scheduleRefresh()
         service.refresh()
         service.awaitState(loaded)
-        Thread.sleep(800)
+        // Wait much longer than the delay. The cancelled refresh must not start.
+        Thread.sleep(1_500)
         assertEquals(1, calls.get())
     }
 }

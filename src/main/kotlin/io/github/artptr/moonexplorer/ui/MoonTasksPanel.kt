@@ -123,7 +123,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * Tests change this value to a fake. Change it only on the EDT.
      */
     internal var showInfo: (String) -> Unit = { text ->
-        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(balloonHtml(text), MessageType.INFO, null)
+        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(plainTextHtml(text), MessageType.INFO, null)
             .setFadeoutTime(INFO_FADEOUT_MILLIS)
             .createBalloon()
             .show(RelativePoint.getSouthWestOf(toolbar ?: this), Balloon.Position.below)
@@ -206,6 +206,8 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * Call this function on the EDT.
      */
     internal fun render(state: TasksState) {
+        // The action ShowRefreshFailureAction is visible only in the Stale state. This call updates the toolbar for all states, also for the Loading state.
+        actionToolbar.updateActionsAsync()
         if (state is TasksState.Loading) {
             loadingPanel.startLoading()
             return
@@ -219,8 +221,6 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             is TasksState.Failure -> showMessage(failureText(state), showSettingsLink = hasSettingsLink(state))
             TasksState.Loading -> Unit
         }
-        // The action ShowRefreshFailureAction is visible only in the Stale state. Show or hide it now.
-        actionToolbar.updateActionsAsync()
     }
 
     private fun showLoaded(state: TasksState.Loaded) {
@@ -360,7 +360,7 @@ internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =
     failure is TasksState.MoonNotFound || failure == TasksState.MoonTimeout
 
 /**
- * Gives the HTML text of a balloon for the plain text [text]. The balloon reads its text as HTML.
- * Thus a file name with `<`, `>`, or `&` must change into HTML entities.
+ * Gives the HTML text of a balloon or a notification for the plain text [text]. Balloons and notifications read their text as HTML.
+ * Thus a file name with `<`, `>`, or `&` must change into HTML entities. A line break changes into `<br>`.
  */
-internal fun balloonHtml(text: String): String = StringUtil.escapeXmlEntities(text)
+internal fun plainTextHtml(text: String): String = StringUtil.escapeXmlEntities(text).replace("\n", "<br>")

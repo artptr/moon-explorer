@@ -114,6 +114,8 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
             _state.value = withContext(Dispatchers.IO) {
                 val dir = projectDirFn()
                 val root = TasksLoader.findRoot(dir)
+                // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
+                configWatch = ConfigWatch(root, dir, lastLoaded?.tasks?.sources.orEmpty())
                 publish(dir, root, TasksLoader.loadTasksIn(root, queryProjectsFn))
             }
         }
