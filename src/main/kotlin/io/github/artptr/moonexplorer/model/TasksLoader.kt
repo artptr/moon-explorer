@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.diagnostic.thisLogger
+import io.github.artptr.moonexplorer.cli.CliFailure
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import java.nio.file.Path
@@ -24,24 +25,27 @@ object TasksLoader {
     suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult): TasksState {
         if (root == null) return TasksState.NoWorkspace
         return try {
-            val result = queryProjects(root)
-            if (result !is CliResult.Success) return errorState(result)
-            TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
+            when (val result = queryProjects(root)) {
+                is CliResult.Success -> TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
+                is CliFailure -> TasksState.MoonFailed(moonFailure(result))
+            }
         } catch (e: MoonOutputException) {
-            TasksState.InvalidOutput(e.message.orEmpty())
+            TasksState.InvalidOutput(e.problem)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // An unexpected error must not keep the tool window in the Loading state.
             thisLogger().warn("Cannot get the moon tasks", e)
-            TasksState.InvalidOutput(e.message ?: e.javaClass.name)
+            TasksState.UnexpectedError
         }
     }
 
-    private fun errorState(result: CliResult): TasksState.Failure = when (result) {
-        is CliResult.NotFound -> TasksState.MoonNotFound(result.examined)
-        is CliResult.Failed -> TasksState.MoonError(result.message)
-        CliResult.TimedOut -> TasksState.MoonTimeout
-        is CliResult.Success -> error("A successful result is not an error")
+    private fun moonFailure(result: CliFailure): MoonFailure = when (result) {
+        is CliResult.NotFound -> MoonFailure.NotFound(result.examined)
+        is CliResult.Failed -> MoonFailure.Error(result.message)
+        is CliResult.ExitCode -> MoonFailure.ExitCode(result.code)
+        CliResult.Cancelled -> MoonFailure.Cancelled
+        is CliResult.StartFailed -> MoonFailure.StartFailed(result.detail)
+        CliResult.TimedOut -> MoonFailure.TimedOut
     }
 }

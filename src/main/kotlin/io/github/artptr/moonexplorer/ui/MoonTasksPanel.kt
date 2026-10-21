@@ -31,8 +31,10 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.tree.TreeUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.OutputProblem
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
@@ -77,7 +79,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         border = JBUI.Borders.empty(8)
     }
 
-    /** Opens the settings page. The panel shows this link only if the plugin cannot find moon. */
+    /** Opens the settings page. The panel shows this link only if the user can correct the failure in the settings. Refer to [hasSettingsLink]. */
     internal val settingsLink = ActionLink(MoonExplorerBundle.message("tasks.link.openSettings")) {
         MoonSettingsConfigurable.show(project)
     }.apply {
@@ -351,18 +353,38 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
 /** Gives the text that tells the user about [failure]. The text is plain text, not HTML. */
 internal fun failureText(failure: TasksState.Failure): String = when (failure) {
-    is TasksState.MoonNotFound -> {
-        val locations = failure.examined.joinToString("\n") { "  $it" }
+    is TasksState.MoonFailed -> moonFailureText(failure.cause)
+    is TasksState.InvalidOutput -> invalidOutputText(failure.problem)
+    TasksState.UnexpectedError -> MoonExplorerBundle.message("tasks.message.unexpectedError")
+}
+
+private fun moonFailureText(cause: MoonFailure): String = when (cause) {
+    is MoonFailure.NotFound -> {
+        val locations = cause.examined.joinToString("\n") { "  $it" }
         MoonExplorerBundle.message("tasks.message.moonNotFound", locations)
     }
-    is TasksState.MoonError -> MoonExplorerBundle.message("tasks.message.moonError", failure.text)
-    TasksState.MoonTimeout -> MoonExplorerBundle.message("tasks.message.moonTimeout")
-    is TasksState.InvalidOutput -> MoonExplorerBundle.message("tasks.message.invalidOutput", failure.text)
+    is MoonFailure.Error -> MoonExplorerBundle.message("tasks.message.moonError", cause.text)
+    is MoonFailure.ExitCode -> MoonExplorerBundle.message("tasks.message.moonExitCode", cause.code.toString())
+    MoonFailure.Cancelled -> MoonExplorerBundle.message("tasks.message.moonCancelled")
+    is MoonFailure.StartFailed -> detailText(cause.detail, "tasks.message.moonStartFailed", "tasks.message.moonStartFailedNoDetail")
+    MoonFailure.TimedOut -> MoonExplorerBundle.message("tasks.message.moonTimeout")
 }
+
+private fun invalidOutputText(problem: OutputProblem): String = when (problem) {
+    is OutputProblem.NotJson -> detailText(problem.detail, "tasks.message.invalidOutput.notJson", "tasks.message.invalidOutput.notJsonNoDetail")
+    OutputProblem.NoProjects -> MoonExplorerBundle.message("tasks.message.invalidOutput.noProjects")
+}
+
+/** Gives the message [key] with [detail]. If [detail] is null or blank, gives the message [noDetailKey]. */
+private fun detailText(detail: String?, key: String, noDetailKey: String): String =
+    StringUtil.nullize(detail, true)?.let { MoonExplorerBundle.message(key, it) } ?: MoonExplorerBundle.message(noDetailKey)
 
 /** Gives true if the user can correct [failure] in the settings. Then the plugin shows a link to the settings. */
 internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =
-    failure is TasksState.MoonNotFound || failure == TasksState.MoonTimeout
+    failure is TasksState.MoonFailed && when (failure.cause) {
+        is MoonFailure.NotFound, is MoonFailure.StartFailed, MoonFailure.TimedOut -> true
+        is MoonFailure.Error, is MoonFailure.ExitCode, MoonFailure.Cancelled -> false
+    }
 
 /**
  * Gives the HTML text of a balloon or a notification for the plain text [text]. Balloons and notifications read their text as HTML.

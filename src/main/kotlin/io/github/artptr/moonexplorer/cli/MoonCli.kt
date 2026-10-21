@@ -14,14 +14,26 @@ sealed interface CliResult {
     data class Success(val stdout: String) : CliResult
 
     /** The plugin cannot find the `moon` executable. [examined] contains the files that the plugin examined before `PATH`. */
-    data class NotFound(val examined: List<Path>) : CliResult
+    data class NotFound(val examined: List<Path>) : CliFailure
 
-    /** The command did not complete correctly. [message] is the error text from moon. */
-    data class Failed(val message: String) : CliResult
+    /** The command did not complete correctly. [message] is the error text from moon. It is not blank. */
+    data class Failed(val message: String) : CliFailure
+
+    /** The command stopped with the exit code [code], which is not 0. moon gave no error text. */
+    data class ExitCode(val code: Int) : CliFailure
+
+    /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
+    data object Cancelled : CliFailure
+
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. [detail] can be blank. */
+    data class StartFailed(val detail: String?) : CliFailure
 
     /** The command did not complete in the time limit. The plugin stopped the moon process. */
-    data object TimedOut : CliResult
+    data object TimedOut : CliFailure
 }
+
+/** A result of a moon CLI command that is not [CliResult.Success]. Each subtype tells the cause of the failure. */
+sealed interface CliFailure : CliResult
 
 /** Starts the `moon` executable. */
 object MoonCli {
@@ -63,7 +75,7 @@ object MoonCli {
         val handler = try {
             CapturingProcessHandler(commandLine)
         } catch (e: ExecutionException) {
-            return CliResult.Failed(e.message.orEmpty())
+            return CliResult.StartFailed(e.message)
         }
         return runWithTimeout(handler, timeoutMillis)
     }
@@ -82,12 +94,10 @@ object MoonCli {
         if (output.isTimeout) return CliResult.TimedOut
         if (output.exitCode == 0 && !output.isCancelled) return CliResult.Success(output.stdout)
         val text = output.stderr.ifBlank { output.stdout }.replace(ANSI_ESCAPE, "").trim()
-        return CliResult.Failed(text.ifEmpty { statusText(output) })
-    }
-
-    /** Tells why the process stopped, if moon did not write an error text. */
-    private fun statusText(output: ProcessOutput): String = when {
-        output.isCancelled -> "The moon process was stopped."
-        else -> "The moon process stopped with exit code ${output.exitCode}."
+        return when {
+            text.isNotEmpty() -> CliResult.Failed(text)
+            output.isCancelled -> CliResult.Cancelled
+            else -> CliResult.ExitCode(output.exitCode)
+        }
     }
 }

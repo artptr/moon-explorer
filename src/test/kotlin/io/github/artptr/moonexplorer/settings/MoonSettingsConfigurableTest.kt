@@ -11,6 +11,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
@@ -112,7 +113,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
             assertTrue(configurable.isModified)
             configurable.apply()
             assertEquals(moon.toString(), settings.executablePath)
-            tasks.awaitState(TasksState.MoonError("from apply"))
+            tasks.awaitState(TasksState.MoonFailed(MoonFailure.Error("from apply")))
         } finally {
             runBlocking { tasks.resetForTests() }
         }
@@ -207,7 +208,7 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
             configurable.apply()
             assertEquals(300, settings.timeoutSeconds)
             assertFalse(configurable.isModified)
-            tasks.awaitState(TasksState.MoonError("from timeout"))
+            tasks.awaitState(TasksState.MoonFailed(MoonFailure.Error("from timeout")))
         } finally {
             runBlocking { tasks.resetForTests() }
         }

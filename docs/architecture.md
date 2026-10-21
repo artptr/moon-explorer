@@ -59,6 +59,8 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 4. The service sets the new state. The tool window shows the tree or a message. If the load fails after a successful load, the tree keeps the last tasks. Refer to section 6.
 5. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.
 
+**NOTE:** The `cli` and `model` packages give the cause of a failure as a type, for example `MoonFailure.ExitCode` or `OutputProblem.NoProjects`. `TasksLoader` changes each `CliFailure` into a `MoonFailure` of the model layer. Thus the `ui` package does not use the `cli` package. The `ui` package gets the text for each cause from `MoonExplorerBundle`. Some messages also contain an error text from moon, from the IntelliJ Platform, or from the JSON parser. The bundle message contains this text without change.
+
 The output of `moon query projects` contains the `stack` value, the `layer` value, and the tasks of each project. Thus the plugin starts only one moon process for each load.
 The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.
 moon does not write the key `tasks` for a project without tasks. The tree does not show these projects.
@@ -122,12 +124,12 @@ A change in an IDE editor applies when the IDE saves the document. moon reads on
 If a load fails after a successful load, the service gives the state `TasksState.Stale`. This state contains the last successful load and the error. This rule applies to all loads: at startup, after **Refresh**, and after a change.
 
 - The tree shows the tasks of the last successful load. The expanded nodes and the selected nodes do not change.
-- `ui.RefreshFailureNotifier` shows a notification with the error text from moon. The notification has the action **Refresh**. If the plugin cannot find moon, or if moon did not complete in the time limit, the notification also has **Open Settings**.
+- `ui.RefreshFailureNotifier` shows a notification with the message for the failure. The notification has the action **Refresh**. The notification also has **Open Settings** if the plugin cannot find or start moon, or if moon did not complete in the time limit.
 - The plugin shows a maximum of one notification. A new failure replaces it. A successful load closes it.
 - While the state is `Stale`, the toolbar shows the action **Show Refresh Error** with a warning icon. The action shows the notification again.
 
 If a load finds no workspace, the old tasks are not correct. The tool window then shows a message and the plugin closes the notification.
-If a load fails and there was no successful load before it, the tool window shows the error text instead of the tree.
+If a load fails and there was no successful load before it, the tool window shows the message for the failure instead of the tree.
 
 ## 7. Threading
 

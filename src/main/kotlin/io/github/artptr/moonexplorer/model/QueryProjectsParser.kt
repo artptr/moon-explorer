@@ -18,7 +18,7 @@ object QueryProjectsParser {
      */
     fun parse(json: String): WorkspaceTasks {
         val projects = parseMoonJson(json).objectOrNull()?.get("projects")?.takeIf { it.isJsonArray }?.asJsonArray
-            ?: throw MoonOutputException("The output does not contain the array \"projects\"")
+            ?: throw MoonOutputException(OutputProblem.NoProjects)
 
         val sources = mutableListOf<ProjectSource>()
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->

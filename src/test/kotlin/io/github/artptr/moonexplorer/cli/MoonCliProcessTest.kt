@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeFalse
 import org.junit.Before
 import org.junit.Rule
@@ -48,5 +49,11 @@ class MoonCliProcessTest {
     @Test
     fun queryGivesTheErrorOfTheExecutable() {
         assertEquals(CliResult.Failed("query projects NO_COLOR=1"), queryProjects(fakeMoon(exitCode = 2)))
+    }
+
+    @Test
+    fun executableThatDoesNotExistGivesStartFailed() {
+        val result = queryProjects(File(temp.newFolder("empty"), "moon"))
+        assertTrue("Result: $result", result is CliResult.StartFailed)
     }
 }

@@ -10,6 +10,8 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ClickListener
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.MoonFailure
+import io.github.artptr.moonexplorer.model.OutputProblem
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
@@ -55,40 +57,83 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
     }
 
-    fun testMoonNotFoundShowsTheExaminedLocationsAndTheSettingsLink() {
+    fun testNotFoundShowsTheExaminedLocationsAndTheSettingsLink() {
         val examined = listOf(Path.of("/work/node_modules/.bin/moon"), Path.of("/home/.proto/shims/moon"))
-        panel.render(TasksState.MoonNotFound(examined))
+        panel.render(TasksState.MoonFailed(MoonFailure.NotFound(examined)))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonNotFound", examined.joinToString("\n") { "  $it" }))
         examined.forEach { assertTrue(panel.messageArea.text.contains(it.toString())) }
         assertTrue(panel.settingsLink.isVisible)
     }
 
     fun testOtherMessagesDoNotShowTheSettingsLink() {
-        panel.render(TasksState.MoonNotFound(emptyList()))
-        panel.render(TasksState.MoonError("bad"))
+        panel.render(TasksState.MoonFailed(MoonFailure.NotFound(emptyList())))
+        panel.render(TasksState.MoonFailed(MoonFailure.Error("bad")))
         assertFalse(panel.settingsLink.isVisible)
-        panel.render(TasksState.MoonTimeout)
-        panel.render(TasksState.MoonError("bad"))
+        panel.render(TasksState.MoonFailed(MoonFailure.TimedOut))
+        panel.render(TasksState.MoonFailed(MoonFailure.Error("bad")))
         assertFalse("The link must not stay after the timeout message", panel.settingsLink.isVisible)
     }
 
-    fun testMoonErrorShowsTheErrorText() {
-        panel.render(TasksState.MoonError("Error: moon.yml is not valid"))
+    fun testErrorShowsTheErrorText() {
+        panel.render(TasksState.MoonFailed(MoonFailure.Error("Error: moon.yml is not valid")))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonError", "Error: moon.yml is not valid"))
         assertTrue(panel.messageArea.text.contains("Error: moon.yml is not valid"))
     }
 
-    fun testMoonTimeoutShowsMessage() {
+    fun testTimedOutShowsMessage() {
         panel.render(TasksState.Loading)
-        panel.render(TasksState.MoonTimeout)
+        panel.render(TasksState.MoonFailed(MoonFailure.TimedOut))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
         // The user can change the time limit in the settings.
         assertTrue(panel.settingsLink.isVisible)
     }
 
-    fun testInvalidOutputShowsMessage() {
-        panel.render(TasksState.InvalidOutput("bad JSON"))
-        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput", "bad JSON"))
+    fun testExitCodeShowsMessage() {
+        panel.render(TasksState.MoonFailed(MoonFailure.ExitCode(3)))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonExitCode", "3"))
+        assertFalse(panel.settingsLink.isVisible)
+    }
+
+    fun testCancelledShowsMessage() {
+        panel.render(TasksState.MoonFailed(MoonFailure.Cancelled))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonCancelled"))
+        assertFalse(panel.settingsLink.isVisible)
+    }
+
+    fun testStartFailedShowsTheDetailAndTheSettingsLink() {
+        panel.render(TasksState.MoonFailed(MoonFailure.StartFailed("Cannot run program")))
+        assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailed", "Cannot run program"))
+        // Usually, the plugin cannot start moon because the path to moon in the settings is not correct.
+        assertTrue(panel.settingsLink.isVisible)
+    }
+
+    fun testStartFailedWithoutDetailShowsMessage() {
+        for (detail in listOf(null, " ")) {
+            panel.render(TasksState.MoonFailed(MoonFailure.StartFailed(detail)))
+            assertMessage(MoonExplorerBundle.message("tasks.message.moonStartFailedNoDetail"))
+            assertTrue(panel.settingsLink.isVisible)
+        }
+    }
+
+    fun testOutputThatIsNotJsonShowsTheDetail() {
+        panel.render(TasksState.InvalidOutput(OutputProblem.NotJson("line 1 column 7")))
+        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput.notJson", "line 1 column 7"))
+    }
+
+    fun testOutputThatIsNotJsonWithoutDetailShowsMessage() {
+        panel.render(TasksState.InvalidOutput(OutputProblem.NotJson(null)))
+        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput.notJsonNoDetail"))
+    }
+
+    fun testOutputWithoutProjectsShowsMessage() {
+        panel.render(TasksState.InvalidOutput(OutputProblem.NoProjects))
+        assertMessage(MoonExplorerBundle.message("tasks.message.invalidOutput.noProjects"))
+    }
+
+    fun testUnexpectedErrorShowsMessage() {
+        panel.render(TasksState.UnexpectedError)
+        assertMessage(MoonExplorerBundle.message("tasks.message.unexpectedError"))
+        assertFalse(panel.settingsLink.isVisible)
     }
 
     fun testEmptyWorkspaceShowsMessage() {
@@ -281,7 +326,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.tree.expandPath(projectPath("web"))
         panel.render(TasksState.Loading)
         val last = TestData.recordedState()
-        panel.render(TasksState.Stale(last, TasksState.MoonError("bad config")))
+        panel.render(TasksState.Stale(last, TasksState.MoonFailed(MoonFailure.Error("bad config"))))
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
         assertFalse(panel.loadingPanel.isLoading)
         assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
@@ -290,15 +335,15 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testStaleAfterAMessageShowsTheLastTasks() {
-        panel.render(TasksState.MoonError("old"))
+        panel.render(TasksState.MoonFailed(MoonFailure.Error("old")))
         val last = TestData.recordedState()
-        panel.render(TasksState.Stale(last, TasksState.MoonTimeout))
+        panel.render(TasksState.Stale(last, TasksState.MoonFailed(MoonFailure.TimedOut)))
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
     }
 
     fun testFailureTextIsTheSameAsTheMessage() {
-        panel.render(TasksState.InvalidOutput("bad JSON"))
-        assertEquals(failureText(TasksState.InvalidOutput("bad JSON")), panel.messageArea.text)
+        panel.render(TasksState.InvalidOutput(OutputProblem.NoProjects))
+        assertEquals(failureText(TasksState.InvalidOutput(OutputProblem.NoProjects)), panel.messageArea.text)
     }
 
     fun testEachStateUpdatesTheToolbar() {
@@ -307,10 +352,10 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.updateToolbar = { updates++ }
         val states = listOf(
             TestData.recordedState(),
-            TasksState.Stale(TestData.recordedState(), TasksState.MoonError("bad config")),
+            TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error("bad config"))),
             TasksState.Loading,
             TasksState.NoWorkspace,
-            TasksState.MoonTimeout,
+            TasksState.MoonFailed(MoonFailure.TimedOut),
         )
         states.forEach(panel::render)
         assertEquals(states.size, updates)

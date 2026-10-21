@@ -62,35 +62,39 @@ class TasksLoaderTest {
     }
 
     @Test
-    fun notFoundGivesMoonNotFound() {
+    fun cliFailureGivesMoonFailedWithTheSameCause() {
         val examined = listOf(workspace.resolve("node_modules/.bin/moon"))
-        assertEquals(TasksState.MoonNotFound(examined), load(workspace, CliResult.NotFound(examined)))
-    }
-
-    @Test
-    fun failureGivesMoonError() {
-        assertEquals(TasksState.MoonError("bad config"), load(workspace, CliResult.Failed("bad config")))
-    }
-
-    @Test
-    fun timeoutGivesMoonTimeout() {
-        assertEquals(TasksState.MoonTimeout, load(workspace, CliResult.TimedOut))
+        val failures = mapOf(
+            CliResult.NotFound(examined) to MoonFailure.NotFound(examined),
+            CliResult.Failed("bad config") to MoonFailure.Error("bad config"),
+            CliResult.ExitCode(3) to MoonFailure.ExitCode(3),
+            CliResult.Cancelled to MoonFailure.Cancelled,
+            CliResult.StartFailed("cannot start") to MoonFailure.StartFailed("cannot start"),
+            CliResult.TimedOut to MoonFailure.TimedOut,
+        )
+        failures.forEach { (result, cause) -> assertEquals(TasksState.MoonFailed(cause), load(workspace, result)) }
     }
 
     @Test
     fun outputThatIsNotJsonGivesInvalidOutput() {
-        assertTrue(load(workspace, CliResult.Success("not JSON")) is TasksState.InvalidOutput)
+        val state = load(workspace, CliResult.Success("not JSON"))
+        assertTrue("State: $state", (state as? TasksState.InvalidOutput)?.problem is OutputProblem.NotJson)
     }
 
     @Test
-    fun unexpectedErrorGivesInvalidOutput() {
+    fun outputWithoutProjectsGivesInvalidOutput() {
+        assertEquals(TasksState.InvalidOutput(OutputProblem.NoProjects), load(workspace, CliResult.Success("{}")))
+    }
+
+    @Test
+    fun unexpectedErrorGivesUnexpectedError() {
         val state = runBlocking { loadTasks(workspace) { throw IllegalStateException("unexpected") } }
-        assertEquals(TasksState.InvalidOutput("unexpected"), state)
+        assertEquals(TasksState.UnexpectedError, state)
     }
 
     @Test
-    fun checkedExceptionGivesInvalidOutput() {
+    fun checkedExceptionGivesUnexpectedError() {
         val state = runBlocking { loadTasks(workspace) { throw ExecutionException("cannot start") } }
-        assertEquals(TasksState.InvalidOutput("cannot start"), state)
+        assertEquals(TasksState.UnexpectedError, state)
     }
 }

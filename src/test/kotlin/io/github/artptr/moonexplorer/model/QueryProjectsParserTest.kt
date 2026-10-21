@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.model
 import io.github.artptr.moonexplorer.testData.TestData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -115,14 +116,16 @@ class QueryProjectsParserTest {
         assertTrue(QueryProjectsParser.parse("""{"projects": [], "options": {}}""").projects.isEmpty())
     }
 
-    @Test(expected = MoonOutputException::class)
+    @Test
     fun outputThatIsNotJsonThrows() {
-        QueryProjectsParser.parse("Error: not JSON {")
+        val e = assertThrows(MoonOutputException::class.java) { QueryProjectsParser.parse("Error: not JSON {") }
+        assertTrue("Problem: ${e.problem}", e.problem is OutputProblem.NotJson)
     }
 
-    @Test(expected = MoonOutputException::class)
+    @Test
     fun outputWithoutProjectsThrows() {
-        QueryProjectsParser.parse("""{"tasks": {}}""")
+        val e = assertThrows(MoonOutputException::class.java) { QueryProjectsParser.parse("""{"tasks": {}}""") }
+        assertEquals(OutputProblem.NoProjects, e.problem)
     }
 
     @Test
