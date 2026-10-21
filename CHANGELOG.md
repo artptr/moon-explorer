@@ -13,7 +13,7 @@
 
 - The **Group By** menu of the **Moon** tool window has two selections. The main group (**Project** or **Task Name**) sets the structure of the tree. Below it, **Category** (**None**, **Stack**, or **Layer**) adds a node for each value at the top of the tree. The projects without a value are in the "(none)" node.
 - If the old setting is **Stack**, the plugin changes it to the category **Stack** and the main group **Project**.
-- If a refresh fails after a successful load, the tree keeps the last tasks. A notification shows the error text from moon. While the tree shows old tasks, the toolbar shows the **Show Refresh Error** action with a warning icon.
+- If a refresh fails after a successful load, the tree keeps the last tasks. A notification shows the message for the failure. While the tree shows old tasks, the toolbar shows the **Show Refresh Error** action with a warning icon.
 - The **Moon** tool window has new error messages. They tell if the plugin cannot start moon or cannot read its output. They also tell if moon stops without an error text. If the plugin cannot start moon, the message has a link to the settings. For an unexpected error, the message refers to the IDE log.
 
 ## [0.1.0] - 2026-10-16

@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 /** The state of the task data for the tool window. */
 sealed interface TasksState {
-    /** A load that failed. The tool window shows a message for the failure. */
+    /** A load that failed. The tool window or the notification shows a message for the failure. */
     sealed interface Failure : TasksState
 
     /** The plugin runs `moon query projects`. */
@@ -15,7 +15,7 @@ sealed interface TasksState {
 
     /**
      * The last load failed after an earlier successful load. [last] is the result of the last successful load.
-     * The tree shows [last]. A notification and the toolbar show [failure].
+     * The tree shows [last]. A notification shows the message for [failure]. The toolbar shows the action **Show Refresh Error**.
      */
     data class Stale(val last: Loaded, val failure: Failure) : TasksState
 
