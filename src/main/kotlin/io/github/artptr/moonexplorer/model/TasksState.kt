@@ -1,7 +1,27 @@
 package io.github.artptr.moonexplorer.model
 
-import io.github.artptr.moonexplorer.cli.CliFailure
 import java.nio.file.Path
+
+/** Tells why the `moon` command failed. The `ui` layer uses this type, because it does not use the `cli` layer. */
+sealed interface MoonFailure {
+    /** The plugin cannot find the `moon` executable. [examined] contains the files that the plugin examined before `PATH`. */
+    data class NotFound(val examined: List<Path>) : MoonFailure
+
+    /** The `moon` command gave an error. [text] is the error text from moon. It is not blank. */
+    data class Error(val text: String) : MoonFailure
+
+    /** The `moon` command stopped with the exit code [code], which is not 0. moon gave no error text. */
+    data class ExitCode(val code: Int) : MoonFailure
+
+    /** The moon process stopped before it completed, but not because of the time limit. moon gave no error text. */
+    data object Cancelled : MoonFailure
+
+    /** The plugin cannot start the moon process. [detail] is the error text from the IntelliJ Platform, or null if the platform gave no text. */
+    data class StartFailed(val detail: String?) : MoonFailure
+
+    /** The `moon` command did not complete in the time limit. The plugin stopped the moon process. */
+    data object TimedOut : MoonFailure
+}
 
 /** The state of the task data for the tool window. */
 sealed interface TasksState {
@@ -24,7 +44,7 @@ sealed interface TasksState {
     data object NoWorkspace : TasksState
 
     /** The `moon` command failed. [cause] tells the cause. */
-    data class MoonFailed(val cause: CliFailure) : Failure
+    data class MoonFailed(val cause: MoonFailure) : Failure
 
     /** The plugin cannot read the output of moon. [problem] tells the cause. */
     data class InvalidOutput(val problem: OutputProblem) : Failure

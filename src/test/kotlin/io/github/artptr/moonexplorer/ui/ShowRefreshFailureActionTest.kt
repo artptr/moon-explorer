@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
@@ -16,7 +17,7 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
 
     private lateinit var service: MoonTasksService
     private val loaded get() = TestData.recordedState()
-    private val stale get() = TasksState.Stale(loaded, TasksState.MoonFailed(CliResult.Failed("bad config")))
+    private val stale get() = TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad config")))
 
     override fun setUp() {
         super.setUp()
@@ -58,7 +59,7 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
     fun testActionIsHiddenForAFailureWithoutAnEarlierLoad() {
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
-        service.awaitState(TasksState.MoonFailed(CliResult.Failed("bad config")))
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
         assertFalse(isVisible())
     }
 

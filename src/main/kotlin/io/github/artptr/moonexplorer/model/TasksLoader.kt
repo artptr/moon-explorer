@@ -27,7 +27,7 @@ object TasksLoader {
         return try {
             when (val result = queryProjects(root)) {
                 is CliResult.Success -> TasksState.Loaded(QueryProjectsParser.parse(result.stdout), root)
-                is CliFailure -> TasksState.MoonFailed(result)
+                is CliFailure -> TasksState.MoonFailed(moonFailure(result))
             }
         } catch (e: MoonOutputException) {
             TasksState.InvalidOutput(e.problem)
@@ -38,5 +38,14 @@ object TasksLoader {
             thisLogger().warn("Cannot get the moon tasks", e)
             TasksState.UnexpectedError
         }
+    }
+
+    private fun moonFailure(result: CliFailure): MoonFailure = when (result) {
+        is CliResult.NotFound -> MoonFailure.NotFound(result.examined)
+        is CliResult.Failed -> MoonFailure.Error(result.message)
+        is CliResult.ExitCode -> MoonFailure.ExitCode(result.code)
+        CliResult.Cancelled -> MoonFailure.Cancelled
+        is CliResult.StartFailed -> MoonFailure.StartFailed(result.detail)
+        CliResult.TimedOut -> MoonFailure.TimedOut
     }
 }

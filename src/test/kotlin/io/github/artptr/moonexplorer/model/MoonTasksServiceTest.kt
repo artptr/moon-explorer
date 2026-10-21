@@ -91,7 +91,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             runBlocking { service.resetForTests() }
             service.projectDir = { TestData.workspace.toPath() }
             service.refresh()
-            service.awaitState(TasksState.MoonFailed(CliResult.TimedOut))
+            service.awaitState(TasksState.MoonFailed(MoonFailure.TimedOut))
         } finally {
             settings.executablePath = ""
             settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
@@ -101,13 +101,13 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testRefreshShowsTheMoonError() {
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
-        service.awaitState(TasksState.MoonFailed(CliResult.Failed("bad config")))
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
     }
 
     fun testRefreshSetsLoadingBeforeItReturns() {
         service.queryProjects = { CliResult.Failed("first") }
         service.refresh()
-        service.awaitState(TasksState.MoonFailed(CliResult.Failed("first")))
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("first")))
         service.queryProjects = { awaitCancellation() }
         service.refresh()
         assertEquals(TasksState.Loading, service.state.value)
@@ -133,7 +133,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             // A change after the call must not go into the load of the call.
             service.queryProjects = { CliResult.Failed("later change") }
             release.complete(Unit)
-            service.awaitState(TasksState.MoonFailed(CliResult.Failed("second refresh")))
+            service.awaitState(TasksState.MoonFailed(MoonFailure.Error("second refresh")))
         } finally {
             // If the test fails before this step, tearDown must not wait for the first load without end.
             release.complete(Unit)
@@ -167,7 +167,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testStartupActivityLoadsTheTasks() {
         service.queryProjects = { CliResult.Failed("from startup") }
         runBlocking { MoonTasksStartupActivity().execute(project) }
-        service.awaitState(TasksState.MoonFailed(CliResult.Failed("from startup")))
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("from startup")))
     }
 
     private val loaded get() = TestData.recordedState()
@@ -178,7 +178,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.awaitState(loaded)
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
-        service.awaitState(TasksState.Stale(loaded, TasksState.MoonFailed(CliResult.Failed("bad config"))))
+        service.awaitState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad config"))))
         service.queryProjects = { CliResult.Success(recorded) }
         service.refresh()
         service.awaitState(loaded)
@@ -195,7 +195,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.projectDir = { TestData.workspace.toPath() }
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
-        service.awaitState(TasksState.MoonFailed(CliResult.Failed("bad config")))
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
     }
 
     fun testLoadSetsTheConfigWatch() {
@@ -206,7 +206,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // A failure keeps the sources of the last successful load.
         service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
-        service.awaitState(TasksState.Stale(loaded, TasksState.MoonFailed(CliResult.Failed("bad config"))))
+        service.awaitState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad config"))))
         assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
     }
 

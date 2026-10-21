@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
@@ -47,6 +48,6 @@ class RefreshTasksActionTest : BasePlatformTestCase() {
         service.queryProjects = { CliResult.Failed("from action") }
         val action = RefreshTasksAction()
         action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
-        service.awaitState(TasksState.MoonFailed(CliResult.Failed("from action")))
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("from action")))
     }
 }

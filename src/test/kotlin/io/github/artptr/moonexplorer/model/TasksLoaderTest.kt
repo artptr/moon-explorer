@@ -63,15 +63,16 @@ class TasksLoaderTest {
 
     @Test
     fun cliFailureGivesMoonFailedWithTheSameCause() {
-        val failures = listOf(
-            CliResult.NotFound(listOf(workspace.resolve("node_modules/.bin/moon"))),
-            CliResult.Failed("bad config"),
-            CliResult.ExitCode(3),
-            CliResult.Cancelled,
-            CliResult.StartFailed("cannot start"),
-            CliResult.TimedOut,
+        val examined = listOf(workspace.resolve("node_modules/.bin/moon"))
+        val failures = mapOf(
+            CliResult.NotFound(examined) to MoonFailure.NotFound(examined),
+            CliResult.Failed("bad config") to MoonFailure.Error("bad config"),
+            CliResult.ExitCode(3) to MoonFailure.ExitCode(3),
+            CliResult.Cancelled to MoonFailure.Cancelled,
+            CliResult.StartFailed("cannot start") to MoonFailure.StartFailed("cannot start"),
+            CliResult.TimedOut to MoonFailure.TimedOut,
         )
-        failures.forEach { assertEquals(TasksState.MoonFailed(it), load(workspace, it)) }
+        failures.forEach { (result, cause) -> assertEquals(TasksState.MoonFailed(cause), load(workspace, result)) }
     }
 
     @Test
