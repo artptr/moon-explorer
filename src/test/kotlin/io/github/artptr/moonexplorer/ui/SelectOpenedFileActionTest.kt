@@ -72,7 +72,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         val actionManager = ActionManager.getInstance()
         val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
         assertEquals(
-            listOf("MoonExplorer.RefreshTasks", "MoonExplorer.SelectOpenedFile", "MoonExplorer.GroupBy"),
+            listOf("MoonExplorer.RefreshTasks", "MoonExplorer.ShowRefreshFailure", "MoonExplorer.SelectOpenedFile", "MoonExplorer.GroupBy"),
             toolbar.childActionsOrStubs.map(actionManager::getId),
         )
     }
@@ -153,7 +153,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
 
     fun testBalloonTextEscapesHtml() {
         val text = MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", "a<b>&c.ts")
-        assertEquals("The file a&lt;b&gt;&amp;c.ts is not in a moon project.", balloonHtml(text))
+        assertEquals("The file a&lt;b&gt;&amp;c.ts is not in a moon project.", plainTextHtml(text))
     }
 
     fun testActionIsDisabledForAFileThatIsNotOnTheDisk() {

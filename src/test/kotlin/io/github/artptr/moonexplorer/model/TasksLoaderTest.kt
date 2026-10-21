@@ -20,7 +20,9 @@ class TasksLoaderTest {
 
     private val recorded = CliResult.Success(TestData.recorded("query-projects.json"))
 
-    private fun load(dir: Path?, result: CliResult) = runBlocking { TasksLoader.loadTasks(dir) { result } }
+    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) = TasksLoader.loadTasksIn(TasksLoader.findRoot(dir), query)
+
+    private fun load(dir: Path?, result: CliResult) = runBlocking { loadTasks(dir) { result } }
 
     @Test
     fun noProjectDirectoryGivesNoWorkspace() {
@@ -35,20 +37,20 @@ class TasksLoaderTest {
     @Test
     fun runsTheQueryInTheWorkspaceRoot() {
         var dir: Path? = null
-        runBlocking { TasksLoader.loadTasks(workspace.resolve("apps/web")) { dir = it; recorded } }
+        runBlocking { loadTasks(workspace.resolve("apps/web")) { dir = it; recorded } }
         assertEquals(workspace.toAbsolutePath().normalize(), dir)
     }
 
     @Test
     fun runsOneQueryForEachLoad() {
         var calls = 0
-        runBlocking { TasksLoader.loadTasks(workspace) { calls++; recorded } }
+        runBlocking { loadTasks(workspace) { calls++; recorded } }
         assertEquals(1, calls)
     }
 
     @Test
     fun successGivesLoaded() {
-        assertEquals(TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot), load(workspace, recorded))
+        assertEquals(TestData.recordedState(), load(workspace, recorded))
     }
 
     @Test
@@ -82,13 +84,13 @@ class TasksLoaderTest {
 
     @Test
     fun unexpectedErrorGivesInvalidOutput() {
-        val state = runBlocking { TasksLoader.loadTasks(workspace) { throw IllegalStateException("unexpected") } }
+        val state = runBlocking { loadTasks(workspace) { throw IllegalStateException("unexpected") } }
         assertEquals(TasksState.InvalidOutput("unexpected"), state)
     }
 
     @Test
     fun checkedExceptionGivesInvalidOutput() {
-        val state = runBlocking { TasksLoader.loadTasks(workspace) { throw ExecutionException("cannot start") } }
+        val state = runBlocking { loadTasks(workspace) { throw ExecutionException("cannot start") } }
         assertEquals(TasksState.InvalidOutput("cannot start"), state)
     }
 }

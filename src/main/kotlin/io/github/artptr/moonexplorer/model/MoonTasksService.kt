@@ -11,13 +11,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Keeps the tasks of the moon workspace for the IDE project.
@@ -32,6 +36,18 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     val state: StateFlow<TasksState> = _state.asStateFlow()
 
     private var job: Job? = null
+
+    /** The refresh that [scheduleRefresh] started. It waits for [refreshDelay]. The value is null if no refresh waits. */
+    private var pending: Job? = null
+
+    /** The result of the last successful load. The tree shows it if a later load fails. */
+    @Volatile
+    private var lastLoaded: TasksState.Loaded? = null
+
+    /** The data of the last load for [MoonConfigFileListener]. */
+    @Volatile
+    internal var configWatch: ConfigWatch = ConfigWatch(null, null)
+        private set
 
     private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
     private val defaultQueryProjects: suspend (Path) -> CliResult = { root -> query(root, "projects") }
@@ -48,9 +64,42 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
      */
     internal var queryProjects: suspend (Path) -> CliResult = defaultQueryProjects
 
-    /** Runs `moon query projects` again. If a load runs now, the function cancels it and starts a new load. */
+    /**
+     * The time that [scheduleRefresh] waits before the refresh. Tests change this value.
+     * Change it only on the test thread, before you call [scheduleRefresh].
+     */
+    internal var refreshDelay: Duration = REFRESH_DELAY
+
+    /**
+     * Refreshes the tasks after [refreshDelay]. If the function gets a new call in this time, it starts to wait again.
+     * Thus many changes in a short time cause only one run of `moon query projects`.
+     */
+    @Synchronized
+    fun scheduleRefresh() {
+        pending?.cancel()
+        val wait = refreshDelay
+        pending = scope.launch {
+            delay(wait)
+            synchronized(this@MoonTasksService) {
+                // A new call can cancel this job after the delay. Then the new job refreshes.
+                if (isActive) startLoad()
+            }
+        }
+    }
+
+    /**
+     * Runs `moon query projects` again. If a load runs now, the function cancels it and starts a new load.
+     * The function also cancels a refresh that [scheduleRefresh] started. Thus a manual refresh does not cause a second refresh.
+     */
     @Synchronized
     fun refresh() {
+        pending?.cancel()
+        pending = null
+        startLoad()
+    }
+
+    /** Starts a new load. If a load runs now, the function cancels it. Call this function only with the lock of the service. */
+    private fun startLoad() {
         val previous = job
         // Cancel the previous load now. Thus two moon processes do not run at the same time for long.
         previous?.cancel()
@@ -61,8 +110,31 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         val queryProjectsFn = queryProjects
         job = scope.launch {
             previous?.join()
-            _state.value = withContext(Dispatchers.IO) { TasksLoader.loadTasks(projectDirFn(), queryProjectsFn) }
+            _state.value = withContext(Dispatchers.IO) {
+                val dir = projectDirFn()
+                val root = TasksLoader.findRoot(dir)
+                // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
+                configWatch = ConfigWatch(root, dir, lastLoaded?.tasks?.sources.orEmpty())
+                publish(TasksLoader.loadTasksIn(root, queryProjectsFn))
+            }
         }
+    }
+
+    /**
+     * Gives the state for the [result] of a load, and keeps the data for the next loads.
+     * A failure after a successful load gives [TasksState.Stale]. Thus the tree keeps the last correct tasks.
+     * If the last successful load changes, the function also changes the sources in [configWatch].
+     */
+    private fun publish(result: TasksState): TasksState {
+        val state = when (result) {
+            is TasksState.Failure -> return lastLoaded?.let { TasksState.Stale(it, result) } ?: result
+            is TasksState.Loaded -> result.also { lastLoaded = it }
+            // The workspace is not there. The old tasks are not correct.
+            else -> result.also { lastLoaded = null }
+        }
+        val watch = configWatch
+        configWatch = ConfigWatch(watch.root, watch.projectDir, lastLoaded?.tasks?.sources.orEmpty())
+        return state
     }
 
     /**
@@ -80,7 +152,8 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     /**
      * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading].
-     * Also sets [projectDir] and [queryProjects] to their default values. Only tests use this function.
+     * Also cancels the refresh that waits, removes the data of the last load,
+     * and sets [projectDir], [queryProjects], and [refreshDelay] to their default values. Only tests use this function.
      * Call it only on the test thread.
      */
     @TestOnly
@@ -88,9 +161,19 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         val previous = synchronized(this) {
             projectDir = defaultProjectDir
             queryProjects = defaultQueryProjects
+            refreshDelay = REFRESH_DELAY
+            pending?.cancel()
+            pending = null
             job.also { job = null }
         }
         previous?.cancelAndJoin()
+        lastLoaded = null
+        configWatch = ConfigWatch(null, null)
         _state.value = TasksState.Loading
+    }
+
+    internal companion object {
+        /** The default value of [refreshDelay]. */
+        val REFRESH_DELAY: Duration = 1.seconds
     }
 }

@@ -19,6 +19,8 @@
                     icon="AllIcons.Toolwindows.ToolWindowHierarchy"
                     factoryClass="io.github.artptr.moonexplorer.ui.MoonToolWindowFactory"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
+        <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RefreshFailureNotifierStartupActivity"/>
+        <notificationGroup id="Moon Explorer" displayType="STICKY_BALLOON" key="notification.group.name"/>
         <projectConfigurable parentId="tools"
                              id="io.github.artptr.moonexplorer.settings"
                              instance="io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable"
@@ -26,11 +28,19 @@
         <configurationType implementation="io.github.artptr.moonexplorer.run.MoonRunConfigurationType"/>
     </extensions>
 
+    <projectListeners>
+        <listener class="io.github.artptr.moonexplorer.model.MoonConfigFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
+
     <actions>
         <group id="MoonExplorer.TasksToolbar">
             <action id="MoonExplorer.RefreshTasks"
                     class="io.github.artptr.moonexplorer.ui.RefreshTasksAction"
                     icon="AllIcons.Actions.Refresh"/>
+            <action id="MoonExplorer.ShowRefreshFailure"
+                    class="io.github.artptr.moonexplorer.ui.ShowRefreshFailureAction"
+                    icon="AllIcons.General.Warning"/>
             <action id="MoonExplorer.SelectOpenedFile"
                     class="io.github.artptr.moonexplorer.ui.SelectOpenedFileAction"
                     icon="AllIcons.General.Locate"/>

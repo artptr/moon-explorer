@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
@@ -10,7 +11,6 @@ import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
@@ -79,7 +79,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     /** Opens the settings page. The panel shows this link only if the plugin cannot find moon. */
     internal val settingsLink = ActionLink(MoonExplorerBundle.message("tasks.link.openSettings")) {
-        ShowSettingsUtil.getInstance().showSettingsDialog(project, MoonSettingsConfigurable::class.java)
+        MoonSettingsConfigurable.show(project)
     }.apply {
         border = JBUI.Borders.empty(0, 8, 8, 8)
         isVisible = false
@@ -107,6 +107,8 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     private val job: Job
 
+    private val actionToolbar: ActionToolbar
+
     private val settings = project.service<MoonSettings>()
 
     /**
@@ -120,11 +122,17 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * Tests change this value to a fake. Change it only on the EDT.
      */
     internal var showInfo: (String) -> Unit = { text ->
-        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(balloonHtml(text), MessageType.INFO, null)
+        JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(plainTextHtml(text), MessageType.INFO, null)
             .setFadeoutTime(INFO_FADEOUT_MILLIS)
             .createBalloon()
             .show(RelativePoint.getSouthWestOf(toolbar ?: this), Balloon.Position.below)
     }
+
+    /**
+     * Updates the actions of the toolbar. The default value starts an update of the toolbar. Tests change this value to a fake.
+     * Change it only on the EDT.
+     */
+    internal var updateToolbar: () -> Unit = { actionToolbar.updateActionsAsync() }
 
     /** The loaded state that the tree shows now. The value is null if the panel shows a message. */
     private var shown: TasksState.Loaded? = null
@@ -132,9 +140,9 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
             ?: error("plugin.xml must register the action group $TOOLBAR_GROUP_ID")
-        val toolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, group, true)
-        toolbar.targetComponent = this
-        setToolbar(toolbar.component)
+        actionToolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, group, true)
+        actionToolbar.targetComponent = this
+        setToolbar(actionToolbar.component)
         setContent(loadingPanel)
         installTaskActions()
 
@@ -198,8 +206,13 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         sink[TASKS_PANEL] = this
     }
 
-    /** Shows [state]. Call this function on the EDT. */
+    /**
+     * Shows [state]. For [TasksState.Stale], the panel shows the last correct tasks. [RefreshFailureNotifier] shows the error.
+     * Call this function on the EDT.
+     */
     internal fun render(state: TasksState) {
+        // The action ShowRefreshFailureAction is visible only in the Stale state. This call updates the toolbar for all states, also for the Loading state.
+        updateToolbar()
         if (state is TasksState.Loading) {
             loadingPanel.startLoading()
             return
@@ -207,23 +220,20 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         // Stop the loading indicator first. Thus an error in the code below does not keep the indicator visible.
         loadingPanel.stopLoading()
         when (state) {
-            is TasksState.Loaded -> {
-                if (state.tasks.projects.isEmpty()) {
-                    showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
-                } else {
-                    shown = state
-                    showTree(state.tasks)
-                }
-            }
+            is TasksState.Loaded -> showLoaded(state)
+            is TasksState.Stale -> showLoaded(state.last)
             TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
-            is TasksState.MoonNotFound -> {
-                val locations = state.examined.joinToString("\n") { "  $it" }
-                showMessage(MoonExplorerBundle.message("tasks.message.moonNotFound", locations), showSettingsLink = true)
-            }
-            is TasksState.MoonError -> showMessage(MoonExplorerBundle.message("tasks.message.moonError", state.text))
-            TasksState.MoonTimeout -> showMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"), showSettingsLink = true)
-            is TasksState.InvalidOutput -> showMessage(MoonExplorerBundle.message("tasks.message.invalidOutput", state.text))
+            is TasksState.Failure -> showMessage(failureText(state), showSettingsLink = hasSettingsLink(state))
             TasksState.Loading -> Unit
+        }
+    }
+
+    private fun showLoaded(state: TasksState.Loaded) {
+        if (state.tasks.projects.isEmpty()) {
+            showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
+        } else {
+            shown = state
+            showTree(state.tasks)
         }
     }
 
@@ -339,8 +349,23 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     }
 }
 
+/** Gives the text that tells the user about [failure]. The text is plain text, not HTML. */
+internal fun failureText(failure: TasksState.Failure): String = when (failure) {
+    is TasksState.MoonNotFound -> {
+        val locations = failure.examined.joinToString("\n") { "  $it" }
+        MoonExplorerBundle.message("tasks.message.moonNotFound", locations)
+    }
+    is TasksState.MoonError -> MoonExplorerBundle.message("tasks.message.moonError", failure.text)
+    TasksState.MoonTimeout -> MoonExplorerBundle.message("tasks.message.moonTimeout")
+    is TasksState.InvalidOutput -> MoonExplorerBundle.message("tasks.message.invalidOutput", failure.text)
+}
+
+/** Gives true if the user can correct [failure] in the settings. Then the plugin shows a link to the settings. */
+internal fun hasSettingsLink(failure: TasksState.Failure): Boolean =
+    failure is TasksState.MoonNotFound || failure == TasksState.MoonTimeout
+
 /**
- * Gives the HTML text of a balloon for the plain text [text]. The balloon reads its text as HTML.
- * Thus a file name with `<`, `>`, or `&` must change into HTML entities.
+ * Gives the HTML text of a balloon or a notification for the plain text [text]. Balloons and notifications read their text as HTML.
+ * Thus a file name with `<`, `>`, or `&` must change into HTML entities. A line break changes into `<br>`.
  */
-internal fun balloonHtml(text: String): String = StringUtil.escapeXmlEntities(text)
+internal fun plainTextHtml(text: String): String = StringUtil.escapeXmlEntities(text).replace("\n", "<br>")

@@ -102,7 +102,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testLoadedShowsTree() {
-        panel.render(TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot))
+        panel.render(TestData.recordedState())
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
         assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
         assertFalse(panel.loadingPanel.isLoading)
@@ -274,5 +274,45 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.render(TasksState.NoWorkspace)
         panel.changeCategory(TaskCategory.STACK)
         assertEquals(MoonTasksPanel.MESSAGE_CARD, panel.visibleCard)
+    }
+
+    fun testStaleKeepsTheTreeAndTheExpandedNodes() {
+        panel.loadRecorded()
+        panel.tree.expandPath(projectPath("web"))
+        panel.render(TasksState.Loading)
+        val last = TestData.recordedState()
+        panel.render(TasksState.Stale(last, TasksState.MoonError("bad config")))
+        assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
+        assertFalse(panel.loadingPanel.isLoading)
+        assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
+        assertTrue(panel.tree.isExpanded(projectPath("web")))
+        assertTrue("Select Opened File must operate with the last tasks", panel.canSelectProject())
+    }
+
+    fun testStaleAfterAMessageShowsTheLastTasks() {
+        panel.render(TasksState.MoonError("old"))
+        val last = TestData.recordedState()
+        panel.render(TasksState.Stale(last, TasksState.MoonTimeout))
+        assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
+    }
+
+    fun testFailureTextIsTheSameAsTheMessage() {
+        panel.render(TasksState.InvalidOutput("bad JSON"))
+        assertEquals(failureText(TasksState.InvalidOutput("bad JSON")), panel.messageArea.text)
+    }
+
+    fun testEachStateUpdatesTheToolbar() {
+        // The action ShowRefreshFailureAction must hide when a new refresh starts after a failure.
+        var updates = 0
+        panel.updateToolbar = { updates++ }
+        val states = listOf(
+            TestData.recordedState(),
+            TasksState.Stale(TestData.recordedState(), TasksState.MoonError("bad config")),
+            TasksState.Loading,
+            TasksState.NoWorkspace,
+            TasksState.MoonTimeout,
+        )
+        states.forEach(panel::render)
+        assertEquals(states.size, updates)
     }
 }

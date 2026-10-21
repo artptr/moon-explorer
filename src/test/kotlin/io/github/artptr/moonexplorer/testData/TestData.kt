@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.testData
 
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
+import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import java.io.File
 import java.nio.file.Path
@@ -24,4 +25,7 @@ object TestData {
 
     /** The projects and tasks of the recorded `moon query projects` output. */
     fun recordedTasks(): WorkspaceTasks = QueryProjectsParser.parse(recorded("query-projects.json"))
+
+    /** The state after a successful load of the recorded `moon query projects` output in [workspace]. */
+    fun recordedState(): TasksState.Loaded = TasksState.Loaded(recordedTasks(), workspaceRoot)
 }

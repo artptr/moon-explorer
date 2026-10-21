@@ -7,6 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.options.ConfigurationException
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.DocumentAdapter
@@ -172,6 +173,11 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
 
     companion object {
         const val ID = "io.github.artptr.moonexplorer.settings"
+
+        /** Opens this settings page for [project]. */
+        fun show(project: Project) {
+            ShowSettingsUtil.getInstance().showSettingsDialog(project, MoonSettingsConfigurable::class.java)
+        }
 
         private const val SEARCH_DELAY_MILLIS = 300L
     }

@@ -33,6 +33,9 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Action **Select Opened File** in the group `MoonExplorer.TasksToolbar`, and the search for the project of a file | `ui.SelectOpenedFileAction`, `model.findProjectForFile` | `plugin.xml` |
 | State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
 | Load of the tasks when the IDE project opens | `model.MoonTasksStartupActivity` | `plugin.xml` |
+| Automatic refresh after a change of a moon configuration file | `model.MoonConfigFileListener`, `model.MoonConfigFiles` | `plugin.xml` (`projectListeners`) |
+| Notification when a refresh fails after a successful load | `ui.RefreshFailureNotifier`, `ui.RefreshFailureNotifierStartupActivity`, notification group `Moon Explorer` | `plugin.xml` for the startup activity and the notification group. `RefreshFailureNotifier` is a light service. |
+| Action **Show Refresh Error** in the group `MoonExplorer.TasksToolbar` | `ui.ShowRefreshFailureAction` | `plugin.xml` |
 | Load of the tasks and the result state | `model.TasksLoader`, `model.TasksState` | None |
 | Parser of `moon query projects` | `model.QueryProjectsParser` | None |
 | Category (`TaskCategory`) and main group (`TaskGrouping`) of the tree, and the action group `MoonExplorer.GroupBy` | `ui.CategoryNoneAction`, `ui.CategoryStackAction`, `ui.CategoryLayerAction`, `ui.GroupByProjectAction`, `ui.GroupByTaskNameAction` | `plugin.xml` |
@@ -53,7 +56,8 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 1. The plugin finds the workspace root. It starts at the IDE project directory and goes up through the parent directories. The workspace root has a `.moon/` directory with a `workspace.*` file.
 2. The plugin runs `moon query projects` in the workspace root. In moon v2, the output of this command is always JSON.
 3. The plugin reads the JSON with Gson. The IntelliJ Platform contains Gson. Thus the plugin has no new dependency.
-4. The service sets the new state. The tool window shows the tree or a message.
+4. The service sets the new state. The tool window shows the tree or a message. If the load fails after a successful load, the tree keeps the last tasks. Refer to section 6.
+5. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.
 
 The output of `moon query projects` contains the `stack` value, the `layer` value, and the tasks of each project. Thus the plugin starts only one moon process for each load.
 The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.
@@ -95,7 +99,37 @@ The plugin keeps the time limit in the workspace file of the IDE project.
 
 `cli.MoonCli` does not read the settings, because the CLI layer does not use the `settings` package. `model.MoonTasksService` reads the time limit from `settings.MoonSettings` and gives it to `MoonCli`.
 
-## 6. Threading
+## 6. Automatic refresh
+
+The plugin refreshes the tree when a moon configuration file changes. These files apply:
+
+- The `moon.*` file of each project, for example `apps/web/moon.yml`.
+- All files in `.moon/` in the workspace root, for example `.moon/workspace.yml` and `.moon/tasks/all.yml`.
+- A directory that contains a project, if you delete, move, or rename it.
+
+Files in `.moon/cache/` do not apply. moon writes these files when it runs a task.
+A `.moon/workspace.*` file in the IDE project directory or in one of its parent directories also applies. A new file of this type can make a workspace or a nearer workspace root. If a load finds no workspace, only this file applies.
+
+`model.MoonConfigFileListener` gets the changes from the VFS. The VFS also sends the changes from outside the IDE, for example from `git checkout`.
+
+The listener does not read files and does not start moon. It calls `MoonTasksService.scheduleRefresh`. The service gives the root to the listener before moon starts. Thus a change during a load also causes a refresh.
+
+The service waits 1 second. If more changes occur in this time, the service starts to wait again. Then it runs `moon query projects` one time.
+A change in an IDE editor applies when the IDE saves the document. moon reads only the files on the disk.
+
+**NOTE:** If `git checkout` makes a new project directory, the VFS can send an event only for the directory. Then the plugin does not see the new `moon.yml` file. A later change or a manual refresh corrects the tree.
+
+If a load fails after a successful load, the service gives the state `TasksState.Stale`. This state contains the last successful load and the error. This rule applies to all loads: at startup, after **Refresh**, and after a change.
+
+- The tree shows the tasks of the last successful load. The expanded nodes and the selected nodes do not change.
+- `ui.RefreshFailureNotifier` shows a notification with the error text from moon. The notification has the action **Refresh**. If the plugin cannot find moon, or if moon did not complete in the time limit, the notification also has **Open Settings**.
+- The plugin shows a maximum of one notification. A new failure replaces it. A successful load closes it.
+- While the state is `Stale`, the toolbar shows the action **Show Refresh Error** with a warning icon. The action shows the notification again.
+
+If a load finds no workspace, the old tasks are not correct. The tool window then shows a message and the plugin closes the notification.
+If a load fails and there was no successful load before it, the tool window shows the error text instead of the tree.
+
+## 7. Threading
 
 All calls to the moon CLI run on a background thread in a coroutine.
 The UI layer updates Swing components on the EDT only.
