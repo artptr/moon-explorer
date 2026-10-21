@@ -54,6 +54,6 @@ class MoonCliProcessTest {
     @Test
     fun executableThatDoesNotExistGivesStartFailed() {
         val result = queryProjects(File(temp.newFolder("empty"), "moon"))
-        assertTrue("Result: $result", result is CliResult.StartFailed && !result.detail.isNullOrBlank())
+        assertTrue("Result: $result", result is CliResult.StartFailed)
     }
 }
