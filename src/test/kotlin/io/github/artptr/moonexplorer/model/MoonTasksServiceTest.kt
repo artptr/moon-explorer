@@ -14,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.milliseconds
 
 class MoonTasksServiceTest : BasePlatformTestCase() {
 
@@ -167,5 +168,81 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.queryProjects = { CliResult.Failed("from startup") }
         runBlocking { MoonTasksStartupActivity().execute(project) }
         service.awaitState(TasksState.MoonError("from startup"))
+    }
+
+    private val loaded get() = TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot)
+
+    fun testFailureAfterASuccessfulLoadGivesStale() {
+        service.queryProjects = { CliResult.Success(recorded) }
+        service.refresh()
+        service.awaitState(loaded)
+        service.queryProjects = { CliResult.Failed("bad config") }
+        service.refresh()
+        service.awaitState(TasksState.Stale(loaded, TasksState.MoonError("bad config")))
+        service.queryProjects = { CliResult.Success(recorded) }
+        service.refresh()
+        service.awaitState(loaded)
+    }
+
+    fun testNoWorkspaceRemovesTheLastSuccessfulLoad() {
+        service.refresh()
+        service.awaitState(loaded)
+        val empty = FileUtil.createTempDirectory("no-workspace", null, true).toPath()
+        service.projectDir = { empty }
+        service.refresh()
+        service.awaitState(TasksState.NoWorkspace)
+        assertNull(service.configWatch.root)
+        service.projectDir = { TestData.workspace.toPath() }
+        service.queryProjects = { CliResult.Failed("bad config") }
+        service.refresh()
+        service.awaitState(TasksState.MoonError("bad config"))
+    }
+
+    fun testLoadSetsTheConfigWatch() {
+        service.refresh()
+        service.awaitState(loaded)
+        assertEquals(TestData.workspaceRoot, service.configWatch.root)
+        assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
+        // A failure keeps the sources of the last successful load.
+        service.queryProjects = { CliResult.Failed("bad config") }
+        service.refresh()
+        service.awaitState(TasksState.Stale(loaded, TasksState.MoonError("bad config")))
+        assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
+    }
+
+    fun testTenChangesInOneSecondCauseOneQuery() {
+        val calls = AtomicInteger()
+        service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
+        service.refreshDelay = 500.milliseconds
+        repeat(10) {
+            service.scheduleRefresh()
+            Thread.sleep(100)
+        }
+        service.awaitState(loaded)
+        // Wait longer than the delay. No other refresh must start.
+        Thread.sleep(1_000)
+        assertEquals(1, calls.get())
+    }
+
+    fun testScheduledRefreshWaitsForTheDelay() {
+        val calls = AtomicInteger()
+        service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
+        service.refreshDelay = 500.milliseconds
+        service.scheduleRefresh()
+        Thread.sleep(200)
+        assertEquals(0, calls.get())
+        service.awaitState(loaded)
+        assertEquals(1, calls.get())
+    }
+
+    fun testManualRefreshCancelsTheScheduledRefresh() {
+        val calls = AtomicInteger()
+        service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
+        service.refreshDelay = 300.milliseconds
+        service.scheduleRefresh()
+        service.refresh()
+        service.awaitState(loaded)
+        Thread.sleep(800)
+        assertEquals(1, calls.get())
     }
 }

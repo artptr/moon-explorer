@@ -275,4 +275,29 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.changeCategory(TaskCategory.STACK)
         assertEquals(MoonTasksPanel.MESSAGE_CARD, panel.visibleCard)
     }
+
+    fun testStaleKeepsTheTreeAndTheExpandedNodes() {
+        panel.loadRecorded()
+        panel.tree.expandPath(projectPath("web"))
+        panel.render(TasksState.Loading)
+        val last = TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot)
+        panel.render(TasksState.Stale(last, TasksState.MoonError("bad config")))
+        assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
+        assertFalse(panel.loadingPanel.isLoading)
+        assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
+        assertTrue(panel.tree.isExpanded(projectPath("web")))
+        assertTrue("Select Opened File must operate with the last tasks", panel.canSelectProject())
+    }
+
+    fun testStaleAfterAMessageShowsTheLastTasks() {
+        panel.render(TasksState.MoonError("old"))
+        val last = TasksState.Loaded(TestData.recordedTasks(), TestData.workspaceRoot)
+        panel.render(TasksState.Stale(last, TasksState.MoonTimeout))
+        assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
+    }
+
+    fun testFailureTextIsTheSameAsTheMessage() {
+        panel.render(TasksState.InvalidOutput("bad JSON"))
+        assertEquals(failureText(TasksState.InvalidOutput("bad JSON")), panel.messageArea.text)
+    }
 }

@@ -6,8 +6,8 @@ import java.nio.file.Path
 /** Finds the root directory of a moon workspace. */
 object MoonWorkspaceLocator {
 
-    /** The file extensions that moon accepts for `.moon/workspace.*`. */
-    private val WORKSPACE_FILE_EXTENSIONS = listOf("yml", "yaml", "json", "jsonc", "pkl", "hcl", "toml")
+    /** The file extensions that moon accepts for its configuration files, for example `.moon/workspace.*` and `moon.*`. */
+    internal val WORKSPACE_FILE_EXTENSIONS = listOf("yml", "yaml", "json", "jsonc", "pkl", "hcl", "toml")
 
     /**
      * Goes up from [start] through its parent directories and gives the first workspace root.

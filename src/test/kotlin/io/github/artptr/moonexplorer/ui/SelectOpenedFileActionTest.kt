@@ -72,7 +72,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         val actionManager = ActionManager.getInstance()
         val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
         assertEquals(
-            listOf("MoonExplorer.RefreshTasks", "MoonExplorer.SelectOpenedFile", "MoonExplorer.GroupBy"),
+            listOf("MoonExplorer.RefreshTasks", "MoonExplorer.ShowRefreshFailure", "MoonExplorer.SelectOpenedFile", "MoonExplorer.GroupBy"),
             toolbar.childActionsOrStubs.map(actionManager::getId),
         )
     }

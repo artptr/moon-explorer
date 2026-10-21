@@ -7,11 +7,13 @@
 ### Added
 
 - **Select Opened File** action in the toolbar of the **Moon** tool window. The action selects the project of the file in the editor and expands it. For a file in a nested project, the action selects the nested project. The action is available when the main group is **Project**.
+- The tree of the **Moon** tool window refreshes automatically 1 second after a change to a `moon.yml` file or to a file in `.moon/`. Files in `.moon/cache/` do not cause a refresh. Changes from outside the IDE, for example from `git checkout`, also cause a refresh.
 
 ### Changed
 
 - The **Group By** menu of the **Moon** tool window has two selections. The main group (**Project** or **Task Name**) sets the structure of the tree. Below it, **Category** (**None**, **Stack**, or **Layer**) adds a node for each value at the top of the tree. The projects without a value are in the "(none)" node.
 - If the old setting is **Stack**, the plugin changes it to the category **Stack** and the main group **Project**.
+- If a refresh fails after a successful load, the tree keeps the last tasks. A notification shows the error text from moon. While the tree shows old tasks, the toolbar shows the **Show Refresh Error** action with a warning icon.
 
 ## [0.1.0] - 2026-10-16
 
