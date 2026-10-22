@@ -1,4 +1,4 @@
-# Sync the repository labels with .github/labels.yml.
+# Make the repository labels the same as the labels in .github/labels.yml.
 name: Labels
 on:
   push:

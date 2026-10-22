@@ -1,13 +1,13 @@
-# GitHub Actions workflow for building, testing, verifying, and preparing plugin release drafts:
-# - Build the plugin ZIP with the 'buildPlugin' task and upload it as a workflow artifact.
-# - Run the 'check' task and upload test reports on failure.
-# - Run the 'verifyPlugin' task and upload Plugin Verifier reports.
+# Build, test, and do a check of the plugin. Then prepare a draft release.
+# - The job 'build' makes the plugin ZIP file with the 'buildPlugin' task. The job uploads the file as a workflow artifact.
+# - The job 'test' runs the 'check' task. If a test fails, the job uploads the test reports.
+# - The job 'verify' runs the 'verifyPlugin' task and uploads the Plugin Verifier reports.
 #   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
-# - Create a draft GitHub release on non-pull-request runs.
+# - On a push to 'main', the job 'releaseDraft' creates a draft GitHub release.
 #
 # The jobs 'build', 'test', and 'verify' run in parallel. On a push to 'main', the job 'releaseDraft' starts only after the three jobs pass.
 #
-# The workflow is triggered on pushes to the 'main' branch and on pull_request events.
+# A push to 'main' and a pull request start the workflow.
 # A change to documentation only does not start the workflow. Refer to the 'paths' filters below.
 #
 # GitHub Actions reference: https://docs.github.com/actions
@@ -15,7 +15,7 @@
 
 name: Build
 on:
-  # Trigger the workflow on pushes to only the 'main' branch (this avoids duplicate checks being run e.g., for dependabot pull requests)
+  # Only a push to 'main' starts a push run. Thus a commit on a pull request branch starts only one run.
   push:
     branches: [ main ]
     # The workflow does not start if the change has only documentation files.
@@ -31,7 +31,7 @@ on:
       - '!.claude/**'
       - 'CHANGELOG.md'
       - 'src/**'
-  # Trigger the workflow on any pull request
+  # Each pull request starts the workflow.
   pull_request:
     # Use the same 'paths' filter as for 'push'.
     paths:
@@ -56,32 +56,28 @@ concurrency:
 
 jobs:
 
-  # Prepare the environment and build the plugin
+  # Make the plugin ZIP file.
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
 
-      # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Set up the Java environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
 
-      # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-      # Build plugin
       - name: Build plugin
         run: ./gradlew buildPlugin
 
-      # Store an already-built plugin as an artifact for downloading
+      # Upload the plugin ZIP file as a workflow artifact.
       - name: Upload artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -93,33 +89,29 @@ jobs:
         if: ${{ always() }}
         run: df -h /
 
-  # Run tests and upload test reports on failure
+  # Run the tests.
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
 
-      # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Set up the Java environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
 
-      # Setup Gradle
       # The action writes the cache only on 'main'. Thus only 'main' puts the test dependencies into the cache.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-      # Run tests
       - name: Run Tests
         run: ./gradlew check
 
-      # Collect Tests Result of failed tests
+      # If a test fails, upload the test reports.
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -132,13 +124,13 @@ jobs:
         if: ${{ always() }}
         run: df -h /
 
-  # Run plugin structure verification along with IntelliJ Plugin Verifier
+  # Do a check of the plugin structure. Do a check of the compatibility with IDE versions with the IntelliJ Plugin Verifier.
   verify:
     name: Verify plugin
     runs-on: ubuntu-latest
     steps:
 
-      # Free GitHub Actions Environment Disk Space
+      # Remove the files that the job does not use from the runner to get more disk space.
       # Only a push to 'main' does a check against all recommended IDEs. Thus only this check must have more disk space.
       - name: Maximize Build Space
         if: github.event_name != 'pull_request'
@@ -147,18 +139,15 @@ jobs:
           tool-cache: false
           large-packages: false
 
-      # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Set up the Java environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
 
-      # Setup Gradle
       # The job does not save the Gradle cache. If the 'Restore IDE Cache' step does not find the IDE cache, Gradle downloads the IDE archives into the Gradle home directory.
       # The archives are large. The job keeps the extracted IDEs in a separate cache.
       - name: Setup Gradle
@@ -205,10 +194,9 @@ jobs:
           path: |
             .intellijPlatform/ides/${{ steps.ides.outputs.minimum }}
             .intellijPlatform/ides/${{ steps.ides.outputs.newest }}
-          # If you change the paths or the contents of the IDE cache, change 'v1' to the next number (for example, 'v2').
+          # If you change the paths or the contents of the IDE cache, change 'v1' to the next number. Example: 'v2'.
           key: plugin-verifier-ides-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.ides.outputs.minimum }}-${{ steps.ides.outputs.newest }}
 
-      # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       # For a pull request, the job does the quick check. The quick check uses two IDEs in offline mode. Refer to 'quickVerification' in build.gradle.kts.
       - name: Run Plugin Verification tasks
         env:
@@ -229,7 +217,7 @@ jobs:
             .intellijPlatform/ides/${{ steps.ides.outputs.newest }}
           key: ${{ steps.ide-cache.outputs.cache-primary-key }}
 
-      # Collect Plugin Verifier Result
+      # Upload the Plugin Verifier reports, also if the check fails.
       - name: Collect Plugin Verifier Result
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -242,8 +230,8 @@ jobs:
         if: ${{ always() }}
         run: df -h /
 
-  # Prepare a draft release for GitHub Releases page for the manual verification
-  # If accepted and published, the release workflow would be triggered
+  # Create a draft release on the GitHub Releases page. A maintainer examines the draft and publishes it.
+  # Then the 'Release' workflow starts.
   releaseDraft:
     name: Release draft
     if: github.event_name != 'pull_request'
@@ -253,24 +241,21 @@ jobs:
       contents: write
     steps:
 
-      # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Set up the Java environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
 
-      # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: true
 
-      # Remove old release drafts by using the curl request for the available releases with a draft flag
+      # Delete all draft releases. Then the repository has only the draft for the newest version.
       - name: Remove Old Release Drafts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -279,7 +264,7 @@ jobs:
             --jq '.[] | select(.draft == true) | .id' \
             | xargs -r -I '{}' gh api -X DELETE repos/{owner}/{repo}/releases/{}
 
-      # Create a new release draft which is not publicly visible and requires manual acceptance
+      # Create a draft release that is not public. The release notes come from the 'Unreleased' section of CHANGELOG.md.
       - name: Create Release Draft
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
