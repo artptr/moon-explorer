@@ -19,9 +19,12 @@ class TestDataTest {
 
     private fun taskIds(project: String) = tasks.getValue(project).keySet()
 
+    /** The `Moon output` workflow records the output with a newer moon version. Thus the test compares the recorded version with the version in `workspace/package.json`. */
     @Test
-    fun recordedWithMoon223() {
-        assertEquals("moon 2.2.3", TestData.recorded("moon-version.txt").trim())
+    fun recordedWithMoonVersionOfWorkspace() {
+        val packageJson = JsonParser.parseString(TestData.workspace.resolve("package.json").readText()).asJsonObject
+        val version = packageJson.getAsJsonObject("devDependencies").get("@moonrepo/cli").asString
+        assertEquals("moon $version", TestData.recorded("moon-version.txt").trim())
     }
 
     @Test
