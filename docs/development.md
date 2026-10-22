@@ -100,9 +100,8 @@ The output of `moon query projects` contains the absolute path of each project. 
 The script stops with an error if a recorded file contains the path of the repository on your computer.
 
 The test data is an input of the Gradle task `test`. Thus Gradle runs the tests again when the test data changes.
-The input does not include the directories that tools make in the test workspace, for example `node_modules/` and `.moon/cache/`.
-The list of these directories is in `build.gradle.kts`. Gradle does not read `.gitignore`.
-If you add a directory to `workspace/.gitignore`, also add it to the list in `build.gradle.kts`.
+The input is each file in `src/test/testData/` that Git does not ignore. Gradle gets this list from `git ls-files`.
+Thus the files that tools make in the test workspace, for example `node_modules/` and `.moon/cache/`, are not inputs.
 
 ### 4.2 Test data for a large workspace
 

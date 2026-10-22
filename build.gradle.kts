@@ -101,17 +101,23 @@ tasks.printProductsReleases {
     }
 }
 
+// The test data is each file in src/test/testData that Git does not ignore, also new files that Git does not track yet.
+// Thus the files that tools make in the test workspace, for example node_modules, are not inputs of the tests.
+// If the project is not in a Git repository, the input is the complete directory.
+val testDataFiles = providers.exec {
+    commandLine("git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "src/test/testData")
+    isIgnoreExitValue = true
+}.let { git ->
+    git.result.zip(git.standardOutput.asText) { result, output ->
+        if (result.exitValue == 0) output.split('\u0000').filter(String::isNotEmpty) else listOf("src/test/testData")
+    }
+}
+
 tasks.test {
     // The tests read the test data with this path. Refer to TestData.kt.
     systemProperty("moonExplorer.testData", layout.projectDirectory.dir("src/test/testData").asFile.absolutePath)
     // The test data is an input of the task. Thus Gradle runs the tests again when the test data changes.
-    // The exclude list removes the directories that tools make in the test workspace. Refer to src/test/testData/workspace/.gitignore.
-    // Gradle does not read .gitignore. If you add a directory to .gitignore, also add it to this list.
-    inputs.files(
-        fileTree("src/test/testData") {
-            exclude("workspace/node_modules/**", "workspace/.moon/cache/**", "workspace/.moon/docker/**", "workspace/.idea/**", "**/dist/**")
-        },
-    ).withPropertyName("moonExplorerTestData").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(testDataFiles).withPropertyName("moonExplorerTestData").withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 changelog {
