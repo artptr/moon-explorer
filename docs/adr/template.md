@@ -5,7 +5,12 @@
 
 ## Context
 
-Tell the problem and the forces that apply to the decision.
+Tell the problem and the conditions that apply to the decision.
+
+## Options
+
+This section is optional. Use it if the team examined more than one option.
+For each option, write a heading, a short description, and the good results and the bad results.
 
 ## Decision
 
