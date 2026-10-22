@@ -1,11 +1,11 @@
 # Build, test, and do a check of the plugin. Then prepare a draft release.
 # - The job 'build' makes the plugin ZIP file with the 'buildPlugin' task. The job uploads the file as a workflow artifact.
 # - The job 'test' runs the 'check' task. If a test fails, the job uploads the test reports.
-# - The job 'verify' runs the 'verifyPlugin' task and uploads the Plugin Verifier reports.
+# - The Plugin Verifier job runs the 'verifyPlugin' task and uploads the Plugin Verifier reports.
 #   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
 # - On a push to 'main', the job 'releaseDraft' creates a draft GitHub release.
 #
-# The jobs 'build', 'test', and 'verify' run in parallel. On a push to 'main', the job 'releaseDraft' starts only after the three jobs pass.
+# The jobs 'build' and 'test' and the Plugin Verifier job run in parallel. On a push to 'main', the job 'releaseDraft' starts only after these three jobs pass.
 #
 # A push to 'main' and a pull request start the workflow.
 # A change to documentation only does not start the workflow. Refer to the 'paths' filters below.

@@ -182,6 +182,7 @@ If `platformVersion` is not a fixed version number, the `Build` workflow stops w
 ## 6. Do a check of the documentation
 
 Run `vale .`.
+Vale examines the Markdown files and the comments in `.github/workflows/*.yml`.
 Refer to [ste/guide.md](ste/guide.md).
 
 ## 7. Continuous integration
