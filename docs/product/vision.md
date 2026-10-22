@@ -26,10 +26,10 @@ The example workspace is a workspace that the maintainer uses at work. Its data 
 ### 2.2 Workspace maintainer
 
 The workspace maintainer is a developer who changes the moon configuration of the workspace.
-The changes include the global tasks in `.moon/tasks/` and the tasks in the `moon.yml` files of the projects.
-Section 10 gives data about the example workspace from 2026-04-23 to 2026-10-23.
-In this period, fewer than 3% of the contributors made about 80% of the commits that change `moon.yml` files.
-The same contributors made all the commits that change files in `.moon/`.
+The changes include the global tasks in `.moon/tasks/` and the local tasks in the `moon.yml` files of the projects.
+Section 10 gives data from the Git history of the example workspace from 2026-04-23 to 2026-10-23.
+In this period, fewer than 3% of the contributors made about 80% of the counted commits (section 10) that change `moon.yml` files.
+The same contributors made all counted commits that change files in `.moon/`.
 
 A change to a global task can change the tasks of many projects.
 Before a change to a global task, the workspace maintainer must examine:
@@ -111,7 +111,7 @@ The other functions do not operate without the `moon` executable.
 4. The plugin uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are not necessary.
 5. The plugin uses the standard functions of the IDE, for example tool windows and run configurations.
 6. The repository contains a test workspace with sample data. Tests and examples use this workspace. They do not use data from a company.
-7. The plugin is for developers: the main user and the workspace maintainer. It does not have AI functions. AI agents can get data about the workspace from the `moon mcp` command of moon. The Model Context Protocol (MCP) server of the IDE can also start run configurations. Thus, AI agents in the IDE can start moon tasks.
+7. The plugin is for developers, for example the main user and the workspace maintainer. It does not have AI functions. AI agents can get data about the workspace from the `moon mcp` command of moon. The Model Context Protocol (MCP) server of the IDE can also start run configurations. Thus, AI agents in the IDE can start moon tasks.
 
 ## 6. First release (MVP)
 
@@ -152,7 +152,7 @@ The MVP is complete when these conditions are true:
 ## 7. Later releases
 
 These functions are possible for a later release. The team did not approve them.
-The functions for the moon configuration files are for the workspace maintainer (section 2.2).
+The functions that show data or run tasks in the moon configuration files are for the workspace maintainer (section 2.2).
 
 - A tool window that shows the final configuration of a task after inheritance: command, arguments, dependencies, inputs, outputs, and the source of each value
 - Navigation and validation in moon configuration files
@@ -173,7 +173,7 @@ The functions for the moon configuration files are for the workspace maintainer 
 - A report of the last run. Issue [#77](https://github.com/artptr/moon-explorer/issues/77)
 - Run icons in the gutter of `moon.yml`. WebStorm has the same function for scripts in `package.json`. Issue [#70](https://github.com/artptr/moon-explorer/issues/70)
 - Test results in the test runner of the IDE
-- Code Vision hints and gutter icons for the task inheritance and the task dependents in moon configuration files. In `moon.yml`, the hints show the inherited tasks of the project. Issue [#100](https://github.com/artptr/moon-explorer/issues/100)
+- Code Vision hints and gutter icons that show the task inheritance and the task dependents in moon configuration files. In `moon.yml`, the hints show the inherited tasks of the project. Issue [#100](https://github.com/artptr/moon-explorer/issues/100)
 
 ## 8. Out of scope
 
@@ -232,22 +232,31 @@ The team got this information in a meeting on 2026-10-19:
 
 The team got this information from the Git history of the example workspace on 2026-10-23.
 The data is for the period from 2026-04-23 to 2026-10-23.
-The data of the example workspace cannot be in this repository (section 2.1). Thus this section gives only percentages.
+The data from the example workspace cannot be in this repository (section 2.1). Thus, this section does not give the numbers of commits.
 
-The team used `git log` with a path filter to get the authors of the commits:
+The team used these commands to get the authors of the commits:
 
-- The filter `*moon.yml` gives the commits that change `moon.yml` files.
+```bash
+git log --since=6.months --format='%an' -- '*moon.yml'
+git log --since=6.months --format='%an' -- '.moon/'
+```
+
+- The filter `*moon.yml` gives the commits that change `moon.yml` files. The filter also gives the commits that change files with other names, for example `foo-moon.yml`.
 - The filter `.moon/` gives the commits that change files in `.moon/`. These files include `.moon/tasks/` and also the workspace and toolchain configuration.
 - A commit that changes a `moon.yml` file and a file in `.moon/` is in the two counts.
-- The counts do not include most merge commits. The team did not remove commits from bots.
+- The commands use the default history simplification of Git. Git does not show a merge commit if the files in the merge are the same as in one of its parents.
+- All authors are people. No author is a bot.
+
+In this document, a "counted commit" is a commit in the output of these commands.
 
 The results are:
 
-- Fewer than 10% of the contributors changed a `moon.yml` file. The data does not show how the other contributors use moon.
-- Fewer than 3% of the contributors made about 80% of the commits that change `moon.yml` files.
-- The same contributors made all the commits that change files in `.moon/`. These commits are less than 10% of the commits that change `moon.yml` files.
+- Fewer than 10% of the contributors are authors of a counted commit that changes a `moon.yml` file. The data does not show how the other contributors use moon.
+- Fewer than 3% of the contributors made about 80% of the counted commits that change `moon.yml` files.
+- The same contributors made all counted commits that change files in `.moon/`. The maintainer compared the author names in the output of the two commands.
+- The counted commits that change files in `.moon/` are fewer than 10% of the counted commits that change `moon.yml` files.
 - The maintainer is one of these contributors.
-- These contributors are possible examples of the workspace maintainer (section 2.2). The data shows only the commit counts.
+- These contributors are possible examples of the workspace maintainer (section 2.2). The data shows only the authors and the percentages of the commits.
 - The data comes from one workspace. The maintainer is the only workspace maintainer who gave comments to the team.
 
 ## 11. Comparison with the moon VS Code extension
