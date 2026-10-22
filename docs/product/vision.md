@@ -28,7 +28,7 @@ The example workspace is a workspace that the maintainer uses at work. Its data 
 The workspace maintainer is a developer who changes the moon configuration of the workspace.
 The changes include the global tasks in `.moon/tasks/` and the local tasks in the `moon.yml` files of the projects.
 Section 10 gives data from the Git history of the example workspace from 2026-04-23 to 2026-10-23.
-In this period, fewer than 3% of the contributors made about 80% of the counted commits (section 10) that change `moon.yml` files.
+In this period, fewer than 3% of the contributors made about 80% of the counted commits that change `moon.yml` files (section 10).
 The same contributors made all counted commits that change files in `.moon/`.
 
 A change to a global task can change the tasks of many projects.
@@ -152,7 +152,7 @@ The MVP is complete when these conditions are true:
 ## 7. Later releases
 
 These functions are possible for a later release. The team did not approve them.
-The functions that show data or run tasks in the moon configuration files are for the workspace maintainer (section 2.2).
+The functions that use the moon configuration files are for the workspace maintainer (section 2.2).
 
 - A tool window that shows the final configuration of a task after inheritance: command, arguments, dependencies, inputs, outputs, and the source of each value
 - Navigation and validation in moon configuration files
@@ -232,7 +232,7 @@ The team got this information in a meeting on 2026-10-19:
 
 The team got this information from the Git history of the example workspace on 2026-10-23.
 The data is for the period from 2026-04-23 to 2026-10-23.
-The data from the example workspace cannot be in this repository (section 2.1). Thus, this section does not give the numbers of commits.
+The data from the example workspace cannot be in this repository (section 2.1). Thus this section does not give the commit counts.
 
 The team used these commands to get the authors of the commits:
 
@@ -241,11 +241,12 @@ git log --since=6.months --format='%an' -- '*moon.yml'
 git log --since=6.months --format='%an' -- '.moon/'
 ```
 
-- The filter `*moon.yml` gives the commits that change `moon.yml` files. The filter also gives the commits that change files with other names, for example `foo-moon.yml`.
+- The filter `*moon.yml` gives the commits that change `moon.yml` files. The filter also gives the commits that change files with other names, for example `foo-moon.yml`. In the example workspace, the filter gave only the commits that change `moon.yml` files.
 - The filter `.moon/` gives the commits that change files in `.moon/`. These files include `.moon/tasks/` and also the workspace and toolchain configuration.
 - A commit that changes a `moon.yml` file and a file in `.moon/` is in the two counts.
 - The commands use the default history simplification of Git. Git does not show a merge commit if the files in the merge are the same as in one of its parents.
 - All authors are people. No author is a bot.
+- The commands give the author names. If two people have the same name, the data shows one author. If one person uses two names, the data shows two authors.
 
 In this document, a "counted commit" is a commit in the output of these commands.
 
