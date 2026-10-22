@@ -127,7 +127,7 @@ If the label does not exist, the workflow creates it before it creates the issue
 
 The workflow adds a comment only when the moon version changes. Write your notes in comments, not in the issue text.
 The issue text shows the two moon versions, the result of each step, and the start of the diff.
-The artifact `moon-output` of the workflow run contains the recorded output and the test reports.
+If the workflow finds a problem, the artifact `moon-output` of the workflow run contains the recorded output. If the tests ran, the artifact also contains the test reports.
 
 The file `moon-version.txt` changes for each new moon version. If only this file changes, the workflow does not create an issue.
 The workflow does not commit or push changes.

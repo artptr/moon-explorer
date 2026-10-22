@@ -163,8 +163,10 @@ jobs:
           # The step cuts the diff at the end of a line. Thus the step does not cut a UTF-8 character.
           # Each diff line starts with '+', '-', ' ', '@', or a letter. Thus a diff line cannot close the code block.
           # 'git diff' does not show a new file that Git does not track. Thus the step adds new files with '--intent-to-add'.
+          # '--intent-to-add' also adds deleted files to the index. Thus the step compares with HEAD, not with the index.
+          # Then the diff shows new, changed, and deleted files.
           git add --intent-to-add -- "$RECORDED"
-          git diff -- "$RECORDED" > "$RUNNER_TEMP/recorded.diff"
+          git diff HEAD -- "$RECORDED" > "$RUNNER_TEMP/recorded.diff"
           awk '{ size += length($0) + 1; if (size > 50000) exit; print }' "$RUNNER_TEMP/recorded.diff" > "$RUNNER_TEMP/short.diff"
           BODY="$RUNNER_TEMP/issue.md"
           {
@@ -174,7 +176,7 @@ jobs:
             cat "$RUNNER_TEMP/result.md"
             echo
             echo "Workflow run: $RUN_URL"
-            echo "The artifact \`moon-output\` of the run contains the recorded output and the test reports."
+            echo "The artifact \`moon-output\` of the run contains the recorded output. If the tests ran, it also contains the test reports."
             echo
             echo "To update the test data, refer to \`docs/development.md\`, section 4.3."
             echo
@@ -183,7 +185,7 @@ jobs:
             echo "### Changed files"
             echo
             echo '````'
-            git diff --stat -- "$RECORDED"
+            git diff HEAD --stat -- "$RECORDED"
             echo '````'
             echo
             echo "### Diff"
@@ -209,7 +211,7 @@ jobs:
             PREVIOUS="$(gh issue view "$NUMBER" --json body --jq .body | sed -n 's/^<!-- moon-version: \(.*\) -->\r\{0,1\}$/\1/p')"
             gh issue edit "$NUMBER" --body-file "$BODY"
             if [[ "$PREVIOUS" != "$NEW_VERSION" ]]; then
-              gh issue comment "$NUMBER" --body "The workflow found a change with $NEW_VERSION. The issue text shows the new result. Workflow run: $RUN_URL"
+              gh issue comment "$NUMBER" --body "The workflow found a problem with $NEW_VERSION. The issue text shows the new result. Workflow run: $RUN_URL"
             fi
             ISSUE_URL="$GITHUB_SERVER_URL/$GH_REPO/issues/$NUMBER"
           fi
@@ -217,7 +219,8 @@ jobs:
           echo "::error::$ERROR Refer to $ISSUE_URL."
           exit 1
 
-      # Keep the recorded output and the test reports when the Report step finds a change. A maintainer can compare them with the test data.
+      # Keep the recorded output and the test reports when the Report step fails. A maintainer can compare them with the test data.
+      # The Report step fails when it finds a problem, or when it has an error.
       # If the artifact service has a failure, the job continues.
       - name: Upload moon output
         if: ${{ !cancelled() && steps.report.outcome == 'failure' }}
