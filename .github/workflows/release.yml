@@ -1,6 +1,7 @@
-# GitHub Actions Workflow created for handling the release process based on the draft release prepared with the Build workflow.
-# Running the publishPlugin task requires all the following secrets to be provided: PUBLISH_TOKEN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, CERTIFICATE_CHAIN.
-# See https://plugins.jetbrains.com/docs/intellij/plugin-signing.html for more information.
+# Publish the plugin when a maintainer publishes the draft release from the 'Build' workflow.
+# The workflow must have these repository secrets: PUBLISH_TOKEN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, CERTIFICATE_CHAIN.
+# If the variable SKIP_MARKETPLACE_PUBLISH is 'true', the job signs the plugin, but does not publish it.
+# For more information, refer to https://plugins.jetbrains.com/docs/intellij/plugin-signing.html.
 
 name: Release
 on:
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
 
-  # Prepare and publish the plugin to JetBrains Marketplace repository
+  # Publish the plugin to JetBrains Marketplace. Then attach the plugin files to the release. Then open a pull request for CHANGELOG.md.
   release:
     name: Publish Plugin
     runs-on: ubuntu-latest
@@ -21,26 +22,24 @@ jobs:
       pull-requests: write
     steps:
 
-      # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.release.tag_name }}
 
-      # Set up the Java environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
 
-      # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: true
 
-      # Update the Unreleased section with the current release note
+      # Change the 'Unreleased' section of CHANGELOG.md to a section for this version. The text of the release becomes the new changelog entry.
+      # If the release has no text, this step and the 'Create Pull Request' step do not run.
       - name: Patch Changelog
         if: ${{ github.event.release.body != '' }}
         env:
@@ -52,7 +51,7 @@ jobs:
 
           ./gradlew patchChangelog --release-note-file=$RELEASE_NOTE
 
-      # Publish the plugin to JetBrains Marketplace
+      # If the variable SKIP_MARKETPLACE_PUBLISH is 'true', the job does not publish the plugin.
       - name: Publish Plugin
         if: ${{ vars.SKIP_MARKETPLACE_PUBLISH != 'true' }}
         env:
@@ -62,8 +61,8 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew publishPlugin
 
-      # Sign the plugin, but do not publish it. Use this for a version that a maintainer uploaded to Marketplace manually.
-      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to docs/development.md, section 8.
+      # Sign the plugin, but do not publish it. Use this step for a version that a maintainer uploaded to Marketplace manually.
+      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to docs/development.md, section 8.1.
       - name: Sign Plugin
         if: ${{ vars.SKIP_MARKETPLACE_PUBLISH == 'true' }}
         env:
@@ -72,13 +71,13 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew signPlugin
 
-      # Upload an artifact as a release asset
+      # Attach the files in build/distributions to the GitHub release.
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
 
-      # Create a pull request
+      # Open a pull request with the changed CHANGELOG.md. A maintainer merges it.
       - name: Create Pull Request
         if: ${{ github.event.release.body != '' }}
         env:
