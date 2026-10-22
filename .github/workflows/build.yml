@@ -3,9 +3,8 @@
 # - The job 'test' runs the 'check' task. If a test fails, the job uploads the test reports.
 # - The job 'verify' runs the 'verifyPlugin' task and uploads the Plugin Verifier reports.
 #   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
-# - On a push to 'main', the job 'releaseDraft' creates a draft GitHub release.
 #
-# The jobs 'build', 'test', and 'verify' run in parallel. On a push to 'main', the job 'releaseDraft' starts only after the three jobs pass.
+# The jobs 'build', 'test', and 'verify' run in parallel. On a push to 'main', the job 'releaseDraft' creates a draft GitHub release after the three jobs pass.
 #
 # A push to 'main' and a pull request start the workflow.
 # A change to documentation only does not start the workflow. Refer to the 'paths' filters below.
@@ -77,7 +76,6 @@ jobs:
       - name: Build plugin
         run: ./gradlew buildPlugin
 
-      # Upload the plugin ZIP file as a workflow artifact.
       - name: Upload artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -111,7 +109,6 @@ jobs:
       - name: Run Tests
         run: ./gradlew check
 
-      # If the job fails, upload the test reports.
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -130,7 +127,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      # Remove the files that the job does not use from the runner to get more disk space.
       # Only a push to 'main' does a check against all recommended IDEs. Thus only this check must have more disk space.
       - name: Maximize Build Space
         if: github.event_name != 'pull_request'
