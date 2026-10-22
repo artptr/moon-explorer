@@ -47,7 +47,6 @@ jobs:
       # The job finds the open issue from a previous run by this label. Refer to .github/labels.yml.
       ISSUE_LABEL: moon-output
       ISSUE_TITLE: The moon output check found a change or a failure
-      WORKSPACE: src/test/testData/workspace
       RECORDED: src/test/testData/moon
     steps:
 
@@ -78,13 +77,14 @@ jobs:
         with:
           cache-read-only: true
 
-      # Change package.json and package-lock.json to the new moon version. Then the record script installs this version.
-      - name: Install moon
+      # Change package.json and package-lock.json to the new moon version. Do not install the packages.
+      # The record script installs them with 'npm ci'. Thus the job installs moon only one time.
+      - name: Select moon version
         id: install
-        working-directory: ${{ env.WORKSPACE }}
+        working-directory: src/test/testData/workspace
         run: |
           set -euo pipefail
-          npm install --save-exact --no-audit --no-fund "@moonrepo/cli@$MOON_VERSION"
+          npm install --package-lock-only --save-exact --no-audit --no-fund "@moonrepo/cli@$MOON_VERSION"
           VERSION="$(node -p "require('./package.json').devDependencies['@moonrepo/cli']")"
           echo "version=moon $VERSION" >> "$GITHUB_OUTPUT"
 
@@ -103,11 +103,9 @@ jobs:
         run: |
           set -euo pipefail
           STATUS="$(git status --porcelain -- "$RECORDED" ":(exclude)$RECORDED/moon-version.txt")"
-          if [[ -n "$STATUS" ]]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
+          CHANGED=false
+          [[ -n "$STATUS" ]] && CHANGED=true
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
       # Run the tests with the new recorded output
       # The test data is an input of the 'test' task. Thus Gradle does not use a cached result for changed test data. Refer to build.gradle.kts.
@@ -117,23 +115,12 @@ jobs:
         continue-on-error: true
         run: ./gradlew test
 
-      # Keep the recorded output and the test reports. A maintainer can compare them with the test data.
-      # A cancelled run does not upload, report, or fail on a change, because its results are not complete.
-      # If the artifact service has a failure, the job continues.
-      - name: Upload moon output
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: moon-output
-          path: |
-            ${{ env.RECORDED }}
-            ${{ github.workspace }}/build/reports/tests
-
-      # Create an issue, or update the open issue from a previous run.
+      # Create an issue, or update the open issue from a previous run. If the step finds a change, the step fails.
+      # Thus the list of workflow runs also shows the change.
       # The issue text has a marker with the moon version. The step adds a comment only if the moon version changes.
       # Thus each new moon version causes one notification, not one notification each week.
       # A manual run on a different branch writes only the job summary. Thus the issue shows only the result for 'main'.
+      # A cancelled run does not report, because its results are not complete.
       - name: Report
         id: report
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -147,7 +134,8 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          OLD_VERSION="$(git show "HEAD:$RECORDED/moon-version.txt" | tr -d '\n')"
+          OLD_VERSION="$(git show "HEAD:$RECORDED/moon-version.txt")"
+          ERROR="The moon output changed, the record script failed, or the tests failed with $NEW_VERSION."
 
           {
             echo "| Item | Result |"
@@ -156,20 +144,19 @@ jobs:
             echo "| New version | $NEW_VERSION |"
             echo "| Record script | $RECORD_RESULT |"
             echo "| Change in the recorded output | ${CHANGED:-unknown} |"
-            echo "| Tests | ${TEST_RESULT:-skipped} |"
+            echo "| Tests | $TEST_RESULT |"
           } > "$RUNNER_TEMP/result.md"
           cat "$RUNNER_TEMP/result.md" >> "$GITHUB_STEP_SUMMARY"
 
           if [[ "$RECORD_RESULT" == "success" && "$CHANGED" == "false" && "$TEST_RESULT" == "success" ]]; then
-            echo "found=false" >> "$GITHUB_OUTPUT"
             echo "No change. The job does not create an issue."
             exit 0
           fi
-          echo "found=true" >> "$GITHUB_OUTPUT"
 
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "The run is not on main. The job does not change an issue." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
+            echo "The run is not on main. The job does not change an issue." >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::$ERROR The run is not on main, thus it did not change an issue. Refer to the job summary."
+            exit 1
           fi
 
           # A GitHub issue text can have a maximum of 65536 characters. Thus the step writes only the first lines of the diff.
@@ -213,8 +200,10 @@ jobs:
           NUMBER="$(gh issue list --state open --label "$ISSUE_LABEL" --limit 1 --json number --jq '.[0].number // empty')"
           if [[ -z "$NUMBER" ]]; then
             # The 'Labels' workflow creates the label from .github/labels.yml. This workflow can run before the 'Labels' workflow.
-            # Thus the step also creates the label. Use the same color and description as in .github/labels.yml.
-            gh label create "$ISSUE_LABEL" --color EDEDED --description "Issue from the Moon output workflow" --force
+            # Thus the step also creates the label. The color and the description come from .github/labels.yml.
+            COLOR="$(yq -r '.[] | select(.name == strenv(ISSUE_LABEL)) | .color' .github/labels.yml)"
+            DESCRIPTION="$(yq -r '.[] | select(.name == strenv(ISSUE_LABEL)) | .description' .github/labels.yml)"
+            gh label create "$ISSUE_LABEL" --color "$COLOR" --description "$DESCRIPTION" --force
             ISSUE_URL="$(gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/cli,$ISSUE_LABEL" --body-file "$BODY")"
           else
             PREVIOUS="$(gh issue view "$NUMBER" --json body --jq .body | sed -n 's/^<!-- moon-version: \(.*\) -->\r\{0,1\}$/\1/p')"
@@ -222,22 +211,20 @@ jobs:
             if [[ "$PREVIOUS" != "$NEW_VERSION" ]]; then
               gh issue comment "$NUMBER" --body "The workflow found a change with $NEW_VERSION. The issue text shows the new result. Workflow run: $RUN_URL"
             fi
-            ISSUE_URL="$(gh issue view "$NUMBER" --json url --jq .url)"
+            ISSUE_URL="$GITHUB_SERVER_URL/$GH_REPO/issues/$NUMBER"
           fi
-          echo "issue=$ISSUE_URL" >> "$GITHUB_OUTPUT"
-          echo "Issue: $ISSUE_URL" | tee -a "$GITHUB_STEP_SUMMARY"
-
-      # The run fails if it finds a change. Thus the list of workflow runs also shows the change.
-      # A run that is not on 'main' also fails, but it does not change an issue. Then the message refers only to the job summary.
-      - name: Fail on change
-        if: ${{ !cancelled() && steps.report.outputs.found == 'true' }}
-        env:
-          NEW_VERSION: ${{ steps.install.outputs.version }}
-          ISSUE_URL: ${{ steps.report.outputs.issue }}
-        run: |
-          if [[ -n "$ISSUE_URL" ]]; then
-            echo "::error::The moon output changed, the record script failed, or the tests failed with $NEW_VERSION. Refer to $ISSUE_URL."
-          else
-            echo "::error::The moon output changed, the record script failed, or the tests failed with $NEW_VERSION. The run is not on main, thus it did not change an issue. Refer to the job summary."
-          fi
+          echo "Issue: $ISSUE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::$ERROR Refer to $ISSUE_URL."
           exit 1
+
+      # Keep the recorded output and the test reports when the Report step finds a change. A maintainer can compare them with the test data.
+      # If the artifact service has a failure, the job continues.
+      - name: Upload moon output
+        if: ${{ !cancelled() && steps.report.outcome == 'failure' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: moon-output
+          path: |
+            ${{ env.RECORDED }}
+            ${{ github.workspace }}/build/reports/tests
