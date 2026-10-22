@@ -1,6 +1,6 @@
 # 0004. Use the YAML plugin as an optional dependency
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-23
 
 ## Context
