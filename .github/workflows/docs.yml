@@ -1,4 +1,4 @@
-# Do a check of the Markdown documentation against the STE rules in .vale/styles/STE.
+# Do a check of the Markdown documentation and the comments in the workflow files against the STE rules in .vale/styles/STE.
 # The allowlist in .vale.ini (refer to docs/ste/allowlist.md) excludes README.md and third-party texts.
 name: Docs
 on:

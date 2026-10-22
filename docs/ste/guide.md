@@ -64,4 +64,8 @@ The Vale tool checks some STE rules. The rules are in `.vale/styles/STE/`.
 
 The `Docs` workflow runs the same check on each pull request.
 
+Vale examines the Markdown files and the comments in `.github/workflows/*.yml`. Vale does not examine the YAML keys and values.
+
+**NOTE:** Vale cannot find all comments in a shell script in a `run` key. Vale also does not examine the comments in other YAML files. A person or the `ste-reviewer` subagent must do a review of these comments.
+
 **NOTE:** Vale checks all sentences against the descriptive limit of 25 words. It cannot find procedural sentences of 21 to 25 words. Vale also cannot find all other STE problems. For example, it cannot find an approved word with a meaning that is not approved. Use the `ste-reviewer` subagent for a full review.
