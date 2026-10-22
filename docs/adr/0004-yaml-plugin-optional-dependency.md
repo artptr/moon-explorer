@@ -10,26 +10,40 @@ The IDE shows run icons from a `RunLineMarkerContributor`. A plugin registers ea
 The IDE gives each contributor the PSI elements of a file. The IDE attaches each icon to one leaf element, for example a task key.
 
 Thus the plugin must have a PSI tree with one element for each task key.
-The YAML plugin (`org.jetbrains.plugins.yaml`, language ID `yaml`) makes this tree for `moon.yml` and for the files in `.moon/tasks/`.
+The YAML plugin (`org.jetbrains.plugins.yaml`, language ID `yaml`) makes this tree for YAML files.
+moon configuration files in YAML have the extension `.yml` or `.yaml`, for example `moon.yml` and the files in `.moon/tasks/`.
+
 The YAML plugin is not a part of the platform module `com.intellij.modules.platform`.
 It is a bundled plugin. IntelliJ IDEA 2025.3 and WebStorm contain it. The user can disable it.
 
-If the YAML plugin is disabled, the IDE shows a `.yml` file as plain text.
+If the YAML plugin is disabled, the IDE shows a YAML file as plain text.
 The PSI of a plain text file has only one leaf element. This element contains all the text of the file.
 
 Other plugins attach run icons to the configuration files of other tools:
 
 - Nx Console attaches run icons to `project.json` with `<runLineMarkerContributor language="JSON">`. It has a necessary dependency on `com.intellij.modules.json`.
 - GitHub Workflow and Maestro Assistant attach run icons to YAML files. They have a necessary dependency on `org.jetbrains.plugins.yaml`.
-- AWS Toolkit has an optional dependency on `org.jetbrains.plugins.yaml` with the file `ext-yaml.xml`. This file registers only the YAML functions.
+- AWS Toolkit attaches run icons to the Lambda functions in YAML templates. Its descriptor `plugin-intellij.xml` has a necessary dependency on `org.jetbrains.plugins.yaml`.
+
+AWS Toolkit also uses the mechanism of option B for a different function.
+Its main descriptor has an optional dependency on `org.jetbrains.plugins.yaml` with the file `ext-yaml.xml`.
+This file registers only an index of CloudFormation templates. It does not register run icons.
+
+Sources (examined on 2026-10-23):
+
+- Nx Console 1.61.1: [`plugin.xml`](https://github.com/nrwl/nx-console/blob/master/apps/intellij/src/main/resources/META-INF/plugin.xml)
+- GitHub Workflow 2026.6.26: [`plugin.xml`](https://github.com/YunaBraska/github-workflow-plugin/blob/main/src/main/resources/META-INF/plugin.xml)
+- Maestro Assistant 1.0.1: [`plugin.xml`](https://github.com/Trendyol/maestro-assistant/blob/main/src/main/resources/META-INF/plugin.xml)
+- AWS Toolkit: [`plugin.xml`](https://github.com/aws/aws-toolkit-jetbrains/blob/main/plugins/toolkit/jetbrains-core/resources/META-INF/plugin.xml), [`plugin-intellij.xml`](https://github.com/aws/aws-toolkit-jetbrains/blob/main/plugins/toolkit/jetbrains-core/resources/META-INF/plugin-intellij.xml), [`ext-yaml.xml`](https://github.com/aws/aws-toolkit-jetbrains/blob/main/plugins/toolkit/jetbrains-core/resources/META-INF/ext-yaml.xml)
+- The YAML plugin in IntelliJ IDEA 2025.3.6.1: the file `plugins/yaml/lib/yaml.jar`
 
 moon can also read configuration files in JSON, JSONC, TOML, HCL, and Pkl. Refer to `MoonWorkspaceLocator.CONFIG_FILE_EXTENSIONS`.
-Each format has a different language plugin. HCL and Pkl have plugins from third parties only.
+JSON and JSONC use the same plugin. Each other format has a different language plugin. HCL and Pkl have plugins from third parties only.
 
 These conditions apply:
 
-1. The main functions of the plugin are the tool window and the run configuration. They do not use YAML (principle 4 in [vision.md](../product/vision.md)).
-2. If a user disables the YAML plugin, the tool window and the run configuration must operate.
+1. Principle 4 in [vision.md](../product/vision.md) says that the plugin uses only the IntelliJ Platform. Thus the YAML plugin must not be a necessary dependency.
+2. The tool window and the run configuration do not use YAML. If a user disables the YAML plugin, these functions must operate.
 3. Rule 9 in `AGENTS.md` says that each new dependency must have a record in an issue or an ADR.
 4. A later issue can add run icons for a different configuration format.
 
@@ -72,14 +86,15 @@ Obey these rules:
 2. Put the classes that use YAML classes in the package `io.github.artptr.moonexplorer.yaml`. The other packages must not import `org.jetbrains.yaml`.
 3. Put the logic that does not use YAML classes in other packages. Examples: the search for a task in the loaded data, the target IDs (`project:task`), and the run actions.
 4. Add the YAML plugin to the build with `bundledPlugin("org.jetbrains.plugins.yaml")` in `build.gradle.kts`.
+5. Add a test that reads the Kotlin source files. The test fails if a file outside the package `yaml` imports `org.jetbrains.yaml`.
 
 The package `yaml` contains a `RunLineMarkerContributor` and a `RunConfigurationProducer` for the language `yaml`.
 The producer lets the IDE show the **Run** item in the context menu of a task key.
 
 ## Consequences
 
-- When the YAML plugin is active, the IDE shows run icons in `moon.yml` and in the files in `.moon/tasks/`.
+- When the YAML plugin is active, the IDE shows run icons in the YAML configuration files of moon. These are `moon.yml`, `moon.yaml`, and the YAML files in `.moon/tasks/`.
 - When the YAML plugin is disabled, the IDE shows no run icons in these files. All other functions operate.
 - The IDE shows no run icons in configuration files in JSON, JSONC, TOML, HCL, or Pkl. A later issue can add an optional descriptor file for each format.
-- The tests always load the YAML plugin. Thus no test finds a `NoClassDefFoundError` from a YAML class outside the package `yaml`. A code review must find this error.
+- The tests always load the YAML plugin. Thus no test finds a `NoClassDefFoundError` at runtime. The import test from rule 5 finds the cause of this error before the merge.
 - The command `./gradlew verifyPlugin` must not find problems in the optional dependency.
