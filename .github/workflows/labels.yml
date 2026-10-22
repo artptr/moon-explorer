@@ -1,4 +1,4 @@
-# Make the repository labels the same as the labels in .github/labels.yml.
+# Create or change the repository labels from .github/labels.yml. The workflow does not delete other labels.
 name: Labels
 on:
   push:

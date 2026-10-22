@@ -31,7 +31,7 @@ on:
       - '!.claude/**'
       - 'CHANGELOG.md'
       - 'src/**'
-  # Each pull request starts the workflow.
+  # A pull request starts the workflow if it changes a file in the 'paths' filter.
   pull_request:
     # Use the same 'paths' filter as for 'push'.
     paths:
@@ -111,7 +111,7 @@ jobs:
       - name: Run Tests
         run: ./gradlew check
 
-      # If a test fails, upload the test reports.
+      # If the job fails, upload the test reports.
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -124,7 +124,7 @@ jobs:
         if: ${{ always() }}
         run: df -h /
 
-  # Do a check of the plugin structure. Do a check of the compatibility with IDE versions with the IntelliJ Plugin Verifier.
+  # Use the IntelliJ Plugin Verifier to do a check of the plugin structure and of the compatibility with IDE versions.
   verify:
     name: Verify plugin
     runs-on: ubuntu-latest
@@ -217,7 +217,7 @@ jobs:
             .intellijPlatform/ides/${{ steps.ides.outputs.newest }}
           key: ${{ steps.ide-cache.outputs.cache-primary-key }}
 
-      # Upload the Plugin Verifier reports, also if the check fails.
+      # Upload the Plugin Verifier reports also if the check fails.
       - name: Collect Plugin Verifier Result
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -255,7 +255,7 @@ jobs:
         with:
           cache-read-only: true
 
-      # Delete all draft releases. Then the repository has only the draft for the newest version.
+      # Delete all draft releases. The next step creates a new draft for the newest version.
       - name: Remove Old Release Drafts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

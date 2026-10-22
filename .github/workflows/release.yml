@@ -1,5 +1,5 @@
 # Publish the plugin when a maintainer publishes the draft release from the 'Build' workflow.
-# The 'publishPlugin' task must have these secrets: PUBLISH_TOKEN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, CERTIFICATE_CHAIN.
+# The workflow must have these repository secrets: PUBLISH_TOKEN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, CERTIFICATE_CHAIN.
 # If the variable SKIP_MARKETPLACE_PUBLISH is 'true', the job signs the plugin, but does not publish it.
 # For more information, refer to https://plugins.jetbrains.com/docs/intellij/plugin-signing.html.
 
@@ -38,7 +38,7 @@ jobs:
         with:
           cache-read-only: true
 
-      # Change the 'Unreleased' section of CHANGELOG.md to a section for this version. The text of the release becomes the release notes.
+      # Change the 'Unreleased' section of CHANGELOG.md to a section for this version. The text of the release becomes the new changelog entry.
       # If the release has no text, this step and the 'Create Pull Request' step do not run.
       - name: Patch Changelog
         if: ${{ github.event.release.body != '' }}
@@ -62,7 +62,7 @@ jobs:
         run: ./gradlew publishPlugin
 
       # Sign the plugin, but do not publish it. Use this step for a version that a maintainer uploaded to Marketplace manually.
-      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to docs/development.md, section 8.
+      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to docs/development.md, section 8.1.
       - name: Sign Plugin
         if: ${{ vars.SKIP_MARKETPLACE_PUBLISH == 'true' }}
         env:
