@@ -13,7 +13,7 @@ permissions:
 
 jobs:
 
-  # Publish the plugin to JetBrains Marketplace. Then attach the plugin files to the release. Then open a pull request for CHANGELOG.md.
+  # Publish the plugin. Then open a pull request for CHANGELOG.md.
   release:
     name: Publish Plugin
     runs-on: ubuntu-latest
@@ -51,7 +51,6 @@ jobs:
 
           ./gradlew patchChangelog --release-note-file=$RELEASE_NOTE
 
-      # If the variable SKIP_MARKETPLACE_PUBLISH is 'true', the job does not publish the plugin.
       - name: Publish Plugin
         if: ${{ vars.SKIP_MARKETPLACE_PUBLISH != 'true' }}
         env:
@@ -62,7 +61,7 @@ jobs:
         run: ./gradlew publishPlugin
 
       # Sign the plugin, but do not publish it. Use this step for a version that a maintainer uploaded to Marketplace manually.
-      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to docs/development.md, section 8.1.
+      # Marketplace accepts the first version of a new plugin only as a manual upload. Refer to the section 'Version that you uploaded manually' in docs/development.md.
       - name: Sign Plugin
         if: ${{ vars.SKIP_MARKETPLACE_PUBLISH == 'true' }}
         env:
@@ -71,13 +70,12 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew signPlugin
 
-      # Attach the files in build/distributions to the GitHub release.
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
 
-      # Open a pull request with the changed CHANGELOG.md. A maintainer merges it.
+      # A maintainer merges the pull request.
       - name: Create Pull Request
         if: ${{ github.event.release.body != '' }}
         env:
