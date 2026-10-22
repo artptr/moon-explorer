@@ -56,13 +56,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # Set up Node.js and npm for the moon CLI
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: lts/*
 
-      # Set up the Java environment for the tests
       - name: Setup Java
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
@@ -105,7 +103,6 @@ jobs:
           [[ -n "$STATUS" ]] && CHANGED=true
           echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
-      # Run the tests with the new recorded output
       # The test data is an input of the 'test' task. Thus Gradle does not use a cached result for changed test data. Refer to build.gradle.kts.
       - name: Run Tests
         id: tests
