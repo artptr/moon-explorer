@@ -5,7 +5,7 @@
 #   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
 # - Create a draft GitHub release on non-pull-request runs.
 #
-# The jobs 'build', 'test', and 'verify' run in parallel. The job 'releaseDraft' starts only after the three jobs pass.
+# The jobs 'build', 'test', and 'verify' run in parallel. On a push to 'main', the job 'releaseDraft' starts only after the three jobs pass.
 #
 # The workflow is triggered on pushes to the 'main' branch and on pull_request events.
 # A change to documentation only does not start the workflow. Refer to the 'paths' filters below.
