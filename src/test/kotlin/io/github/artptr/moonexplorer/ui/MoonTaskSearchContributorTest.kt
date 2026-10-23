@@ -64,6 +64,11 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
         assertSameElements(targets("migrations"), "db:migrate")
     }
 
+    fun testSearchFindsTwoWordsOfTheDescription() {
+        load()
+        assertSameElements(targets("database migrations"), "db:migrate")
+    }
+
     fun testSearchIgnoresTheCase() {
         load()
         assertSameElements(targets("STORYBOOK"), "ui:storybook")

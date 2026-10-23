@@ -74,8 +74,9 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
          * Gives the target if [parameters] are `run <target>`. The parameters do not contain `moon`.
          * The function accepts all targets. It also accepts targets that the plugin did not load, for example `:build`.
          * For other parameters, the function gives null.
+         * An option is not a target, for example `--help`. Thus **Run Anything** runs `moon run --help` in the usual way.
          */
         fun targetOf(parameters: List<String>): String? =
-            parameters.takeIf { it.size == 2 && it[0] == RUN_COMMAND && it[1].isNotEmpty() }?.get(1)
+            parameters.takeIf { it.size == 2 && it[0] == RUN_COMMAND && it[1].isNotEmpty() && !it[1].startsWith("-") }?.get(1)
     }
 }

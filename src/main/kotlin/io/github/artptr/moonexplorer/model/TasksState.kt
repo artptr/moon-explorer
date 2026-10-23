@@ -54,8 +54,8 @@ sealed interface TasksState {
 }
 
 /**
- * Gives the tasks that the plugin loaded, or null if there are no tasks to show.
- * For [TasksState.Stale], the function gives the tasks of the last successful load, the same as the tree.
+ * Gives the tasks of the last successful load, or null if the plugin did not load the tasks.
+ * For [TasksState.Stale], the value is the tasks of [TasksState.Stale.last], the same as the tree.
  */
 val TasksState.loadedTasks: WorkspaceTasks?
     get() = when (this) {

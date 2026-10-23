@@ -9,7 +9,7 @@
 | Build tool | Gradle, with the IntelliJ Platform Gradle Plugin 2.x |
 | Target platform | IntelliJ Platform 2025.3 and later |
 | JDK | 21 |
-| Platform dependency | `com.intellij.modules.platform` (all IntelliJ-based IDEs) |
+| Platform dependencies | `com.intellij.modules.platform` and `com.intellij.modules.lang` (all IntelliJ-based IDEs). **Search Everywhere** and **Run Anything** are in the `lang` module. |
 
 ## 2. Current structure
 

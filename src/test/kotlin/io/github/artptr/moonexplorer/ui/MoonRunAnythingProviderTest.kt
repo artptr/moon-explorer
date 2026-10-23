@@ -5,7 +5,10 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
@@ -46,6 +49,8 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertNull(MoonRunAnythingProvider.targetOf(listOf("query", "projects")))
         assertNull(MoonRunAnythingProvider.targetOf(listOf("run", "web:build", "web:lint")))
         assertNull(MoonRunAnythingProvider.targetOf(listOf("run", "web:build", "--", "--watch")))
+        assertNull(MoonRunAnythingProvider.targetOf(listOf("run", "--help")))
+        assertNull(MoonRunAnythingProvider.targetOf(listOf("run", "-h")))
     }
 
     fun testCompletionAfterMoonGivesRun() {
@@ -58,6 +63,26 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertSameElements(values, expected)
     }
 
+    fun testNoTargetsWhileTheTasksLoad() {
+        runBlocking { service.resetForTests() }
+        assertEquals(TasksState.Loading, service.state.value)
+        assertEmpty(provider.getValues(context, "moon run "))
+    }
+
+    fun testNoTargetsWithoutAWorkspace() {
+        service.projectDir = { null }
+        service.refresh()
+        service.awaitState(TasksState.NoWorkspace)
+        assertEmpty(provider.getValues(context, "moon run "))
+    }
+
+    fun testCompletionUsesTheLastTargetsAfterAFailedRefresh() {
+        service.queryProjects = { CliResult.Failed("refresh failed") }
+        service.refresh()
+        service.awaitState(TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error("refresh failed"))))
+        assertContainsElements(provider.getValues(context, "moon run "), "moon run ui:storybook")
+    }
+
     fun testNoCompletionAfterATarget() {
         assertEmpty(provider.getValues(context, "moon run web:build "))
     }
@@ -66,6 +91,7 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertEquals("moon run web:build", provider.findMatchingValue(context, "moon run web:build"))
         assertNull(provider.findMatchingValue(context, "moon run"))
         assertNull(provider.findMatchingValue(context, "moon query projects"))
+        assertNull(provider.findMatchingValue(context, "moon run --help"))
         assertNull(provider.findMatchingValue(context, "moon run web:build web:lint"))
         assertNull(provider.findMatchingValue(context, "npm run build"))
         assertNull(provider.findMatchingValue(context, "moonx run web:build"))

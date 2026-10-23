@@ -68,7 +68,9 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
         return true
     }
 
-    override fun getElementsRenderer(): ListCellRenderer<in MoonTask> = TaskRenderer()
+    private val renderer = TaskRenderer()
+
+    override fun getElementsRenderer(): ListCellRenderer<in MoonTask> = renderer
 
     override fun dispose() = Unit
 
