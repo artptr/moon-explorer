@@ -26,6 +26,7 @@
                              instance="io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable"
                              key="settings.displayName"/>
         <configurationType implementation="io.github.artptr.moonexplorer.run.MoonRunConfigurationType"/>
+        <dependencySupport kind="javascript" coordinate="npm:@moonrepo/cli" displayName="moon"/>
     </extensions>
 
     <projectListeners>
