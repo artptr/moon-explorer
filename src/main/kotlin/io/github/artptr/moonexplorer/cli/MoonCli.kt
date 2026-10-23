@@ -54,7 +54,14 @@ object MoonCli {
      * The output keeps its colors, because the console of the Run tool window shows them.
      */
     fun runTaskCommandLine(executable: Path, workspaceRoot: Path, target: String): GeneralCommandLine =
-        baseCommandLine(executable, workspaceRoot, "run", target)
+        consoleCommandLine(executable, workspaceRoot, listOf("run", target))
+
+    /**
+     * Makes the command line `moon <args>` in [workspaceRoot], for example `moon query projects`.
+     * The output keeps its colors, because the console of the Run tool window shows them.
+     */
+    fun consoleCommandLine(executable: Path, workspaceRoot: Path, args: List<String>): GeneralCommandLine =
+        baseCommandLine(executable, workspaceRoot, *args.toTypedArray())
 
     /**
      * Makes the command line that runs [executable] with [args] in [workDir]. The output of this command line has no colors.

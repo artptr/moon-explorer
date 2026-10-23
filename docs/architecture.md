@@ -47,9 +47,10 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Make and run a configuration for a task | `run.MoonTaskRunner` | None |
 | Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
 | Find and run a task in the **All** tab of **Search Everywhere** | `ui.MoonTaskSearchContributor` | `plugin.xml` (`searchEverywhereContributor`) |
-| Complete and run `moon run <target>` in **Run Anything** | `ui.MoonRunAnythingProvider` | `plugin.xml` (`runAnything.executionProvider`) |
+| Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner` | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner` | `plugin.xml` (`runAnything.executionProvider`) |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
+| Moon icon for the classic UI (`icons/`), for the new UI (`icons/expui/`), and the outline for the tool window. The icons come from the moon repository (MIT License) | `MoonIcons` | None. The tool window in `plugin.xml` refers to `MoonIcons.ToolWindow`. |
 | Plugin suggestion for an IDE project that has `@moonrepo/cli` in `package.json` | None | `plugin.xml` (`dependencySupport`) |
 
 **NOTE:** The layers come from the proposal in the first version of this file. Record each later change to the layers in an ADR in [adr/](adr/).

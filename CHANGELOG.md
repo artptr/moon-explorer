@@ -7,7 +7,9 @@
 ### Added
 
 - **Search Everywhere** finds moon tasks by the task ID, the project ID, or the description. The tasks are in the **All** tab, in the group "Moon Tasks". When you select a task, the plugin runs it with a run configuration.
-- After `moon run`, **Run Anything** shows the targets of the moon tasks. A target has the form `<project>:<task>`. When you run `moon run <target>`, the plugin runs the target with a run configuration. **Run Anything** runs other moon commands as usual.
+- When you type `moon`, **Run Anything** shows `moon run <target>` for each moon task. A target has the form `<project>:<task>`. When you run `moon run <target>`, the plugin runs the target with a run configuration.
+- **Run Anything** runs all other moon commands with the moon executable that the plugin finds, in the workspace root. An example is `moon query projects`. Thus these commands also operate when moon is not in `PATH`. The **Run** tool window shows the output.
+- The moon icon marks the moon tasks in the **Moon** tool window, in **Search Everywhere**, and in **Run Anything**. In the new UI, the icon is an outline with a light fill, the same as the other node icons. In the classic UI, the icon is solid. The moon run configurations also show this icon. The button of the **Moon** tool window shows a gray outline of the icon, the same as the other tool window buttons.
 - **Search Everywhere** and **Run Anything** use the tasks that the plugin loaded. They also operate when the **Moon** tool window is closed.
 - Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
 

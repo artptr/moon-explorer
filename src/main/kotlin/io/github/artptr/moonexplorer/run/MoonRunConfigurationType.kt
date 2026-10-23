@@ -4,17 +4,17 @@ import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationTypeBase
 import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.RunConfiguration
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.MoonIcons
 
 /** The run configuration type "moon". A configuration runs `moon run <target>`. */
 class MoonRunConfigurationType : ConfigurationTypeBase(
     ID,
     MoonExplorerBundle.message("run.configuration.type.name"),
     MoonExplorerBundle.message("run.configuration.type.description"),
-    AllIcons.Actions.Execute,
+    MoonIcons.Moon,
 ) {
     /** The factory of the type. The type has only this factory. */
     val factory: ConfigurationFactory = MoonConfigurationFactory(this)

@@ -6,6 +6,7 @@ import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.speedSearch.SpeedSearchUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.MoonIcons
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
@@ -86,7 +87,7 @@ class ProjectNode(val project: MoonProject) : TaskTreeNode(project) {
  */
 class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeNode(task, false) {
     override val key: String = "task:${task.target}"
-    override val icon: Icon get() = if (showProject) AllIcons.Nodes.Module else AllIcons.Nodes.Function
+    override val icon: Icon get() = if (showProject) AllIcons.Nodes.Module else MoonIcons.Moon
     override fun toString(): String = label
 
     /** The ID of the project of the task. */
@@ -99,7 +100,7 @@ class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeN
 /** A tree node for a task name. It contains the tasks with this name in all projects. */
 class TaskNameNode(val name: String) : TaskTreeNode(name) {
     override val key: String = "name:$name"
-    override val icon: Icon get() = AllIcons.Nodes.Function
+    override val icon: Icon get() = MoonIcons.Moon
     override fun toString(): String = name
 }
 

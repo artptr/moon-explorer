@@ -18,7 +18,7 @@ The first release (an MVP) focuses on that:
 - A task tree in the **Moon** tool window, grouped by project or by task name, optionally inside `stack` or `layer` nodes
 - Just start typing in the tree to search task IDs (like `build`), project IDs, and descriptions
 - Double-click a task to run it as a regular IDE run configuration
-- Find and run tasks from **Search Everywhere** (double Shift), or type `moon run` in **Run Anything** (double Ctrl) to get target completion — the tool window doesn't even need to be open
+- Find and run tasks from **Search Everywhere** (double Shift), or type `moon` in **Run Anything** (double Ctrl) to get target completion and run any moon command — the tool window doesn't even need to be open
 - Works out of the box when moon is an npm dev dependency — no need to install it globally
 
 It targets moon v2, works fully offline, and sends no telemetry.

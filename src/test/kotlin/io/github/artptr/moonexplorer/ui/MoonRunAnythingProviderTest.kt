@@ -53,8 +53,22 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertNull(MoonRunAnythingProvider.targetOf(listOf("run", "-h")))
     }
 
-    fun testCompletionAfterMoonGivesRun() {
-        assertContainsElements(provider.getValues(context, "moon "), "moon run")
+    fun testCompletionAfterMoonGivesRunAndTheLoadedTargets() {
+        val expected = listOf("moon run") + TestData.recordedTasks().allTasks.map { "moon run ${it.target}" }
+        assertSameElements(provider.getValues(context, "moon "), expected)
+    }
+
+    fun testCompletionBeforeTheSpaceAfterRunGivesTheLoadedTargets() {
+        assertContainsElements(provider.getValues(context, "moon run"), "moon run", "moon run ui:storybook")
+    }
+
+    fun testCompletionForAPartOfTheHelpCommandGivesTheTargets() {
+        assertContainsElements(provider.getValues(context, "moo"), "moon run", "moon run ui:storybook")
+    }
+
+    fun testOnlyRunWhileTheTasksLoad() {
+        runBlocking { service.resetForTests() }
+        assertSameElements(provider.getValues(context, "moon "), "moon run")
     }
 
     fun testCompletionAfterMoonRunGivesTheLoadedTargets() {
@@ -83,21 +97,57 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertEmpty(provider.getValues(context, "moon run web:build "))
     }
 
-    fun testProviderMatchesOnlyMoonRunWithATarget() {
-        assertEquals("moon run web:build", provider.findMatchingValue(context, "moon run web:build"))
-        assertNull(provider.findMatchingValue(context, "moon run"))
-        assertNull(provider.findMatchingValue(context, "moon query projects"))
-        assertNull(provider.findMatchingValue(context, "moon run --help"))
-        assertNull(provider.findMatchingValue(context, "moon run web:build web:lint"))
-        assertNull(provider.findMatchingValue(context, "npm run build"))
-        assertNull(provider.findMatchingValue(context, "moonx run web:build"))
+    fun testProviderMatchesAllMoonCommands() {
+        for (command in listOf("moon", "moon run", "moon run web:build", "moon query projects", "moon run --help", "moon run web:build web:lint")) {
+            assertEquals(command, provider.findMatchingValue(context, command))
+        }
     }
 
-    fun testRunRunsTheTarget() {
-        val ran = mutableListOf<Pair<Project, String>>()
-        provider.runTask = { p, target -> ran.add(p to target) }
+    fun testProviderDoesNotMatchOtherCommands() {
+        assertNull(provider.findMatchingValue(context, "npm run build"))
+        assertNull(provider.findMatchingValue(context, "moonx run web:build"))
+        assertNull(provider.findMatchingValue(context, "echo moon"))
+    }
+
+    fun testProviderIsTheFirstProviderForMoonCommands() {
+        for (command in listOf("moon run web:build", "moon query projects")) {
+            val first = RunAnythingProvider.EP_NAME.extensionList.first {
+                @Suppress("UNCHECKED_CAST")
+                (it as RunAnythingProvider<Any?>).findMatchingValue(context, command) != null
+            }
+            assertInstanceOf(first, MoonRunAnythingProvider::class.java)
+        }
+    }
+
+    fun testRunRunsTheTargetWithARunConfiguration() {
+        val tasks = mutableListOf<Pair<Project, String>>()
+        val commands = mutableListOf<List<String>>()
+        provider.runTask = { p, target -> tasks.add(p to target) }
+        provider.runCommand = { _, args -> commands.add(args) }
         provider.execute(context, "moon run web:build")
-        assertEquals(listOf(project to "web:build"), ran)
+        assertEquals(listOf(project to "web:build"), tasks)
+        assertEmpty(commands)
+    }
+
+    fun testRunRunsOtherCommandsWithTheCommandRunner() {
+        val tasks = mutableListOf<String>()
+        val commands = mutableListOf<Pair<Project, List<String>>>()
+        provider.runTask = { _, target -> tasks.add(target) }
+        provider.runCommand = { p, args -> commands.add(p to args) }
+        provider.execute(context, "moon query projects")
+        provider.execute(context, "moon run --help")
+        provider.execute(context, "moon run web:build web:lint")
+        provider.execute(context, "moon")
+        assertEmpty(tasks)
+        assertEquals(
+            listOf(
+                project to listOf("query", "projects"),
+                project to listOf("run", "--help"),
+                project to listOf("run", "web:build", "web:lint"),
+                project to emptyList(),
+            ),
+            commands,
+        )
     }
 
     fun testProviderIsRegistered() {

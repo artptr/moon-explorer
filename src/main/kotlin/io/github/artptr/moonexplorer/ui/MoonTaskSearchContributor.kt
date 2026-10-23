@@ -1,6 +1,5 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory
@@ -15,11 +14,13 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.Processor
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.MoonIcons
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
+import java.awt.Insets
 import javax.swing.JList
 import javax.swing.ListCellRenderer
 
@@ -71,9 +72,14 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
 
     /** Shows the target of a task and its description in gray text, the same as the tree. */
     private class TaskRenderer : ColoredListCellRenderer<MoonTask>() {
+        init {
+            // The list of Search Everywhere sets the left space of each row. Thus the icon of a task is in the same column as the icons of the platform groups.
+            ipad = Insets(0, 0, 0, ipad.right)
+        }
+
         override fun customizeCellRenderer(list: JList<out MoonTask>, value: MoonTask?, index: Int, selected: Boolean, hasFocus: Boolean) {
             if (value == null) return
-            icon = AllIcons.Nodes.Function
+            icon = MoonIcons.Moon
             append(value.target, SimpleTextAttributes.REGULAR_ATTRIBUTES)
             appendTaskDescription(value)
         }

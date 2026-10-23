@@ -6,6 +6,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.components.JBList
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
@@ -116,6 +118,14 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
     fun testContributorIsOnlyInTheAllTab() {
         assertFalse(contributor.isShownInSeparateTab)
         assertFalse(contributor.showInFindResults())
+    }
+
+    fun testRendererHasNoLeftSpace() {
+        val task = search("storybook").single().item
+        val component = contributor.elementsRenderer.getListCellRendererComponent(JBList(task), task, 0, false, false)
+        val renderer = component as ColoredListCellRenderer<*>
+        assertEquals("ui:storybook", renderer.getCharSequence(true).toString())
+        assertEquals(0, renderer.ipad.left)
     }
 
     fun testFactoryIsRegistered() {

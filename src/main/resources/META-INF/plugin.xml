@@ -17,7 +17,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Moon"
                     anchor="right"
-                    icon="AllIcons.Toolwindows.ToolWindowHierarchy"
+                    icon="io.github.artptr.moonexplorer.MoonIcons.ToolWindow"
                     factoryClass="io.github.artptr.moonexplorer.ui.MoonToolWindowFactory"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RefreshFailureNotifierStartupActivity"/>
