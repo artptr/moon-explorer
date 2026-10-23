@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
+
 ## [0.2.0] - 2026-10-22
 
 ### Added

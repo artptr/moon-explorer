@@ -48,6 +48,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
+| Plugin suggestion for an IDE project that has `@moonrepo/cli` in `package.json` | None | `plugin.xml` (`dependencySupport`) |
 
 **NOTE:** The layers come from the proposal in the first version of this file. Record each later change to the layers in an ADR in [adr/](adr/).
 
