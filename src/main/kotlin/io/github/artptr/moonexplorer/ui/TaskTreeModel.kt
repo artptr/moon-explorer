@@ -115,7 +115,7 @@ class CategoryNode(val category: TaskCategory, val value: String?) : TaskTreeNod
 }
 
 /** The separator between the name of a task node and its description. */
-private const val DESCRIPTION_SEPARATOR = "  "
+internal const val DESCRIPTION_SEPARATOR = "  "
 
 /**
  * Gives the text that the speed search of the tree examines for [node].
@@ -125,9 +125,15 @@ private const val DESCRIPTION_SEPARATOR = "  "
  * For other nodes, the text is the text that the node shows.
  */
 fun searchText(node: Any?): String = when (node) {
-    is TaskNode -> node.task.target + node.task.description?.let { DESCRIPTION_SEPARATOR + it }.orEmpty()
+    is TaskNode -> taskSearchText(node.task)
     else -> node?.toString().orEmpty()
 }
+
+/**
+ * Gives the text that the searches examine for [task]: the target and the description.
+ * The speed search of the tree and **Search Everywhere** use this text. Thus the two searches find the same tasks.
+ */
+fun taskSearchText(task: MoonTask): String = task.target + task.description?.let { DESCRIPTION_SEPARATOR + it }.orEmpty()
 
 /**
  * Shows the nodes of the task tree. A task node shows its description in gray text.

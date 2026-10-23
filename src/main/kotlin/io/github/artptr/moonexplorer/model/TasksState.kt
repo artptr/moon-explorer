@@ -52,3 +52,14 @@ sealed interface TasksState {
     /** An unexpected error occurred during the load. The IDE log contains the exception. */
     data object UnexpectedError : Failure
 }
+
+/**
+ * Gives the tasks that the plugin loaded, or null if there are no tasks to show.
+ * For [TasksState.Stale], the function gives the tasks of the last successful load, the same as the tree.
+ */
+val TasksState.loadedTasks: WorkspaceTasks?
+    get() = when (this) {
+        is TasksState.Loaded -> tasks
+        is TasksState.Stale -> last.tasks
+        else -> null
+    }

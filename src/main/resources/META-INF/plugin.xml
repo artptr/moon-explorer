@@ -26,6 +26,8 @@
                              instance="io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable"
                              key="settings.displayName"/>
         <configurationType implementation="io.github.artptr.moonexplorer.run.MoonRunConfigurationType"/>
+        <searchEverywhereContributor implementation="io.github.artptr.moonexplorer.ui.MoonTaskSearchContributor$Factory"/>
+        <runAnything.executionProvider implementation="io.github.artptr.moonexplorer.ui.MoonRunAnythingProvider"/>
         <dependencySupport kind="javascript" coordinate="npm:@moonrepo/cli" displayName="moon"/>
     </extensions>
 
