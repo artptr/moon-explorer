@@ -5,11 +5,12 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.awaitState
+import io.github.artptr.moonexplorer.model.allTasks
+import io.github.artptr.moonexplorer.model.loadNoWorkspace
+import io.github.artptr.moonexplorer.model.loadRecorded
+import io.github.artptr.moonexplorer.model.loadStale
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
@@ -25,8 +26,7 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         service = project.service<MoonTasksService>()
         service.prepareForTests()
         provider = MoonRunAnythingProvider()
-        service.refresh()
-        service.awaitState(TestData.recordedState())
+        service.loadRecorded()
     }
 
     override fun tearDown() {
@@ -59,7 +59,7 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
 
     fun testCompletionAfterMoonRunGivesTheLoadedTargets() {
         val values = provider.getValues(context, "moon run ")
-        val expected = TestData.recordedTasks().projects.flatMap { it.tasks }.map { "moon run ${it.target}" }
+        val expected = TestData.recordedTasks().allTasks.map { "moon run ${it.target}" }
         assertSameElements(values, expected)
     }
 
@@ -70,16 +70,12 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
     }
 
     fun testNoTargetsWithoutAWorkspace() {
-        service.projectDir = { null }
-        service.refresh()
-        service.awaitState(TasksState.NoWorkspace)
+        service.loadNoWorkspace()
         assertEmpty(provider.getValues(context, "moon run "))
     }
 
     fun testCompletionUsesTheLastTargetsAfterAFailedRefresh() {
-        service.queryProjects = { CliResult.Failed("refresh failed") }
-        service.refresh()
-        service.awaitState(TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error("refresh failed"))))
+        service.loadStale()
         assertContainsElements(provider.getValues(context, "moon run "), "moon run ui:storybook")
     }
 

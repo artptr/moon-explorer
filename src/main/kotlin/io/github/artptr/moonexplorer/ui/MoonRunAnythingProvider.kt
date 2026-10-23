@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.execution.ParametersListUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
 import javax.swing.Icon
@@ -63,7 +64,7 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
     private fun loadedTargets(dataContext: DataContext): Sequence<String> {
         val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return emptySequence()
         val tasks = project.service<MoonTasksService>().state.value.loadedTasks ?: return emptySequence()
-        return tasks.projects.asSequence().flatMap { it.tasks }.map { it.target }
+        return tasks.allTasks.asSequence().map { it.target }
     }
 
     internal companion object {

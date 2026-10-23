@@ -2,6 +2,7 @@ package io.github.artptr.moonexplorer.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.ui.ColoredTreeCellRenderer
+import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.speedSearch.SpeedSearchUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
@@ -115,7 +116,7 @@ class CategoryNode(val category: TaskCategory, val value: String?) : TaskTreeNod
 }
 
 /** The separator between the name of a task node and its description. */
-internal const val DESCRIPTION_SEPARATOR = "  "
+private const val DESCRIPTION_SEPARATOR = "  "
 
 /**
  * Gives the text that the speed search of the tree examines for [node].
@@ -127,6 +128,11 @@ internal const val DESCRIPTION_SEPARATOR = "  "
 fun searchText(node: Any?): String = when (node) {
     is TaskNode -> taskSearchText(node.task)
     else -> node?.toString().orEmpty()
+}
+
+/** Appends the description of [task] in gray text. The tree and **Search Everywhere** show the description in the same way. */
+fun SimpleColoredComponent.appendTaskDescription(task: MoonTask) {
+    task.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
 }
 
 /**
@@ -153,7 +159,7 @@ class TaskTreeCellRenderer : ColoredTreeCellRenderer() {
         if (value is TaskTreeNode) {
             icon = value.icon
             append(value.toString(), value.attributes)
-            (value as? TaskNode)?.task?.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
+            (value as? TaskNode)?.task?.let(::appendTaskDescription)
         } else {
             // A node of a different type shows its text. Thus the node is not empty in the tree.
             value?.let { append(it.toString()) }

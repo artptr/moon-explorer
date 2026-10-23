@@ -17,6 +17,7 @@ import com.intellij.util.Processor
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
 import javax.swing.JList
@@ -40,10 +41,6 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
 
     override fun showInFindResults(): Boolean = false
 
-    override fun isShownInSeparateTab(): Boolean = false
-
-    override fun isEmptyPatternSupported(): Boolean = false
-
     /** Finds the tasks that match [pattern]. The platform calls this function on a background thread. */
     override fun fetchWeightedElements(
         pattern: String,
@@ -55,7 +52,7 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
         // The `*` at the start lets the pattern match in all locations of the text, the same as the speed search of the tree.
         // The matcher ignores the case of the letters.
         val matcher = NameUtil.buildMatcher("*$pattern").build()
-        for (task in tasks.projects.asSequence().flatMap { it.tasks }) {
+        for (task in tasks.allTasks) {
             progressIndicator.checkCanceled()
             val text = taskSearchText(task)
             if (!matcher.matches(text)) continue
@@ -72,15 +69,13 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
 
     override fun getElementsRenderer(): ListCellRenderer<in MoonTask> = renderer
 
-    override fun dispose() = Unit
-
     /** Shows the target of a task and its description in gray text, the same as the tree. */
     private class TaskRenderer : ColoredListCellRenderer<MoonTask>() {
         override fun customizeCellRenderer(list: JList<out MoonTask>, value: MoonTask?, index: Int, selected: Boolean, hasFocus: Boolean) {
             if (value == null) return
             icon = AllIcons.Nodes.Function
             append(value.target, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            value.description?.let { append(DESCRIPTION_SEPARATOR + it, SimpleTextAttributes.GRAYED_ATTRIBUTES) }
+            appendTaskDescription(value)
         }
     }
 
@@ -92,7 +87,7 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
         override fun isAvailable(project: Project?): Boolean = project != null
     }
 
-    internal companion object {
+    private companion object {
         const val ID = "MoonExplorer.Tasks"
 
         /** The position of the group in the **All** tab. A lower value moves the group up. The platform groups use values from 100 to 400. */

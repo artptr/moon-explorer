@@ -7,11 +7,12 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.awaitState
+import io.github.artptr.moonexplorer.model.loadNoWorkspace
+import io.github.artptr.moonexplorer.model.loadRecorded
+import io.github.artptr.moonexplorer.model.loadStale
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
@@ -25,6 +26,7 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
         super.setUp()
         service = project.service<MoonTasksService>()
         service.prepareForTests()
+        service.loadRecorded()
         contributor = MoonTaskSearchContributor(project)
     }
 
@@ -36,11 +38,6 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
         }
     }
 
-    private fun load() {
-        service.refresh()
-        service.awaitState(TestData.recordedState())
-    }
-
     private fun search(pattern: String): List<FoundItemDescriptor<MoonTask>> {
         val found = mutableListOf<FoundItemDescriptor<MoonTask>>()
         contributor.fetchWeightedElements(pattern, EmptyProgressIndicator()) { found.add(it) }
@@ -50,62 +47,50 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
     private fun targets(pattern: String): List<String> = search(pattern).map { it.item.target }
 
     fun testSearchFindsATaskByItsId() {
-        load()
         assertSameElements(targets("storybook"), "ui:storybook")
     }
 
     fun testSearchFindsTheTasksOfAProject() {
-        load()
         assertContainsElements(targets("worker"), "worker:audit", "worker:build", "worker:start", "worker:test")
     }
 
     fun testSearchFindsATaskByItsDescription() {
-        load()
         assertSameElements(targets("migrations"), "db:migrate")
     }
 
     fun testSearchFindsTwoWordsOfTheDescription() {
-        load()
         assertSameElements(targets("database migrations"), "db:migrate")
     }
 
     fun testSearchIgnoresTheCase() {
-        load()
         assertSameElements(targets("STORYBOOK"), "ui:storybook")
     }
 
     fun testSearchFindsAFullTarget() {
-        load()
         assertContainsElements(targets("web:build"), "web:build")
     }
 
     fun testSearchFindsNothingForAnUnknownText() {
-        load()
         assertEmpty(search("no-such-task"))
     }
 
     fun testSearchFindsNothingForABlankPattern() {
-        load()
         assertEmpty(search("  "))
     }
 
     fun testSearchFindsNothingWhileTheTasksLoad() {
+        runBlocking { service.resetForTests() }
         assertEquals(TasksState.Loading, service.state.value)
         assertEmpty(search("build"))
     }
 
     fun testSearchFindsNothingWithoutAWorkspace() {
-        service.projectDir = { null }
-        service.refresh()
-        service.awaitState(TasksState.NoWorkspace)
+        service.loadNoWorkspace()
         assertEmpty(search("build"))
     }
 
     fun testSearchUsesTheLastTasksAfterAFailedRefresh() {
-        load()
-        service.queryProjects = { CliResult.Failed("refresh failed") }
-        service.refresh()
-        service.awaitState(TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error("refresh failed"))))
+        service.loadStale()
         assertSameElements(targets("storybook"), "ui:storybook")
     }
 
@@ -115,15 +100,12 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
             calls++
             CliResult.Success(TestData.recorded("query-projects.json"))
         }
-        load()
-        val before = calls
         search("build")
         search("web")
-        assertEquals(before, calls)
+        assertEquals(0, calls)
     }
 
     fun testSelectionRunsTheTask() {
-        load()
         val ran = mutableListOf<Pair<Project, String>>()
         contributor.runTask = { p, target -> ran.add(p to target) }
         val task = search("storybook").single().item
