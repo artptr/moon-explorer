@@ -52,22 +52,21 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
     /**
      * Gives [pattern] if its first word is `moon`. Thus the provider runs all moon commands, but not a command such as `moonx`.
      * If the IDE project has no moon workspace, the function gives null. Then **Run Anything** runs the command in the usual way,
-     * for example `moon --version`. The function reads the state of [MoonTasksService]. Thus it does not read files on the EDT.
+     * for example `moon --version`.
      */
     override fun findMatchingValue(dataContext: DataContext, pattern: String): String? {
         if (ParametersListUtil.parse(pattern).firstOrNull() != HELP_COMMAND) return null
-        val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return null
-        if (project.service<MoonTasksService>().state.value == TasksState.NoWorkspace) return null
-        return pattern
+        return pattern.takeIf { hasWorkspace(dataContext) }
     }
 
     /**
      * Gives all values for the current parameter. The **Run Anything** popup removes the values that do not match the text that the user types.
      * For the first parameter, the function also gives `run <target>` for each target, the same as the Gradle provider.
      * Thus the popup shows the targets also before the user types the space after `run`.
+     * If the IDE project has no moon workspace, the function gives no values, because the provider does not run moon commands.
      */
     override fun suggestCompletionVariants(dataContext: DataContext, commandLine: CommandLine): Sequence<String> =
-        when (commandLine.completedParameters) {
+        if (!hasWorkspace(dataContext)) emptySequence() else when (commandLine.completedParameters) {
             emptyList<String>() -> sequenceOf(RUN_COMMAND) + loadedTargets(dataContext).map { "$RUN_COMMAND $it" }
             listOf(RUN_COMMAND) -> loadedTargets(dataContext)
             else -> emptySequence()
@@ -86,6 +85,15 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
             .notify(project)
     }
 
+    /**
+     * Tells if the provider runs moon commands for the IDE project of [dataContext]. The value is false only if the project has no moon workspace.
+     * While the tasks load, the value is true. The function reads the state of [MoonTasksService]. Thus it does not read files on the EDT.
+     */
+    private fun hasWorkspace(dataContext: DataContext): Boolean {
+        val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return false
+        return project.service<MoonTasksService>().state.value != TasksState.NoWorkspace
+    }
+
     private fun loadedTargets(dataContext: DataContext): Sequence<String> {
         val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return emptySequence()
         val tasks = project.service<MoonTasksService>().state.value.loadedTasks ?: return emptySequence()
@@ -97,7 +105,7 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
         const val RUN_COMMAND = "run"
 
         /** The ID of the notification group for the errors of moon commands in `plugin.xml`. */
-        const val COMMAND_GROUP_ID = "Moon Explorer Commands"
+        const val COMMAND_GROUP_ID = "Moon Explorer commands"
 
         /**
          * Gives the target if [parameters] are `run <target>`. The parameters do not contain `moon`.

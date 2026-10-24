@@ -111,6 +111,12 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertNull(provider.findMatchingValue(context, "moon run web:build"))
     }
 
+    fun testNoCompletionWithoutAWorkspace() {
+        service.loadNoWorkspace()
+        assertEmpty(provider.getValues(context, "moon "))
+        assertEmpty(provider.getValues(context, "moo"))
+    }
+
     fun testProviderMatchesWhileTheTasksLoad() {
         runBlocking { service.resetForTests() }
         assertEquals("moon query projects", provider.findMatchingValue(context, "moon query projects"))

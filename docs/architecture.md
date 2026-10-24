@@ -47,7 +47,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Make and run a configuration for a task | `run.MoonTaskRunner` | None |
 | Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
 | Find and run a task in the **All** tab of **Search Everywhere** | `ui.MoonTaskSearchContributor` | `plugin.xml` (`searchEverywhereContributor`) |
-| Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner`. If the IDE project has no moon workspace, the provider does not run moon commands | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner`, notification group `Moon Explorer Commands` | `plugin.xml` (`runAnything.executionProvider`, `notificationGroup`) |
+| Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner`. If the IDE project has no moon workspace, the provider does not complete or run moon commands | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner`, notification group `Moon Explorer commands` | `plugin.xml` (`runAnything.executionProvider`, `notificationGroup`) |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
 | Moon icon for the classic UI (`icons/`), for the new UI (`icons/expui/`), and the outline for the tool window. The icons come from the moon repository (MIT License) | `MoonIcons` | None. The tool window in `plugin.xml` refers to `MoonIcons.ToolWindow`. |

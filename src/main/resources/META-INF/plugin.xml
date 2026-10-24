@@ -22,7 +22,7 @@
         <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RefreshFailureNotifierStartupActivity"/>
         <notificationGroup id="Moon Explorer" displayType="STICKY_BALLOON" key="notification.group.name"/>
-        <notificationGroup id="Moon Explorer Commands" displayType="BALLOON" key="notification.commands.group.name"/>
+        <notificationGroup id="Moon Explorer commands" displayType="BALLOON" key="notification.commands.group.name"/>
         <projectConfigurable parentId="tools"
                              id="io.github.artptr.moonexplorer.settings"
                              instance="io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable"
