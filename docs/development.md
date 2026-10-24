@@ -210,39 +210,26 @@ Dependabot updates the SHA and the comment together.
 ## 8. Release
 
 1. Make sure that `CHANGELOG.md` has entries under `Unreleased`.
-2. Make sure that `gradle.properties` has the version of the release. For a patch release or a major release, change the version.
+2. Make sure that `version` in `gradle.properties` is the version of this release.
 3. Merge the change into `main`.
 4. On GitHub, open the draft release that the `Build` workflow created.
-5. Publish the draft release.
+5. Publish the draft release. Do not delete the text of the draft release.
+6. Check out the branch of the pull request "Changelog update - `<version>`" that the `Release` workflow created.
+7. In `gradle.properties`, set `version` to the next minor version. Example: after 0.2.0, set `version = 0.3.0`.
+8. Push a commit with this change to the branch.
+9. Merge the pull request.
 
 The `Release` workflow signs the plugin and publishes it to JetBrains Marketplace.
 These repository secrets are necessary: `PUBLISH_TOKEN`, `CERTIFICATE_CHAIN`, `PRIVATE_KEY`, `PRIVATE_KEY_PASSWORD`.
 Refer to <https://plugins.jetbrains.com/docs/intellij/plugin-signing.html>.
 
-### 8.1 After the release
+The `Release` workflow uses the text of the release to move the entries from `Unreleased` to a section for the version.
+The `Build` workflow uses the version from `gradle.properties` for the draft release. Refer to section 7.
+If you do not do step 7, the next draft release has the version of the last release. The `Release` workflow cannot publish it.
 
-1. Make sure that the `Release` workflow is complete.
-2. Merge the pull request "Changelog update - `<version>`" that the `Release` workflow created.
-3. Make a branch from `main`.
-4. In `gradle.properties`, set `version` to the next minor version. Example: after 0.2.0, set `version = 0.3.0`.
-5. Open a pull request into `main`.
-6. Merge the pull request.
+**NOTE:** If the text of the release is empty, the `Release` workflow does not create the changelog pull request. Then make a branch from `main`. Use this branch for steps 6-9. Before step 7, run `./gradlew patchChangelog`. Before step 9, open a pull request for the branch.
 
-The changelog pull request moves the entries from the `Unreleased` section of `CHANGELOG.md` to a section for the version.
-On each push to `main`, the `Build` workflow creates a draft release with the version from `gradle.properties`.
-If you do not change the version, the next draft release has the version of the last release. The `Release` workflow cannot publish this draft release.
-
-If the release notes are empty, the `Release` workflow does not create the changelog pull request. Then do these steps:
-
-1. Make a branch from `main`.
-2. Run `./gradlew patchChangelog`. The task moves the entries from `Unreleased` to a section for the version.
-3. In `gradle.properties`, set `version` to the next minor version.
-4. Open a pull request into `main`.
-5. Merge the pull request.
-
-**NOTE:** Do step 2 before you change the version. The task uses the version from `gradle.properties`.
-
-### 8.2 Version that you uploaded manually
+### 8.1 Version that you uploaded manually
 
 JetBrains Marketplace accepts the first version of a new plugin only as a manual upload.
 Marketplace does not accept a version that it has. Thus the `Release` workflow must not publish that version again.
