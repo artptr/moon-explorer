@@ -1,6 +1,8 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.ide.actions.runAnything.activity.RunAnythingProvider
+import com.intellij.notification.NotificationDisplayType
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -101,6 +103,22 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         for (command in listOf("moon", "moon run", "moon run web:build", "moon query projects", "moon run --help", "moon run web:build web:lint")) {
             assertEquals(command, provider.findMatchingValue(context, command))
         }
+    }
+
+    fun testProviderDoesNotMatchWithoutAWorkspace() {
+        service.loadNoWorkspace()
+        assertNull(provider.findMatchingValue(context, "moon --version"))
+        assertNull(provider.findMatchingValue(context, "moon run web:build"))
+    }
+
+    fun testProviderMatchesWhileTheTasksLoad() {
+        runBlocking { service.resetForTests() }
+        assertEquals("moon query projects", provider.findMatchingValue(context, "moon query projects"))
+    }
+
+    fun testCommandErrorsHaveTheirOwnNotificationGroup() {
+        val group = NotificationGroupManager.getInstance().getNotificationGroup(MoonRunAnythingProvider.COMMAND_GROUP_ID)
+        assertEquals(NotificationDisplayType.BALLOON, group.displayType)
     }
 
     fun testProviderDoesNotMatchOtherCommands() {

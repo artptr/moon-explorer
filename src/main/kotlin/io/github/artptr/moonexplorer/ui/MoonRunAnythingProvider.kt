@@ -11,6 +11,7 @@ import com.intellij.util.execution.ParametersListUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.MoonIcons
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonCommandRunner
@@ -48,9 +49,17 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
 
     override fun getIcon(value: String): Icon = MoonIcons.Moon
 
-    /** Gives [pattern] if its first word is `moon`. Thus the provider runs all moon commands, but not a command such as `moonx`. */
-    override fun findMatchingValue(dataContext: DataContext, pattern: String): String? =
-        pattern.takeIf { ParametersListUtil.parse(pattern).firstOrNull() == HELP_COMMAND }
+    /**
+     * Gives [pattern] if its first word is `moon`. Thus the provider runs all moon commands, but not a command such as `moonx`.
+     * If the IDE project has no moon workspace, the function gives null. Then **Run Anything** runs the command in the usual way,
+     * for example `moon --version`. The function reads the state of [MoonTasksService]. Thus it does not read files on the EDT.
+     */
+    override fun findMatchingValue(dataContext: DataContext, pattern: String): String? {
+        if (ParametersListUtil.parse(pattern).firstOrNull() != HELP_COMMAND) return null
+        val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return null
+        if (project.service<MoonTasksService>().state.value == TasksState.NoWorkspace) return null
+        return pattern
+    }
 
     /**
      * Gives all values for the current parameter. The **Run Anything** popup removes the values that do not match the text that the user types.
@@ -72,7 +81,7 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
     }
 
     private fun notifyFailure(project: Project, message: String) {
-        NotificationGroupManager.getInstance().getNotificationGroup(RefreshFailureNotifier.GROUP_ID)
+        NotificationGroupManager.getInstance().getNotificationGroup(COMMAND_GROUP_ID)
             .createNotification(MoonExplorerBundle.message("notification.commandFailed.title"), plainTextHtml(message), NotificationType.ERROR)
             .notify(project)
     }
@@ -86,6 +95,9 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
     internal companion object {
         const val HELP_COMMAND = "moon"
         const val RUN_COMMAND = "run"
+
+        /** The ID of the notification group for the errors of moon commands in `plugin.xml`. */
+        const val COMMAND_GROUP_ID = "Moon Explorer Commands"
 
         /**
          * Gives the target if [parameters] are `run <target>`. The parameters do not contain `moon`.

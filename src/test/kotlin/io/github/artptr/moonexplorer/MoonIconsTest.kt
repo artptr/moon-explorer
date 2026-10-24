@@ -12,6 +12,20 @@ class MoonIconsTest : BasePlatformTestCase() {
 
     private val task = MoonTask("build", "web:build", null)
 
+    override fun setUp() {
+        super.setUp()
+        // In a headless environment, for example CI, the IDE does not load icons. Then each icon has the size 1 × 1.
+        IconLoader.activate()
+    }
+
+    override fun tearDown() {
+        try {
+            IconLoader.deactivate()
+        } finally {
+            super.tearDown()
+        }
+    }
+
     fun testIconFilesExist() {
         for (newUi in listOf(true, false)) {
             val path = MoonIcons.moonIconPath(newUi)
