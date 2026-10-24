@@ -9,7 +9,7 @@
 | Build tool | Gradle, with the IntelliJ Platform Gradle Plugin 2.x |
 | Target platform | IntelliJ Platform 2025.3 and later |
 | JDK | 21 |
-| Platform dependency | `com.intellij.modules.platform` (all IntelliJ-based IDEs) |
+| Platform dependencies | `com.intellij.modules.platform` and `com.intellij.modules.lang` (all IntelliJ-based IDEs). **Search Everywhere** and **Run Anything** are in the `lang` module. |
 
 ## 2. Current structure
 
@@ -28,7 +28,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Component | Class | Registration |
 |-----------|-------|--------------|
 | Tool window **Moon** | `ui.MoonToolWindowFactory`, `ui.MoonTasksPanel` | `plugin.xml` |
-| Tree nodes, renderer, and the text for the speed search | `ui.TaskTreeModel.kt` | None |
+| Tree nodes, renderer, and the text for the speed search and **Search Everywhere** | `ui.TaskTreeModel.kt` | None |
 | Action **Refresh** in the group `MoonExplorer.TasksToolbar` | `ui.RefreshTasksAction` | `plugin.xml` |
 | Action **Select Opened File** in the group `MoonExplorer.TasksToolbar`, and the search for the project of a file | `ui.SelectOpenedFileAction`, `model.findProjectForFile` | `plugin.xml` |
 | State of the tasks for the IDE project | `model.MoonTasksService` | None (light service) |
@@ -45,9 +45,13 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Settings page **Settings \| Tools \| Moon Explorer** | `settings.MoonSettingsConfigurable` | `plugin.xml` |
 | Run configuration type **moon** | `run.MoonRunConfigurationType`, `run.MoonRunConfiguration` | `plugin.xml` |
 | Make and run a configuration for a task | `run.MoonTaskRunner` | None |
+| Make the command line `moon <args>` in the workspace root, and start the moon process. The run configurations and `run.MoonCommandRunner` use it. Thus all moon commands use the same moon executable and give the same errors | `run.MoonCommandLine.kt` (`moonCommandLine`, `startMoonProcess`) | None |
 | Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
+| Find and run a task in the **All** tab of **Search Everywhere** | `ui.MoonTaskSearchContributor` | `plugin.xml` (`searchEverywhereContributor`) |
+| Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner`. If the IDE project has no moon workspace, the provider does not complete or run moon commands | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner`, notification group `Moon Explorer commands` | `plugin.xml` (`runAnything.executionProvider`, `notificationGroup`) |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
+| Moon icon for the classic UI (`icons/`), for the new UI (`icons/expui/`), and the outline for the tool window. The icons come from the moon repository (MIT License) | `MoonIcons` | None. The tool window in `plugin.xml` refers to `MoonIcons.ToolWindow`. |
 | Plugin suggestion for an IDE project that has `@moonrepo/cli` in `package.json` | None | `plugin.xml` (`dependencySupport`) |
 
 **NOTE:** The layers come from the proposal in the first version of this file. Record each later change to the layers in an ADR in [adr/](adr/).

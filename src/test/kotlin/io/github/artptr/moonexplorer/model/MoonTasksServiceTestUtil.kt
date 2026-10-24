@@ -22,3 +22,29 @@ fun MoonTasksService.awaitState(expected: TasksState) {
     runBlocking { withTimeoutOrNull(10_000) { state.first { it == expected } } }
         ?: throw AssertionError("Expected $expected, but the state is ${state.value}")
 }
+
+/** Loads the recorded tasks and waits for the [TasksState.Loaded] state. */
+fun MoonTasksService.loadRecorded() {
+    refresh()
+    awaitState(TestData.recordedState())
+}
+
+/**
+ * Loads the recorded tasks. Then makes a refresh fail with the error text [message] and waits for the [TasksState.Stale] state.
+ * Gives the state.
+ */
+fun MoonTasksService.loadStale(message: String = "refresh failed"): TasksState.Stale {
+    loadRecorded()
+    queryProjects = { CliResult.Failed(message) }
+    refresh()
+    val stale = TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error(message)))
+    awaitState(stale)
+    return stale
+}
+
+/** Loads with no IDE project directory and waits for the [TasksState.NoWorkspace] state. */
+fun MoonTasksService.loadNoWorkspace() {
+    projectDir = { null }
+    refresh()
+    awaitState(TasksState.NoWorkspace)
+}

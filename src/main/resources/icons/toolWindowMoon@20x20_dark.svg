@@ -1,0 +1,7 @@
+<!-- The outline of the moon icon from https://moonrepo.dev/brand/moon/icon-vector.svg. Copyright (c) 2021 moonrepo, Inc. MIT License. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="-7.28 -7.53 97.06 97.06">
+  <g fill="none" stroke="#CED0D6" stroke-width="7.28" stroke-linejoin="round">
+    <path d="M73.24 43.34A36.65 36.65 0 1 1 40.83 8.94A24 24 0 0 0 73.24 43.34Z"/>
+    <circle cx="68" cy="14" r="11"/>
+  </g>
+</svg>

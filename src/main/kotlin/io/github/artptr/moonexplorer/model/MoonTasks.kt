@@ -27,6 +27,9 @@ data class ProjectSource(val id: String, val source: String)
  */
 data class WorkspaceTasks(val projects: List<MoonProject>, val sources: List<ProjectSource> = emptyList())
 
+/** All tasks of all projects, in the sequence of [WorkspaceTasks.projects]. */
+val WorkspaceTasks.allTasks: List<MoonTask> get() = projects.flatMap { it.tasks }
+
 /** The main group of the tree of the Moon tool window. It sets the structure in each [TaskCategory] node. */
 enum class TaskGrouping {
     /** Each project node contains its tasks. */
