@@ -195,7 +195,7 @@ GitHub Actions runs these workflows:
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Moon output` | Each Monday, manual start | Record of the output of the newest moon 2.x, tests, issue for a change. Refer to section 4.3. |
-| `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace |
+| `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace, pull request for `CHANGELOG.md` |
 
 **NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
 
@@ -210,10 +210,19 @@ Dependabot updates the SHA and the comment together.
 ## 8. Release
 
 1. Make sure that `CHANGELOG.md` has entries under `Unreleased`.
-2. Set the new version in `gradle.properties`.
-3. Merge the change into `main`.
+2. Make sure that `version` in `gradle.properties` is the version of this release.
+3. If you changed `CHANGELOG.md` or `gradle.properties`, merge the change into `main`.
 4. On GitHub, open the draft release that the `Build` workflow created.
-5. Publish the draft release.
+5. Publish the draft release. Do not delete the text of the draft release. The `Release` workflow uses this text to move the entries from `Unreleased` to a section for the version.
+6. Check out the branch of the pull request "Changelog update - `<version>`" that the `Release` workflow created.
+7. In `gradle.properties`, set `version` to the version of the next release. If you do not know it, use the next minor version. Example: after 0.2.0, set `version = 0.3.0`. The `Build` workflow uses this version for the next draft release.
+8. Push a commit with this change to the branch.
+9. Merge the pull request.
+
+**NOTE:** If the text of the release is empty, the `Release` workflow does not create the changelog pull request. Then change steps 6 and 9:
+
+- Step 6: Make a branch from `main`. On this branch, run `./gradlew patchChangelog`.
+- Step 9: Open a pull request for the branch. Then merge it.
 
 The `Release` workflow signs the plugin and publishes it to JetBrains Marketplace.
 These repository secrets are necessary: `PUBLISH_TOKEN`, `CERTIFICATE_CHAIN`, `PRIVATE_KEY`, `PRIVATE_KEY_PASSWORD`.
