@@ -215,7 +215,7 @@ Dependabot updates the SHA and the comment together.
 4. On GitHub, open the draft release that the `Build` workflow created.
 5. Publish the draft release. Do not delete the text of the draft release.
 6. Check out the branch of the pull request "Changelog update - `<version>`" that the `Release` workflow created.
-7. In `gradle.properties`, set `version` to the next minor version. Example: after 0.2.0, set `version = 0.3.0`.
+7. In `gradle.properties`, set `version` to the version of the next release. If you do not know it, use the next minor version. Example: after 0.2.0, set `version = 0.3.0`.
 8. Push a commit with this change to the branch.
 9. Merge the pull request.
 
