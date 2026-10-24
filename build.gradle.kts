@@ -123,6 +123,8 @@ tasks.test {
 changelog {
     groups.empty()
     repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
+    // The release tags have no prefix, for example '0.2.0'. The default prefix 'v' makes incorrect links in CHANGELOG.md.
+    versionPrefix = ""
 }
 
 // Runs the plugin in the local WebStorm installation. Set the path with the property `webStormPath`.
