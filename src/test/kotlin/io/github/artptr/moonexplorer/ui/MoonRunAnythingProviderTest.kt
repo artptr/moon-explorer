@@ -61,16 +61,10 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
     }
 
     fun testCompletionBeforeTheSpaceAfterRunGivesTheLoadedTargets() {
-        assertContainsElements(provider.getValues(context, "moon run"), "moon run", "moon run ui:storybook")
-    }
-
-    fun testCompletionForAPartOfTheHelpCommandGivesTheTargets() {
-        assertContainsElements(provider.getValues(context, "moo"), "moon run", "moon run ui:storybook")
-    }
-
-    fun testOnlyRunWhileTheTasksLoad() {
-        runBlocking { service.resetForTests() }
-        assertSameElements(provider.getValues(context, "moon "), "moon run")
+        // "moo" is a part of the help command, and "moon run" has no space after "run".
+        for (pattern in listOf("moon run", "moo")) {
+            assertContainsElements(provider.getValues(context, pattern), "moon run", "moon run ui:storybook")
+        }
     }
 
     fun testCompletionAfterMoonRunGivesTheLoadedTargets() {
@@ -79,15 +73,21 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertSameElements(values, expected)
     }
 
-    fun testNoTargetsWhileTheTasksLoad() {
+    fun testWhileTheTasksLoadTheProviderRunsCommandsButHasNoTargets() {
         runBlocking { service.resetForTests() }
         assertEquals(TasksState.Loading, service.state.value)
+        assertSameElements(provider.getValues(context, "moon "), "moon run")
         assertEmpty(provider.getValues(context, "moon run "))
+        assertEquals("moon query projects", provider.findMatchingValue(context, "moon query projects"))
     }
 
-    fun testNoTargetsWithoutAWorkspace() {
+    fun testWithoutAWorkspaceTheProviderDoesNotCompleteOrRunCommands() {
         service.loadNoWorkspace()
-        assertEmpty(provider.getValues(context, "moon run "))
+        for (pattern in listOf("moo", "moon ", "moon run ")) {
+            assertEmpty(pattern, provider.getValues(context, pattern))
+        }
+        assertNull(provider.findMatchingValue(context, "moon --version"))
+        assertNull(provider.findMatchingValue(context, "moon run web:build"))
     }
 
     fun testCompletionUsesTheLastTargetsAfterAFailedRefresh() {
@@ -103,23 +103,6 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         for (command in listOf("moon", "moon run", "moon run web:build", "moon query projects", "moon run --help", "moon run web:build web:lint")) {
             assertEquals(command, provider.findMatchingValue(context, command))
         }
-    }
-
-    fun testProviderDoesNotMatchWithoutAWorkspace() {
-        service.loadNoWorkspace()
-        assertNull(provider.findMatchingValue(context, "moon --version"))
-        assertNull(provider.findMatchingValue(context, "moon run web:build"))
-    }
-
-    fun testNoCompletionWithoutAWorkspace() {
-        service.loadNoWorkspace()
-        assertEmpty(provider.getValues(context, "moon "))
-        assertEmpty(provider.getValues(context, "moo"))
-    }
-
-    fun testProviderMatchesWhileTheTasksLoad() {
-        runBlocking { service.resetForTests() }
-        assertEquals("moon query projects", provider.findMatchingValue(context, "moon query projects"))
     }
 
     fun testCommandErrorsHaveTheirOwnNotificationGroup() {

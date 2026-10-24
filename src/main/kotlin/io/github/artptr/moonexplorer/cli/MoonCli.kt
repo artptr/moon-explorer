@@ -50,13 +50,6 @@ object MoonCli {
         run(executable, workspaceRoot, timeoutMillis, "query", subject)
 
     /**
-     * Makes the command line `moon run <target>` in [workspaceRoot]. The run configurations use this command line.
-     * The output keeps its colors, because the console of the Run tool window shows them.
-     */
-    fun runTaskCommandLine(executable: Path, workspaceRoot: Path, target: String): GeneralCommandLine =
-        consoleCommandLine(executable, workspaceRoot, listOf("run", target))
-
-    /**
      * Makes the command line `moon <args>` in [workspaceRoot], for example `moon query projects`.
      * The output keeps its colors, because the console of the Run tool window shows them.
      */

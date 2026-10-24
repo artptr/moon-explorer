@@ -14,10 +14,7 @@ object MoonIcons {
      * The new UI shows an outline with a light fill, the same as the node icons of the new UI. The classic UI shows a solid icon.
      */
     @JvmField
-    val Moon: Icon = IconLoader.getIcon(moonIconPath(NewUI.isEnabled()), MoonIcons::class.java)
-
-    /** Gives the path of the moon icon for the new UI if [newUi] is true, or for the classic UI if it is false. */
-    internal fun moonIconPath(newUi: Boolean): String = if (newUi) "/icons/expui/moon.svg" else "/icons/moon.svg"
+    val Moon: Icon = IconLoader.getIcon(if (NewUI.isEnabled()) "/icons/expui/moon.svg" else "/icons/moon.svg", MoonIcons::class.java)
 
     /** The outline of the moon icon for the button of the **Moon** tool window. It has the gray color of the other tool window icons. */
     @JvmField

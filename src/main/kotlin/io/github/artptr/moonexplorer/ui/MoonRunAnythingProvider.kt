@@ -12,7 +12,6 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.MoonIcons
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonCommandRunner
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
@@ -56,7 +55,7 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
      */
     override fun findMatchingValue(dataContext: DataContext, pattern: String): String? {
         if (ParametersListUtil.parse(pattern).firstOrNull() != HELP_COMMAND) return null
-        return pattern.takeIf { hasWorkspace(dataContext) }
+        return pattern.takeIf { hasWorkspace(tasksState(dataContext)) }
     }
 
     /**
@@ -65,12 +64,16 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
      * Thus the popup shows the targets also before the user types the space after `run`.
      * If the IDE project has no moon workspace, the function gives no values, because the provider does not run moon commands.
      */
-    override fun suggestCompletionVariants(dataContext: DataContext, commandLine: CommandLine): Sequence<String> =
-        if (!hasWorkspace(dataContext)) emptySequence() else when (commandLine.completedParameters) {
-            emptyList<String>() -> sequenceOf(RUN_COMMAND) + loadedTargets(dataContext).map { "$RUN_COMMAND $it" }
-            listOf(RUN_COMMAND) -> loadedTargets(dataContext)
+    override fun suggestCompletionVariants(dataContext: DataContext, commandLine: CommandLine): Sequence<String> {
+        val state = tasksState(dataContext)
+        if (!hasWorkspace(state)) return emptySequence()
+        val targets = state?.loadedTasks?.projects.orEmpty().asSequence().flatMap { it.tasks }.map { it.target }
+        return when (commandLine.completedParameters) {
+            emptyList<String>() -> sequenceOf(RUN_COMMAND) + targets.map { "$RUN_COMMAND $it" }
+            listOf(RUN_COMMAND) -> targets
             else -> emptySequence()
         }
+    }
 
     override fun run(dataContext: DataContext, commandLine: CommandLine): Boolean {
         val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return false
@@ -86,19 +89,17 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
     }
 
     /**
-     * Tells if the provider runs moon commands for the IDE project of [dataContext]. The value is false only if the project has no moon workspace.
-     * While the tasks load, the value is true. The function reads the state of [MoonTasksService]. Thus it does not read files on the EDT.
+     * Gives the state of [MoonTasksService] for the IDE project of [dataContext], or null if there is no IDE project.
+     * The provider uses this state, not the file system. Thus it does not read files on the EDT.
      */
-    private fun hasWorkspace(dataContext: DataContext): Boolean {
-        val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return false
-        return project.service<MoonTasksService>().state.value != TasksState.NoWorkspace
-    }
+    private fun tasksState(dataContext: DataContext): TasksState? =
+        CommonDataKeys.PROJECT.getData(dataContext)?.service<MoonTasksService>()?.state?.value
 
-    private fun loadedTargets(dataContext: DataContext): Sequence<String> {
-        val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return emptySequence()
-        val tasks = project.service<MoonTasksService>().state.value.loadedTasks ?: return emptySequence()
-        return tasks.allTasks.asSequence().map { it.target }
-    }
+    /**
+     * Tells if the provider completes and runs moon commands for [state]. The value is false if there is no IDE project or no moon workspace.
+     * While the tasks load, the value is true.
+     */
+    private fun hasWorkspace(state: TasksState?): Boolean = state != null && state != TasksState.NoWorkspace
 
     internal companion object {
         const val HELP_COMMAND = "moon"

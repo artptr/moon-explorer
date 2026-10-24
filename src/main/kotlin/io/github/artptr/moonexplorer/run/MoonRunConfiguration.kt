@@ -10,16 +10,11 @@ import com.intellij.execution.configurations.LocatableRunConfigurationOptions
 import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
-import com.intellij.execution.process.KillableColoredProcessHandler
 import com.intellij.execution.process.ProcessHandler
-import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.openapi.components.service
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.cli.MoonCli
-import io.github.artptr.moonexplorer.settings.MoonExecutableService
 import java.nio.file.Path
 
 /** The saved values of a moon run configuration. */
@@ -50,11 +45,7 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
         object : CommandLineState(environment) {
-            override fun startProcess(): ProcessHandler {
-                val handler = KillableColoredProcessHandler(createCommandLine())
-                ProcessTerminatedListener.attach(handler)
-                return handler
-            }
+            override fun startProcess(): ProcessHandler = startMoonProcess(createCommandLine())
         }
 
     /**
@@ -63,18 +54,15 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
      * The function reads the file system. Call this function on a background thread.
      * The platform calls [CommandLineState.startProcess] on a background thread.
      */
-    internal fun createCommandLine(): GeneralCommandLine {
-        val service = project.service<MoonExecutableService>()
-        val root = service.workspaceRoot()
-        return createCommandLine(root) { service.findInWorkspace(root).executable }
-    }
+    internal fun createCommandLine(): GeneralCommandLine = moonCommandLine(project, runArgs())
 
     /** Makes the command line in [workspaceRoot] with the executable from [findExecutable]. Tests give the values. */
-    internal fun createCommandLine(workspaceRoot: Path?, findExecutable: () -> Path?): GeneralCommandLine {
+    internal fun createCommandLine(workspaceRoot: Path?, findExecutable: () -> Path?): GeneralCommandLine =
+        moonCommandLine(runArgs(), workspaceRoot, findExecutable)
+
+    /** Gives the arguments `run <target>`. Throws [ExecutionException] with a message for the user if the configuration has no target. */
+    private fun runArgs(): List<String> {
         if (target.isEmpty()) throw ExecutionException(MoonExplorerBundle.message("run.configuration.error.noTarget"))
-        if (workspaceRoot == null) throw ExecutionException(MoonExplorerBundle.message("run.configuration.error.noWorkspace"))
-        val executable = findExecutable()
-            ?: throw ExecutionException(MoonExplorerBundle.message("run.configuration.error.moonNotFound"))
-        return MoonCli.runTaskCommandLine(executable, workspaceRoot, target)
+        return listOf("run", target)
     }
 }
