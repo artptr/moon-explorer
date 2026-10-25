@@ -197,7 +197,7 @@ GitHub Actions runs these workflows:
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Moon output` | Each Monday, manual start | Record of the output of the newest moon 2.x, tests, issue for a change. Refer to section 4.3. |
-| `Version check` | Each Monday, manual start | Check of the IntelliJ IDEA version and the Vale version, issue for a new version. Refer to section 7.1. |
+| `Version check` | Each Monday, manual start, pull request that changes `version-check.yml` | Check of the IntelliJ IDEA version and the Vale version, issue for a new version. Refer to section 7.1. |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace, pull request for `CHANGELOG.md` |
 
 **NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
@@ -244,9 +244,9 @@ The workflow adds a comment or creates an issue only for a version that the prev
 
 For a newer line, the workflow compares only the line, not the patch version. Thus a new patch version of a newer line does not cause a notification.
 If you close the issue, the workflow does not open a new issue for the same versions. Write your notes in comments, not in the issue text.
-If no new version is available, the workflow closes the open issue.
+If the newest versions are all in the repository, the workflow closes the open issue. A newer IDE line keeps the issue open until you close it.
 
-Only a run on `main` creates or changes an issue. A manual run on a different branch shows the result only in the job summary.
+Only a run on `main` creates or changes an issue. A manual run on a different branch and a run for a pull request show the result only in the job summary.
 A new version does not cause a failure of the workflow. Only an error causes a failure.
 
 **NOTE:** The workflow can compare only the version of a released IDE, for example `2025.3.6.1`. If `platformVersion` is an EAP build number, for example `261.12345.67`, the workflow stops with an error.

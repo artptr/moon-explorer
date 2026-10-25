@@ -4,6 +4,7 @@
 # - If a new version is available, create or update one issue.
 #
 # The workflow does not commit or push changes. Only a run on 'main' changes an issue.
+# A pull request that changes this file also starts the workflow. That run does a check of the scripts and writes only the job summary.
 #
 # GitHub Actions reference: https://docs.github.com/actions
 #
@@ -14,14 +15,17 @@ on:
     # Each Monday at 06:30 UTC
     - cron: '30 6 * * 1'
   workflow_dispatch:
+  pull_request:
+    paths: [ .github/workflows/version-check.yml ]
 
 # Give the GITHUB_TOKEN read access only. Jobs that write data set their own permissions.
 permissions:
   contents: read
 
-# The runs occur in sequence. Thus two runs do not create two issues.
+# The runs on 'main' occur in sequence. Thus two runs do not create two issues.
+# A run for a pull request does not change an issue. Thus it has a different group.
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -59,6 +63,7 @@ jobs:
           cache-read-only: true
 
       # Get the newest released IDE of each IDE line, for example 'IU-2025.3.7' for the line 2025.3. The 'Build' workflow uses the same task.
+      # The task gives IntelliJ IDEA versions with the prefix 'IU-'. If the build uses a different IDE, change the 'sed' filter below.
       # The 'printProductsReleases' task does not download the IDEs. With 'quickVerification', the task does not include EAP builds.
       #
       # A line is the first two numbers of a version, for example 2025.3.
@@ -147,8 +152,8 @@ jobs:
       # The issue text has a marker with the reported items, for example 'ide=2025.3.7 line=2026.1 vale=3.25.0'. A new line has no patch version in the marker.
       # Thus a new patch version of a new line does not cause a second notification.
       #
-      # The step compares the items with the marker of the newest issue with the label. This issue can be open or closed.
-      # The step adds a comment or creates an issue only for an item that the newest issue does not contain.
+      # The step compares the items with the marker of the open issue with the label. If no issue is open, it uses the newest closed issue.
+      # The step adds a comment or creates an issue only for an item that this issue does not contain.
       # Thus each new version causes one notification, not one notification each week. If you close the issue, the next runs do not open it again for the same items.
       #
       # If no new version is available, the step closes the open issue.
@@ -203,8 +208,11 @@ jobs:
             exit 0
           fi
 
-          # Get the newest issue with the label and the items in its marker.
-          PREVIOUS="$(gh issue list --state all --label "$ISSUE_LABEL" --limit 1 --json number,state,body --jq '.[0] // {}')"
+          # Get the open issue with the label. If no issue is open, get the newest closed issue with the label. Then get the items in its marker.
+          PREVIOUS="$(gh issue list --state open --label "$ISSUE_LABEL" --limit 1 --json number,state,body --jq '.[0] // empty')"
+          if [[ -z "$PREVIOUS" ]]; then
+            PREVIOUS="$(gh issue list --state closed --label "$ISSUE_LABEL" --limit 1 --json number,state,body --jq '.[0] // {}')"
+          fi
           NUMBER="$(jq -r '.number // empty' <<< "$PREVIOUS")"
           STATE="$(jq -r '.state // empty' <<< "$PREVIOUS")"
           jq -r '.body // empty' <<< "$PREVIOUS" \
