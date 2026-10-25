@@ -75,11 +75,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
 
-      # A maintainer merges the pull request.
+      # A maintainer sets the version of the next release on the branch of the pull request. Then the maintainer merges the pull request.
+      # The text of the pull request tells these steps. Refer to section 8 in docs/development.md.
       - name: Create Pull Request
         if: ${{ github.event.release.body != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_DOCS: ${{ github.server_url }}/${{ github.repository }}/blob/main/docs/development.md#8-release
         run: |
           VERSION="${{ github.event.release.tag_name }}"
           BRANCH="changelog-update-$VERSION"
@@ -99,6 +101,16 @@ jobs:
 
           gh pr create \
             --title "Changelog update - \`$VERSION\`" \
-            --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
+            --body-file - \
             --label "$LABEL" \
-            --head $BRANCH
+            --head $BRANCH \
+            <<EOF
+          This pull request contains the patched \`CHANGELOG.md\` file for the \`$VERSION\` version.
+
+          Before you merge this pull request:
+
+          1. On this branch, set \`version\` in \`gradle.properties\` to the version of the next release. If you do not know it, use the next minor version after \`$VERSION\`.
+          2. Push a commit with this change to this branch.
+
+          The \`Build\` workflow uses this version for the next draft release. Refer to [section 8 of \`docs/development.md\`]($RELEASE_DOCS).
+          EOF
