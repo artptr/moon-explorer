@@ -32,6 +32,26 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
         assertEquals(1, moonConfigurations().size)
     }
 
+    fun testTemporaryConfigurationForSeveralTargets() {
+        val settings = MoonTaskRunner.findOrCreate(project, listOf("web:build", "api:build"), affected = true, temporary = true)
+        assertTrue(settings.isTemporary)
+        assertEquals("build (2 projects), affected", settings.name)
+        val configuration = settings.configuration as MoonRunConfiguration
+        assertEquals(listOf("web:build", "api:build"), configuration.targets)
+        assertTrue(configuration.affected)
+        assertEquals(settings, runManager.selectedConfiguration)
+    }
+
+    fun testConfigurationForSeveralTargetsIsUsedAgainOnlyWithTheSameAffectedValue() {
+        val targets = listOf("web:build", "api:build")
+        val all = MoonTaskRunner.findOrCreate(project, targets, affected = false, temporary = true)
+        assertSame(all, MoonTaskRunner.findOrCreate(project, targets, affected = false, temporary = true))
+        val affected = MoonTaskRunner.findOrCreate(project, targets, affected = true, temporary = true)
+        assertNotSame(all, affected)
+        assertNotSame(all, MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true))
+        assertEquals(3, moonConfigurations().size)
+    }
+
     fun testCreateConfigurationSavesIt() {
         val settings = MoonTaskRunner.createConfiguration(project, "api:audit")
         assertFalse(settings.isTemporary)

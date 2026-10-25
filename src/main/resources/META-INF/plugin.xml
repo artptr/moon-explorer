@@ -67,6 +67,14 @@
             <action id="MoonExplorer.RunTask"
                     class="io.github.artptr.moonexplorer.ui.RunTaskAction"
                     icon="AllIcons.Actions.Execute"/>
+            <action id="MoonExplorer.RunInProjects"
+                    class="io.github.artptr.moonexplorer.ui.RunInProjectsAction"
+                    icon="AllIcons.Actions.Execute"/>
+            <action id="MoonExplorer.RunAffectedInProjects"
+                    class="io.github.artptr.moonexplorer.ui.RunAffectedInProjectsAction"/>
+            <action id="MoonExplorer.RunSelectedTasks"
+                    class="io.github.artptr.moonexplorer.ui.RunSelectedTasksAction"
+                    icon="AllIcons.Actions.Execute"/>
             <action id="MoonExplorer.CreateRunConfiguration"
                     class="io.github.artptr.moonexplorer.ui.CreateRunConfigurationAction"/>
         </group>

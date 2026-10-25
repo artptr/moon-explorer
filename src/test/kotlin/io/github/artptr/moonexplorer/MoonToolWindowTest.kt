@@ -34,6 +34,15 @@ class MoonToolWindowTest : BasePlatformTestCase() {
         val actionManager = ActionManager.getInstance()
         val group = actionManager.getAction("MoonExplorer.TaskPopup") as DefaultActionGroup
         val ids = group.childActionsOrStubs.map { actionManager.getId(it) }
-        assertEquals(listOf("MoonExplorer.RunTask", "MoonExplorer.CreateRunConfiguration"), ids)
+        assertEquals(
+            listOf(
+                "MoonExplorer.RunTask",
+                "MoonExplorer.RunInProjects",
+                "MoonExplorer.RunAffectedInProjects",
+                "MoonExplorer.RunSelectedTasks",
+                "MoonExplorer.CreateRunConfiguration",
+            ),
+            ids,
+        )
     }
 }

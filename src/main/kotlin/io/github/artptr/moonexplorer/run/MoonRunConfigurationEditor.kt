@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.run
 
 import com.intellij.openapi.options.SettingsEditor
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
@@ -12,12 +13,16 @@ class MoonRunConfigurationEditor : SettingsEditor<MoonRunConfiguration>() {
 
     internal val targetField = JBTextField()
 
+    internal val affectedCheckBox = JBCheckBox(MoonExplorerBundle.message("run.configuration.affected.label"))
+
     override fun resetEditorFrom(configuration: MoonRunConfiguration) {
         targetField.text = configuration.target
+        affectedCheckBox.isSelected = configuration.affected
     }
 
     override fun applyEditorTo(configuration: MoonRunConfiguration) {
         configuration.target = targetField.text
+        configuration.affected = affectedCheckBox.isSelected
     }
 
     override fun createEditor(): JComponent = panel {
@@ -25,6 +30,10 @@ class MoonRunConfigurationEditor : SettingsEditor<MoonRunConfiguration>() {
             cell(targetField)
                 .align(AlignX.FILL)
                 .comment(MoonExplorerBundle.message("run.configuration.target.comment"))
+        }
+        row {
+            cell(affectedCheckBox)
+                .comment(MoonExplorerBundle.message("run.configuration.affected.comment"))
         }
     }
 }

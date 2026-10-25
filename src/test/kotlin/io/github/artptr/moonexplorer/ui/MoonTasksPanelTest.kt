@@ -204,6 +204,56 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertNull(panel.selectedTask())
     }
 
+    fun testSelectedTasksAreTheSelectedTaskNodes() {
+        panel.loadRecorded()
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), taskPath("api:audit"))
+        assertEquals(listOf("web:build", "api:audit"), panel.selectedTasks()?.map { it.target })
+        assertNull(panel.selectedTaskNameTasks())
+    }
+
+    fun testSelectedTasksAreNullForOneTaskOrAMixedSelection() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = taskPath("web:build")
+        assertNull(panel.selectedTasks())
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), projectPath("api"))
+        assertNull(panel.selectedTasks())
+    }
+
+    private fun namePath(category: String?, name: String): TreePath = panel.allPaths().single { path ->
+        val node = path.lastPathComponent
+        node is TaskNameNode && node.name == name && (category == null || path.parentPath.lastPathComponent.toString() == category)
+    }
+
+    fun testSelectedTaskNameTasksAreAllProjectsWithTheTask() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.tree.selectionPath = namePath(null, "audit")
+        assertEquals(listOf("api:audit", "db:audit", "worker:audit"), panel.selectedTaskNameTasks()?.map { it.target })
+        assertNull(panel.selectedTasks())
+        assertNull(panel.selectedTask())
+    }
+
+    fun testSelectedTaskNameTasksInACategoryAreOnlyTheProjectsOfTheCategory() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.changeCategory(TaskCategory.LAYER)
+        panel.tree.selectionPath = namePath("library", "build")
+        assertEquals(listOf("db:build", "ui:build", "utils:build"), panel.selectedTaskNameTasks()?.map { it.target })
+    }
+
+    fun testCategoryAndProjectNodesHaveNoTaskLists() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        assertNull(panel.selectedTaskNameTasks())
+        assertNull(panel.selectedTasks())
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.changeCategory(TaskCategory.LAYER)
+        panel.tree.selectionPath = panel.allPaths().single { it.lastPathComponent.toString() == "library" }
+        assertNull(panel.selectedTaskNameTasks())
+        assertNull(panel.selectedTasks())
+        assertNull(panel.selectedTask())
+    }
+
     fun testDoubleClickOnATaskRunsIt() {
         val ran = mutableListOf<String>()
         panel.runTask = { ran += it.target }
