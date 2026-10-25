@@ -31,10 +31,6 @@ object MoonTaskRunner {
         return settings
     }
 
-    /** Gives the run configuration for [target], or makes a new one. The function also selects it. */
-    internal fun findOrCreate(project: Project, target: String, temporary: Boolean): RunnerAndConfigurationSettings =
-        findOrCreate(project, listOf(target), affected = false, temporary)
-
     /**
      * Gives the run configuration for [targets] and [affected], or makes a new one. The function also selects it.
      * The function uses a configuration only if it has the same targets in the same sequence and the same [affected] value.
@@ -48,10 +44,13 @@ object MoonTaskRunner {
         val runManager = RunManager.getInstance(project)
         val type = MoonRunConfigurationType.getInstance()
         val settings = runManager.getConfigurationSettingsList(type)
-            .firstOrNull { (it.configuration as? MoonRunConfiguration)?.let { c -> c.targets == targets && c.affected == affected } == true }
+            .firstOrNull {
+                val configuration = it.configuration
+                configuration is MoonRunConfiguration && configuration.targets == targets && configuration.affected == affected
+            }
             ?: runManager.createConfiguration(configurationName(targets, affected), type.factory).also { created ->
                 val configuration = created.configuration as MoonRunConfiguration
-                configuration.target = targets.joinToString(" ")
+                configuration.targets = targets
                 configuration.affected = affected
                 if (temporary) runManager.setTemporaryConfiguration(created) else runManager.addConfiguration(created)
             }

@@ -13,6 +13,7 @@ import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.model.targetProjectId
 import javax.swing.Icon
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
@@ -91,7 +92,7 @@ class TaskNode(val task: MoonTask, val showProject: Boolean = false) : TaskTreeN
     override fun toString(): String = label
 
     /** The ID of the project of the task. */
-    val projectId: String get() = task.target.substringBeforeLast(':')
+    val projectId: String get() = targetProjectId(task.target)
 
     /** The name that the node shows. It is the project ID if the parent node gives the task name. If not, it is the task ID. */
     val label: String get() = if (showProject) projectId else task.id

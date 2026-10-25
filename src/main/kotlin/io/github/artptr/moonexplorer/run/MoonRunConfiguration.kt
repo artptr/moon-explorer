@@ -14,7 +14,10 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import com.intellij.util.execution.ParametersListUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.targetProjectId
+import io.github.artptr.moonexplorer.model.targetTaskId
 import java.nio.file.Path
 
 /** The saved values of a moon run configuration. */
@@ -40,7 +43,11 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
         }
 
     /** The task targets in [target]. */
-    val targets: List<String> get() = splitTargets(target)
+    var targets: List<String>
+        get() = ParametersListUtil.parse(target)
+        set(value) {
+            target = ParametersListUtil.join(value)
+        }
 
     /** If true, moon runs only the tasks that the changed files affect. */
     var affected: Boolean
@@ -86,11 +93,6 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
     }
 }
 
-/** Gives the targets in [text]. Spaces separate the targets. */
-internal fun splitTargets(text: String): List<String> = text.split(WHITESPACE).filter { it.isNotEmpty() }
-
-private val WHITESPACE = Regex("\\s+")
-
 /**
  * Gives the name of a run configuration for [targets]. For one target, the name is the target, for example `web:build`.
  * If all targets have the same task ID, the name contains the task ID and the project IDs, for example `build (web, api)`.
@@ -98,13 +100,13 @@ private val WHITESPACE = Regex("\\s+")
  * If [affected] is true, the name shows that moon runs only the affected tasks.
  */
 internal fun configurationName(targets: List<String>, affected: Boolean): String {
-    val taskIds = targets.map { it.substringAfterLast(':') }.toSet()
+    val taskIds = targets.map(::targetTaskId).toSet()
     val name = when {
         targets.size == 1 -> targets.single()
         taskIds.size == 1 -> MoonExplorerBundle.message(
             "run.configuration.name.taskInProjects",
             taskIds.single(),
-            targets.joinToString(", ") { it.substringBeforeLast(':') },
+            targets.joinToString(", ", transform = ::targetProjectId),
         )
         else -> targets.joinToString(", ")
     }
