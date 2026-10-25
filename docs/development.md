@@ -258,14 +258,14 @@ To change the IntelliJ IDEA version, do these steps:
 1. In `gradle.properties`, set `platformVersion` to the new version.
 2. Run `./gradlew build`.
 3. Run `./gradlew verifyPlugin -PquickVerification=true`.
-4. Open a pull request. In the pull request text, write `Closes #<issue-number>` for the issue from the workflow.
 
 To change the Vale version, do these steps:
 
 1. In `.github/workflows/docs.yml`, set `version` of the step `Run Vale` to the new version.
 2. Install the same Vale version on your computer.
 3. Run `vale .`.
-4. Open a pull request. In the pull request text, write `Closes #<issue-number>` for the issue from the workflow.
+
+For each change, open a pull request. In the pull request text, write `Closes #<issue-number>` for the issue from the workflow.
 
 ## 8. Release
 
