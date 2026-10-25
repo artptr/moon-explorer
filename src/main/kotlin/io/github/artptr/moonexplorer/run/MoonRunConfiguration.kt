@@ -103,7 +103,7 @@ internal fun configurationName(targets: List<String>, affected: Boolean): String
     val taskIds = targets.map(::targetTaskId).toSet()
     val name = when {
         targets.size == 1 -> targets.single()
-        taskIds.size == 1 && targets.all { ':' in it } -> MoonExplorerBundle.message(
+        taskIds.size == 1 && targets.all { ':' in it && targetProjectId(it).isNotEmpty() } -> MoonExplorerBundle.message(
             "run.configuration.name.taskInProjects",
             taskIds.single(),
             targets.joinToString(", ", transform = ::targetProjectId),

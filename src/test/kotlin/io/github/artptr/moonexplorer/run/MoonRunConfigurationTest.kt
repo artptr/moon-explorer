@@ -90,6 +90,8 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         assertNull(configuration("\"\"").suggestedName())
         // A target without a project ID, for example from a manual change, does not give a name with project IDs.
         assertEquals("test, api:test", configuration("test api:test").suggestedName())
+        // The target :build runs build in all projects. It has no project ID.
+        assertEquals(":build, web:build", configuration(":build web:build").suggestedName())
     }
 
     fun testAffectedIsSavedAndLoaded() {
