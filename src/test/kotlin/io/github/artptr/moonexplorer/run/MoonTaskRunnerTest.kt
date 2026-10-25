@@ -35,7 +35,7 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     fun testTemporaryConfigurationForSeveralTargets() {
         val settings = MoonTaskRunner.findOrCreate(project, listOf("web:build", "api:build"), affected = true, temporary = true)
         assertTrue(settings.isTemporary)
-        assertEquals("build (2 projects), affected", settings.name)
+        assertEquals("build (web, api), affected", settings.name)
         val configuration = settings.configuration as MoonRunConfiguration
         assertEquals(listOf("web:build", "api:build"), configuration.targets)
         assertTrue(configuration.affected)

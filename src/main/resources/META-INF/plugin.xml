@@ -71,7 +71,8 @@
                     class="io.github.artptr.moonexplorer.ui.RunInProjectsAction"
                     icon="AllIcons.Actions.Execute"/>
             <action id="MoonExplorer.RunAffectedInProjects"
-                    class="io.github.artptr.moonexplorer.ui.RunAffectedInProjectsAction"/>
+                    class="io.github.artptr.moonexplorer.ui.RunAffectedInProjectsAction"
+                    icon="AllIcons.Actions.Execute"/>
             <action id="MoonExplorer.RunSelectedTasks"
                     class="io.github.artptr.moonexplorer.ui.RunSelectedTasksAction"
                     icon="AllIcons.Actions.Execute"/>

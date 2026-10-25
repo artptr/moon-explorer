@@ -1,6 +1,8 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DataKey
+import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.components.service
@@ -22,6 +24,7 @@ import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.LargeQueryProjectsJson
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlin.system.measureTimeMillis
+import java.lang.reflect.Proxy
 import java.nio.file.Path
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
@@ -239,6 +242,36 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.changeCategory(TaskCategory.LAYER)
         panel.tree.selectionPath = namePath("library", "build")
         assertEquals(listOf("db:build", "ui:build", "utils:build"), panel.selectedTaskNameTasks()?.map { it.target })
+    }
+
+    /**
+     * Gives the value of [key] that the panel puts in its data snapshot. The actions of the context menu get their data from this snapshot.
+     * The test IDE does not get data from Swing components. Thus the function calls [MoonTasksPanel.uiDataSnapshot] with a sink that records the values.
+     */
+    private fun <T : Any> treeData(key: DataKey<T>): T? {
+        val values = mutableMapOf<String, Any?>()
+        val sink = Proxy.newProxyInstance(DataSink::class.java.classLoader, arrayOf(DataSink::class.java)) { _, method, args ->
+            if (method.name == "set" && args?.size == 2) values[(args[0] as DataKey<*>).name] = args[1]
+            null
+        } as DataSink
+        panel.uiDataSnapshot(sink)
+        @Suppress("UNCHECKED_CAST")
+        return values[key.name] as T?
+    }
+
+    fun testDataContextHasTheSelectedTasks() {
+        panel.loadRecorded()
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), taskPath("api:audit"))
+        assertEquals(listOf("web:build", "api:audit"), treeData(SELECTED_TASKS)?.map { it.target })
+        assertNull(treeData(SELECTED_TASK_NAME_TASKS))
+    }
+
+    fun testDataContextHasTheTasksOfTheSelectedTaskName() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.tree.selectionPath = namePath(null, "audit")
+        assertEquals(listOf("api:audit", "db:audit", "worker:audit"), treeData(SELECTED_TASK_NAME_TASKS)?.map { it.target })
+        assertNull(treeData(SELECTED_TASKS))
     }
 
     fun testCategoryAndProjectNodesHaveNoTaskLists() {

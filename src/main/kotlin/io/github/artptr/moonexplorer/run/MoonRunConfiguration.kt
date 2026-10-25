@@ -93,15 +93,20 @@ private val WHITESPACE = Regex("\\s+")
 
 /**
  * Gives the name of a run configuration for [targets]. For one target, the name is the target, for example `web:build`.
- * If all targets have the same task ID, the name contains the task ID and the number of projects. If not, the name contains the number of tasks.
+ * If all targets have the same task ID, the name contains the task ID and the project IDs, for example `build (web, api)`.
+ * If not, the name contains all targets. Thus two configurations with different targets have different names.
  * If [affected] is true, the name shows that moon runs only the affected tasks.
  */
 internal fun configurationName(targets: List<String>, affected: Boolean): String {
     val taskIds = targets.map { it.substringAfterLast(':') }.toSet()
     val name = when {
         targets.size == 1 -> targets.single()
-        taskIds.size == 1 -> MoonExplorerBundle.message("run.configuration.name.taskInProjects", taskIds.single(), targets.size)
-        else -> MoonExplorerBundle.message("run.configuration.name.tasks", targets.size)
+        taskIds.size == 1 -> MoonExplorerBundle.message(
+            "run.configuration.name.taskInProjects",
+            taskIds.single(),
+            targets.joinToString(", ") { it.substringBeforeLast(':') },
+        )
+        else -> targets.joinToString(", ")
     }
     return if (affected) MoonExplorerBundle.message("run.configuration.name.affected", name) else name
 }

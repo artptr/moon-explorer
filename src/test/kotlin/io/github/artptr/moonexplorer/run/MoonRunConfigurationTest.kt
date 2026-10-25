@@ -75,10 +75,11 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
     }
 
     fun testSuggestedNameTellsTheTargets() {
-        assertEquals("build (2 projects)", configuration("web:build api:build").suggestedName())
-        assertEquals("2 tasks", configuration("web:build api:audit").suggestedName())
+        assertEquals("build (web, api)", configuration("web:build api:build").suggestedName())
+        assertEquals("build (db, ui)", configuration("db:build ui:build").suggestedName())
+        assertEquals("web:build, api:audit", configuration("web:build api:audit").suggestedName())
         assertEquals("web:build, affected", configuration().also { it.affected = true }.suggestedName())
-        assertEquals("build (2 projects), affected", configuration("web:build api:build").also { it.affected = true }.suggestedName())
+        assertEquals("build (web, api), affected", configuration("web:build api:build").also { it.affected = true }.suggestedName())
         assertNull(configuration(" ").suggestedName())
     }
 
@@ -105,6 +106,10 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
             editor.component
             editor.resetFrom(configuration("web:lint"))
             assertEquals("web:lint", editor.targetField.text)
+            assertFalse(editor.affectedCheckBox.isSelected)
+            editor.resetFrom(configuration("web:lint api:lint").also { it.affected = true })
+            assertEquals("web:lint api:lint", editor.targetField.text)
+            assertTrue(editor.affectedCheckBox.isSelected)
             editor.targetField.text = " web:test "
             val changed = configuration("")
             editor.affectedCheckBox.isSelected = true

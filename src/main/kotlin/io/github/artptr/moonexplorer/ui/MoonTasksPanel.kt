@@ -208,10 +208,13 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         return nodes.map { (it as? TaskNode)?.task ?: return null }
     }
 
-    /** Gives the tasks in the selected task name node. The value is null if the selection is not one task name node. */
+    /**
+     * Gives the tasks in the selected task name node. The value is null if the selection is not one task name node,
+     * or if the node has no task nodes.
+     */
     internal fun selectedTaskNameTasks(): List<MoonTask>? {
         val node = tree.selectionPaths?.singleOrNull()?.lastPathComponent as? TaskNameNode ?: return null
-        return node.children().toList().filterIsInstance<TaskNode>().map { it.task }
+        return node.children().toList().filterIsInstance<TaskNode>().map { it.task }.takeIf { it.isNotEmpty() }
     }
 
     override fun uiDataSnapshot(sink: DataSink) {
