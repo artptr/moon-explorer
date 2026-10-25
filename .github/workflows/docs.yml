@@ -24,6 +24,7 @@ jobs:
       - name: Run Vale
         uses: errata-ai/vale-action@518a9136acc6e6668ce7c00d367051e0941e87ff # v3.0.0
         with:
+          # Dependabot does not update this version. The 'Version check' workflow reports a new Vale version. Refer to docs/development.md, section 7.1.
           version: 3.24.0
           files: all
           fail_on_error: true

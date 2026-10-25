@@ -21,3 +21,4 @@
 - { name: "dependencies",       color: "0366D6", description: "Dependency update" }
 - { name: "release changelog",  color: "EDEDED", description: "Pull requests with release changelog update" }
 - { name: "moon-output",        color: "EDEDED", description: "Issue from the Moon output workflow" }
+- { name: "version-check",      color: "EDEDED", description: "Issue from the Version check workflow" }

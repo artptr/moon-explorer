@@ -185,6 +185,8 @@ Run `vale .`.
 Vale examines the Markdown files and the comments in `.github/workflows/*.yml`.
 Refer to [ste/guide.md](ste/guide.md).
 
+The `Docs` workflow uses the Vale version in `.github/workflows/docs.yml`. Use the same Vale version on your computer.
+
 ## 7. Continuous integration
 
 GitHub Actions runs these workflows:
@@ -195,6 +197,7 @@ GitHub Actions runs these workflows:
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Moon output` | Each Monday, manual start | Record of the output of the newest moon 2.x, tests, issue for a change. Refer to section 4.3. |
+| `Version check` | Each Monday, manual start | Check of the IntelliJ IDEA version and the Vale version, issue for a new version. Refer to section 7.1. |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace, pull request for `CHANGELOG.md` |
 
 **NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
@@ -210,6 +213,59 @@ Obey these rules when you add or change a workflow:
 3. In each `uses:` line, use the complete commit SHA of the action. Put the version tag in a comment after the SHA. Example: `actions/checkout@<sha> # v7.0.1`.
 
 Dependabot updates the SHA and the comment together.
+
+### 7.1 Versions that Dependabot does not update
+
+Dependabot updates the Gradle dependencies and the actions. It does not update these versions:
+
+| Version | Location | Reason |
+|---------|----------|--------|
+| IntelliJ IDEA | `platformVersion` in `gradle.properties` | The IntelliJ Platform Gradle Plugin gets the IDE in a different way from a usual Gradle dependency. |
+| Vale | `version` of `errata-ai/vale-action` in `.github/workflows/docs.yml` | Dependabot does not read the inputs of an action. |
+
+Each version is in only one location. Do not write these versions in other files.
+
+The `Version check` workflow finds new versions one time each week. You can also start the workflow manually.
+
+The workflow does these steps:
+
+1. It gets the newest released IDE of each IDE line with the Gradle task `printProductsReleases`. A line is the first two numbers of a version, for example 2025.3.
+2. It compares `platformVersion` with the newest IDE in the same line.
+3. It finds the lines that are newer than the line of `platformVersion`.
+4. It compares the Vale version with the newest Vale release on GitHub.
+5. If a new version is available, it creates or updates an issue.
+
+A newer IDE in the same line, for example 2025.3.7, is an update. Change `platformVersion` to this version.
+A newer line, for example 2026.1, is only information. A change to a newer line also changes the minimum IDE version of the plugin. Thus a maintainer must decide about this change.
+
+The workflow finds the issue from a previous run with the label `version-check`. If this issue is open, the workflow replaces the text of the issue.
+If the label does not exist, the workflow creates it before it creates the issue.
+The workflow adds a comment or creates an issue only for a version that the previous issue does not contain. Thus each new version causes one notification.
+
+For a newer line, the workflow compares only the line, not the patch version. Thus a new patch version of a newer line does not cause a notification.
+If you close the issue, the workflow does not open a new issue for the same versions. Write your notes in comments, not in the issue text.
+If no new version is available, the workflow closes the open issue.
+
+Only a run on `main` creates or changes an issue. A manual run on a different branch shows the result only in the job summary.
+A new version does not cause a failure of the workflow. Only an error causes a failure.
+
+**NOTE:** The workflow can compare only the version of a released IDE, for example `2025.3.6.1`. If `platformVersion` is an EAP build number, for example `261.12345.67`, the workflow stops with an error.
+
+**NOTE:** The workflow does not add the issue to the project board. The `GITHUB_TOKEN` cannot change a user project. Add the issue to the board manually.
+
+To change the IntelliJ IDEA version, do these steps:
+
+1. In `gradle.properties`, set `platformVersion` to the new version.
+2. Run `./gradlew build`.
+3. Run `./gradlew verifyPlugin -PquickVerification=true`.
+4. Open a pull request. In the pull request text, write `Closes #<issue-number>` for the issue from the workflow.
+
+To change the Vale version, do these steps:
+
+1. In `.github/workflows/docs.yml`, set `version` of the step `Run Vale` to the new version.
+2. Install the same Vale version on your computer.
+3. Run `vale .`.
+4. Open a pull request. In the pull request text, write `Closes #<issue-number>` for the issue from the workflow.
 
 ## 8. Release
 
