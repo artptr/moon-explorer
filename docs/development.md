@@ -199,6 +199,10 @@ GitHub Actions runs these workflows:
 
 **NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
 
+The `Build` workflow uses `version` in `gradle.properties` for the draft release.
+If a published release has this version, the workflow stops with an error before it changes the draft releases.
+Then set `version` to the version of the next release. Refer to section 8.
+
 Obey these rules when you add or change a workflow:
 
 1. Add a `permissions` block at the top of the workflow. Give `contents: read` only.
