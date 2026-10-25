@@ -13,26 +13,45 @@ object MoonTaskRunner {
      * Runs [target] with a temporary run configuration.
      * If there is a run configuration for [target], the function uses it.
      */
-    fun run(project: Project, target: String) {
-        val settings = findOrCreate(project, target, temporary = true)
+    fun run(project: Project, target: String) = run(project, listOf(target))
+
+    /**
+     * Runs [targets] with one temporary run configuration. If [affected] is true, moon runs only the affected tasks.
+     * If there is a run configuration with the same targets and the same [affected] value, the function uses it.
+     */
+    fun run(project: Project, targets: List<String>, affected: Boolean = false) {
+        val settings = findOrCreate(project, targets, affected, temporary = true)
         ProgramRunnerUtil.executeConfiguration(settings, DefaultRunExecutor.getRunExecutorInstance())
     }
 
     /** Saves a run configuration for [target] and selects it. If there is a temporary configuration, the function saves it. */
     fun createConfiguration(project: Project, target: String): RunnerAndConfigurationSettings {
-        val settings = findOrCreate(project, target, temporary = false)
+        val settings = findOrCreate(project, listOf(target), affected = false, temporary = false)
         if (settings.isTemporary) RunManager.getInstance(project).makeStable(settings)
         return settings
     }
 
-    /** Gives the run configuration for [target], or makes a new one. The function also selects it. */
-    internal fun findOrCreate(project: Project, target: String, temporary: Boolean): RunnerAndConfigurationSettings {
+    /**
+     * Gives the run configuration for [targets] and [affected], or makes a new one. The function also selects it.
+     * The function uses a configuration only if it has the same targets in the same sequence and the same [affected] value.
+     */
+    internal fun findOrCreate(
+        project: Project,
+        targets: List<String>,
+        affected: Boolean,
+        temporary: Boolean,
+    ): RunnerAndConfigurationSettings {
         val runManager = RunManager.getInstance(project)
         val type = MoonRunConfigurationType.getInstance()
         val settings = runManager.getConfigurationSettingsList(type)
-            .firstOrNull { (it.configuration as? MoonRunConfiguration)?.target == target }
-            ?: runManager.createConfiguration(target, type.factory).also { created ->
-                (created.configuration as MoonRunConfiguration).target = target
+            .firstOrNull {
+                val configuration = it.configuration
+                configuration is MoonRunConfiguration && configuration.targets == targets && configuration.affected == affected
+            }
+            ?: runManager.createConfiguration(configurationName(targets, affected), type.factory).also { created ->
+                val configuration = created.configuration as MoonRunConfiguration
+                configuration.targets = targets
+                configuration.affected = affected
                 if (temporary) runManager.setTemporaryConfiguration(created) else runManager.addConfiguration(created)
             }
         runManager.selectedConfiguration = settings

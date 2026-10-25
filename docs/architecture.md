@@ -23,7 +23,7 @@ The model layer does not use Swing. The CLI layer does not use the IntelliJ PSI.
 The parser of the moon JSON output is in the model layer. Thus the CLI layer does not use the model classes.
 
 The `settings` package contains the settings state and the settings page.
-The `run` package contains the run configuration for moon tasks. It runs `moon run <target>` in the workspace root.
+The `run` package contains the run configuration for moon tasks. It runs `moon run <targets>` in the workspace root. One configuration can contain one or more targets. If the configuration has the option for affected tasks, the command also has `--affected` after the targets.
 
 | Component | Class | Registration |
 |-----------|-------|--------------|
@@ -44,9 +44,10 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Settings of the IDE project | `settings.MoonSettings` | None (light service) |
 | Settings page **Settings \| Tools \| Moon Explorer** | `settings.MoonSettingsConfigurable` | `plugin.xml` |
 | Run configuration type **moon** | `run.MoonRunConfigurationType`, `run.MoonRunConfiguration` | `plugin.xml` |
-| Make and run a configuration for a task | `run.MoonTaskRunner` | None |
+| Make and run a configuration for one task or for a list of targets | `run.MoonTaskRunner` | None |
 | Make the command line `moon <args>` in the workspace root, and start the moon process. The run configurations and `run.MoonCommandRunner` use it. Thus all moon commands use the same moon executable and give the same errors | `run.MoonCommandLine.kt` (`moonCommandLine`, `startMoonProcess`) | None |
 | Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
+| Actions **Run in N Projects** and **Run Affected in N Projects** for a task name node in the group `MoonExplorer.TaskPopup`. The same group has **Run N Tasks** for two or more task nodes. The panel gives the tasks with the data keys `SELECTED_TASK_NAME_TASKS` and `SELECTED_TASKS` | `ui.RunInProjectsAction`, `ui.RunAffectedInProjectsAction`, `ui.RunSelectedTasksAction` | `plugin.xml` |
 | Find and run a task in the **All** tab of **Search Everywhere** | `ui.MoonTaskSearchContributor` | `plugin.xml` (`searchEverywhereContributor`) |
 | Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner`. If the IDE project has no moon workspace, the provider does not complete or run moon commands | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner`, notification group `Moon Explorer commands` | `plugin.xml` (`runAnything.executionProvider`, `notificationGroup`) |
 | Start of the `moon` executable | `cli.MoonCli` | None |

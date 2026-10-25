@@ -9,6 +9,12 @@ val ID_ORDER: Comparator<String> = String.CASE_INSENSITIVE_ORDER.thenComparing(n
 /** A task of a moon project. [target] has the format `<project>:<task>`. */
 data class MoonTask(val id: String, val target: String, val description: String?)
 
+/** Gives the project ID of [target], the part before the last `:`. */
+fun targetProjectId(target: String): String = target.substringBeforeLast(':')
+
+/** Gives the task ID of [target], the part after the last `:`. */
+fun targetTaskId(target: String): String = target.substringAfterLast(':')
+
 /**
  * A moon project and its tasks, sorted by ID.
  * [stack] is null if the project has no `stack` value. [layer] is null if the project has no `layer` value.

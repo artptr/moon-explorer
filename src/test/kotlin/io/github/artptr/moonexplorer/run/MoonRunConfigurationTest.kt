@@ -37,6 +37,24 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         assertEquals(workspace, commandLine.workingDirectory)
     }
 
+    fun testCommandLineRunsAllTargets() {
+        val commandLine = configuration("web:build  api:build\tutils:build").createCommandLine(workspace) { moon }
+        assertEquals(listOf("run", "web:build", "api:build", "utils:build"), commandLine.parametersList.list)
+    }
+
+    fun testCommandLineWithOnlyEmptyTargetsThrows() {
+        val e = Assert.assertThrows(ExecutionException::class.java) { configuration("\"\"").createCommandLine(workspace) { moon } }
+        assertEquals(MoonExplorerBundle.message("run.configuration.error.noTarget"), e.message)
+    }
+
+    fun testCommandLineForAffectedHasTheOptionAfterTheTargets() {
+        val configuration = configuration("web:build api:build").also { it.affected = true }
+        val commandLine = configuration.createCommandLine(workspace) { moon }
+        // The option --affected can have a value. Before the targets, moon reads the first target as its value.
+        assertEquals(listOf("run", "web:build", "api:build", "--affected"), commandLine.parametersList.list)
+        assertFalse(commandLine.parametersList.list.any { it.startsWith("--query") })
+    }
+
     fun testCommandLineKeepsTheColors() {
         val commandLine = configuration().createCommandLine(workspace) { moon }
         assertFalse(commandLine.environment.containsKey("NO_COLOR"))
@@ -54,11 +72,35 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
 
     fun testConfigurationWithoutTargetIsNotValid() {
         assertThrows(RuntimeConfigurationError::class.java) { configuration("  ").checkConfiguration() }
+        assertThrows(RuntimeConfigurationError::class.java) { configuration("\"\" \" \"").checkConfiguration() }
         configuration().checkConfiguration()
     }
 
     fun testSuggestedNameIsTheTarget() {
         assertEquals("web:build", configuration().suggestedName())
+    }
+
+    fun testSuggestedNameTellsTheTargets() {
+        assertEquals("build (web, api)", configuration("web:build api:build").suggestedName())
+        assertEquals("build (db, ui)", configuration("db:build ui:build").suggestedName())
+        assertEquals("web:build, api:audit", configuration("web:build api:audit").suggestedName())
+        assertEquals("web:build, affected", configuration().also { it.affected = true }.suggestedName())
+        assertEquals("build (web, api), affected", configuration("web:build api:build").also { it.affected = true }.suggestedName())
+        assertNull(configuration(" ").suggestedName())
+        assertNull(configuration("\"\"").suggestedName())
+        // A target without a project ID, for example from a manual change, does not give a name with project IDs.
+        assertEquals("test, api:test", configuration("test api:test").suggestedName())
+        // The target :build runs build in all projects. It has no project ID.
+        assertEquals(":build, web:build", configuration(":build web:build").suggestedName())
+    }
+
+    fun testAffectedIsSavedAndLoaded() {
+        val element = Element("configuration")
+        configuration("web:build api:build").also { it.affected = true }.writeExternal(element)
+        val loaded = configuration("")
+        loaded.readExternal(element)
+        assertEquals(listOf("web:build", "api:build"), loaded.targets)
+        assertTrue(loaded.affected)
     }
 
     fun testTargetIsSavedAndLoaded() {
@@ -75,10 +117,16 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
             editor.component
             editor.resetFrom(configuration("web:lint"))
             assertEquals("web:lint", editor.targetField.text)
+            assertFalse(editor.affectedCheckBox.isSelected)
+            editor.resetFrom(configuration("web:lint api:lint").also { it.affected = true })
+            assertEquals("web:lint api:lint", editor.targetField.text)
+            assertTrue(editor.affectedCheckBox.isSelected)
             editor.targetField.text = " web:test "
             val changed = configuration("")
+            editor.affectedCheckBox.isSelected = true
             editor.applyTo(changed)
             assertEquals("web:test", changed.target)
+            assertTrue(changed.affected)
         } finally {
             Disposer.dispose(editor)
         }
@@ -90,7 +138,7 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         try {
             val texts = UIUtil.findComponentsOfType(editor.component, JEditorPane::class.java)
                 .map { it.document.getText(0, it.document.length) }
-            assertTrue("Comments: $texts", texts.any { "moon run with this target in the workspace root" in it })
+            assertTrue("Comments: $texts", texts.any { "moon run with these targets in the workspace root" in it })
         } finally {
             Disposer.dispose(editor)
         }

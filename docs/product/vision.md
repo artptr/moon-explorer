@@ -156,7 +156,7 @@ The functions that use the moon configuration files are for the workspace mainta
 
 - A tool window that shows the final configuration of a task after inheritance: command, arguments, dependencies, inputs, outputs, and the source of each value
 - Navigation and validation in moon configuration files
-- A run of the tasks that the local changes affect
+- A run of the tasks that the local changes affect. Issue [#68](https://github.com/artptr/moon-explorer/issues/68) adds this run for the projects of a task name node in the tree. The team did not approve a run of all affected tasks in the workspace.
 - A view of the tasks that moon runs before a selected task
 - An inspection that finds tasks without a description
 - Debug of a task and more options for run configurations

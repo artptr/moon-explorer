@@ -1,6 +1,9 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DataKey
+import com.intellij.openapi.actionSystem.CustomizedDataContext
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.components.service
@@ -201,6 +204,75 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.tree.selectionPath = projectPath("web")
         assertNull(panel.selectedTask())
         panel.tree.selectionPaths = arrayOf(taskPath("web:build"), taskPath("web:lint"))
+        assertNull(panel.selectedTask())
+    }
+
+    fun testSelectedTasksAreTheSelectedTaskNodes() {
+        panel.loadRecorded()
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), taskPath("api:audit"))
+        assertEquals(listOf("web:build", "api:audit"), panel.selectedTasks()?.map { it.target })
+        assertNull(panel.selectedTaskNameTasks())
+    }
+
+    fun testSelectedTasksAreNullForOneTaskOrAMixedSelection() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = taskPath("web:build")
+        assertNull(panel.selectedTasks())
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), projectPath("api"))
+        assertNull(panel.selectedTasks())
+    }
+
+    private fun namePath(category: String?, name: String): TreePath = panel.allPaths().single { path ->
+        val node = path.lastPathComponent
+        node is TaskNameNode && node.name == name && (category == null || path.parentPath.lastPathComponent.toString() == category)
+    }
+
+    fun testSelectedTaskNameTasksAreAllProjectsWithTheTask() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.tree.selectionPath = namePath(null, "audit")
+        assertEquals(listOf("api:audit", "db:audit", "worker:audit"), panel.selectedTaskNameTasks()?.map { it.target })
+        assertNull(panel.selectedTasks())
+        assertNull(panel.selectedTask())
+    }
+
+    fun testSelectedTaskNameTasksInACategoryAreOnlyTheProjectsOfTheCategory() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.changeCategory(TaskCategory.LAYER)
+        panel.tree.selectionPath = namePath("library", "build")
+        assertEquals(listOf("db:build", "ui:build", "utils:build"), panel.selectedTaskNameTasks()?.map { it.target })
+    }
+
+    /** Gives the value of [key] in the data snapshot of the panel. The actions of the context menu get their data from this snapshot. */
+    private fun <T : Any> treeData(key: DataKey<T>): T? =
+        CustomizedDataContext.withSnapshot(DataContext.EMPTY_CONTEXT) { panel.uiDataSnapshot(it) }.getData(key)
+
+    fun testDataContextHasTheSelectedTasks() {
+        panel.loadRecorded()
+        panel.tree.selectionPaths = arrayOf(taskPath("web:build"), taskPath("api:audit"))
+        assertEquals(listOf("web:build", "api:audit"), treeData(SELECTED_TASKS)?.map { it.target })
+        assertNull(treeData(SELECTED_TASK_NAME_TASKS))
+    }
+
+    fun testDataContextHasTheTasksOfTheSelectedTaskName() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.tree.selectionPath = namePath(null, "audit")
+        assertEquals(listOf("api:audit", "db:audit", "worker:audit"), treeData(SELECTED_TASK_NAME_TASKS)?.map { it.target })
+        assertNull(treeData(SELECTED_TASKS))
+    }
+
+    fun testCategoryAndProjectNodesHaveNoTaskLists() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        assertNull(panel.selectedTaskNameTasks())
+        assertNull(panel.selectedTasks())
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.changeCategory(TaskCategory.LAYER)
+        panel.tree.selectionPath = panel.allPaths().single { it.lastPathComponent.toString() == "library" }
+        assertNull(panel.selectedTaskNameTasks())
+        assertNull(panel.selectedTasks())
         assertNull(panel.selectedTask())
     }
 
