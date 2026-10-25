@@ -42,6 +42,11 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         assertEquals(listOf("run", "web:build", "api:build", "utils:build"), commandLine.parametersList.list)
     }
 
+    fun testCommandLineWithOnlyEmptyTargetsThrows() {
+        val e = Assert.assertThrows(ExecutionException::class.java) { configuration("\"\"").createCommandLine(workspace) { moon } }
+        assertEquals(MoonExplorerBundle.message("run.configuration.error.noTarget"), e.message)
+    }
+
     fun testCommandLineForAffectedHasTheOptionAfterTheTargets() {
         val configuration = configuration("web:build api:build").also { it.affected = true }
         val commandLine = configuration.createCommandLine(workspace) { moon }
@@ -67,6 +72,7 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
 
     fun testConfigurationWithoutTargetIsNotValid() {
         assertThrows(RuntimeConfigurationError::class.java) { configuration("  ").checkConfiguration() }
+        assertThrows(RuntimeConfigurationError::class.java) { configuration("\"\" \" \"").checkConfiguration() }
         configuration().checkConfiguration()
     }
 
@@ -81,6 +87,9 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         assertEquals("web:build, affected", configuration().also { it.affected = true }.suggestedName())
         assertEquals("build (web, api), affected", configuration("web:build api:build").also { it.affected = true }.suggestedName())
         assertNull(configuration(" ").suggestedName())
+        assertNull(configuration("\"\"").suggestedName())
+        // A target without a project ID, for example from a manual change, does not give a name with project IDs.
+        assertEquals("test, api:test", configuration("test api:test").suggestedName())
     }
 
     fun testAffectedIsSavedAndLoaded() {

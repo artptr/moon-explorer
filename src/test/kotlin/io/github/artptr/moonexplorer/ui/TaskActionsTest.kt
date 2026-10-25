@@ -84,6 +84,14 @@ class TaskActionsTest : BasePlatformTestCase() {
         assertEquals(listOf(listOf("web:build", "api:audit") to false), runs(RunSelectedTasksAction(), context))
     }
 
+    fun testBulkActionsAreHiddenForAnEmptyList() {
+        for (action in listOf(RunInProjectsAction(), RunAffectedInProjectsAction(), RunSelectedTasksAction())) {
+            val context = context(null, tasks = emptyList(), taskNameTasks = emptyList())
+            assertFalse(presentation(action, context).isVisible)
+            assertEmpty(runs(action, context))
+        }
+    }
+
     fun testBulkActionsAreHiddenWithoutTheirTasks() {
         assertFalse(presentation(RunInProjectsAction(), context(task, tasks = buildTasks)).isVisible)
         assertFalse(presentation(RunAffectedInProjectsAction(), context(task, tasks = buildTasks)).isVisible)

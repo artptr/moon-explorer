@@ -42,9 +42,9 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
             options.target = value.trim().ifEmpty { null }
         }
 
-    /** The task targets in [target]. */
+    /** The task targets in [target]. The list does not contain empty targets, for example from `""` in [target]. */
     var targets: List<String>
-        get() = ParametersListUtil.parse(target)
+        get() = ParametersListUtil.parse(target).filter { it.isNotBlank() }
         set(value) {
             target = ParametersListUtil.join(value)
         }
@@ -61,7 +61,7 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> = MoonRunConfigurationEditor()
 
     override fun checkConfiguration() {
-        if (target.isEmpty()) throw RuntimeConfigurationError(MoonExplorerBundle.message("run.configuration.error.noTarget"))
+        if (targets.isEmpty()) throw RuntimeConfigurationError(MoonExplorerBundle.message("run.configuration.error.noTarget"))
     }
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
@@ -95,7 +95,7 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
 
 /**
  * Gives the name of a run configuration for [targets]. For one target, the name is the target, for example `web:build`.
- * If all targets have the same task ID, the name contains the task ID and the project IDs, for example `build (web, api)`.
+ * If all targets have a project ID and the same task ID, the name contains the task ID and the project IDs, for example `build (web, api)`.
  * If not, the name contains all targets. Thus two configurations with different targets have different names.
  * If [affected] is true, the name shows that moon runs only the affected tasks.
  */
@@ -103,7 +103,7 @@ internal fun configurationName(targets: List<String>, affected: Boolean): String
     val taskIds = targets.map(::targetTaskId).toSet()
     val name = when {
         targets.size == 1 -> targets.single()
-        taskIds.size == 1 -> MoonExplorerBundle.message(
+        taskIds.size == 1 && targets.all { ':' in it } -> MoonExplorerBundle.message(
             "run.configuration.name.taskInProjects",
             taskIds.single(),
             targets.joinToString(", ", transform = ::targetProjectId),

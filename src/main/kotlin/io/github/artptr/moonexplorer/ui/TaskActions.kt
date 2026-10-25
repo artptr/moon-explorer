@@ -31,16 +31,19 @@ abstract class SelectedDataAction<T : Any>(private val key: DataKey<T>) : DumbAw
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent) {
-        val data = e.getData(key)
+        val data = e.getData(key)?.takeIf(::isApplicable)
         e.presentation.isEnabledAndVisible = e.project != null && data != null
         if (data != null) update(e, data)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val data = e.getData(key) ?: return
+        val data = e.getData(key)?.takeIf(::isApplicable) ?: return
         perform(project, data)
     }
+
+    /** Gives true if the action operates on [data]. If not, the action is not visible. */
+    protected open fun isApplicable(data: T): Boolean = true
 
     /** Changes the presentation for [data]. */
     protected open fun update(e: AnActionEvent, data: T) = Unit
@@ -84,6 +87,9 @@ abstract class SelectedTasksRunAction(
 
     /** Runs the targets. Tests replace this value with a test function, because [MoonTaskRunner.run] starts moon. */
     internal var run: (Project, List<String>, Boolean) -> Unit = MoonTaskRunner::run
+
+    /** An empty list has no targets. Then moon has nothing to run. */
+    override fun isApplicable(data: List<MoonTask>): Boolean = data.isNotEmpty()
 
     override fun update(e: AnActionEvent, data: List<MoonTask>) {
         e.presentation.text = MoonExplorerBundle.message(textKey, data.size)
