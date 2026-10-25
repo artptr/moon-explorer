@@ -212,16 +212,16 @@ Dependabot updates the SHA and the comment together.
 1. Make sure that `CHANGELOG.md` has entries under `Unreleased`.
 2. Make sure that `version` in `gradle.properties` is the version of this release.
 3. If you changed `CHANGELOG.md` or `gradle.properties`, merge the change into `main`.
-4. On GitHub, open the draft release that the `Build` workflow created.
+4. Make sure that the `Build` workflow on `main` is complete. Then, on GitHub, open the draft release that the workflow created.
 5. Publish the draft release. Do not delete the text of the draft release. The `Release` workflow uses this text to move the entries from `Unreleased` to a section for the version.
-6. Check out the branch of the pull request "Changelog update - `<version>`" that the `Release` workflow created.
+6. The `Release` workflow creates the pull request "Changelog update - `<version>`". Check out the branch of this pull request.
 7. In `gradle.properties`, set `version` to the version of the next release. If you do not know it, use the next minor version. Example: after 0.2.0, set `version = 0.3.0`. The `Build` workflow uses this version for the next draft release.
 8. Push a commit with this change to the branch.
 9. Merge the pull request.
 
 **NOTE:** If the text of the release is empty, the `Release` workflow does not create the changelog pull request. Then change steps 6 and 9:
 
-- Step 6: Make a branch from `main`. On this branch, run `./gradlew patchChangelog`.
+- Step 6: Make a branch from the release tag `<version>`. On this branch, run `./gradlew patchChangelog`. Do not use `main`, because it can have entries that you added after the release.
 - Step 9: Open a pull request for the branch. Then merge it.
 
 The `Release` workflow signs the plugin and publishes it to JetBrains Marketplace.
@@ -238,9 +238,10 @@ Refer to <https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html>.
 2. Run `./gradlew signPlugin verifyPluginSignature`.
 3. Upload the file `build/distributions/*-signed.zip` on JetBrains Marketplace.
 4. Run `gh variable set SKIP_MARKETPLACE_PUBLISH --body true`.
-5. Publish the draft release on GitHub.
+5. Publish the draft release on GitHub. Do not delete the text of the draft release.
 6. Make sure that the `Release` workflow is complete.
 7. Run `gh variable delete SKIP_MARKETPLACE_PUBLISH`.
+8. Do steps 6-9 of section 8. If the text of the release is empty, also obey the NOTE in section 8.
 
 When `SKIP_MARKETPLACE_PUBLISH` is `true`, the `Release` workflow signs the plugin, but does not publish it to Marketplace.
 The workflow does the other steps as usual.
