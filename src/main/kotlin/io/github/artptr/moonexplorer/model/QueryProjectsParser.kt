@@ -83,7 +83,4 @@ object QueryProjectsParser {
      */
     private fun tags(project: JsonObject): Set<String> =
         project.obj("config")?.get("tags")?.strings().orEmpty().filterNot(String::isBlank).toSet()
-
-    /** Sorts the items in [ID_ORDER] of the ID that [id] gives. */
-    private fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(compareBy(ID_ORDER, id))
 }

@@ -6,6 +6,9 @@ package io.github.artptr.moonexplorer.model
  */
 val ID_ORDER: Comparator<String> = String.CASE_INSENSITIVE_ORDER.thenComparing(naturalOrder())
 
+/** Sorts the items in [ID_ORDER] of the ID that [id] gives. */
+internal fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(compareBy(ID_ORDER, id))
+
 /** A task of a moon project. [target] has the format `<project>:<task>`. */
 data class MoonTask(val id: String, val target: String, val description: String?)
 
