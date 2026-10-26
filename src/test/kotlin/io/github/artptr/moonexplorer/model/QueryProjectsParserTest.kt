@@ -13,9 +13,9 @@ class QueryProjectsParserTest {
 
     private fun project(id: String) = recorded.projects.single { it.id == id }
 
-    /** Gives the value of [category] for each project in [json]. */
+    /** Gives the values of [category] for each project in [json]. */
     private fun values(json: String, category: TaskCategory) =
-        QueryProjectsParser.parse(json).projects.associate { it.id to category.valuesFor(it).singleOrNull() }
+        QueryProjectsParser.parse(json).projects.associate { it.id to category.valuesFor(it) }
 
     @Test
     fun recordedOutputHasAllProjectsWithTasksInOrder() {
@@ -214,7 +214,7 @@ class QueryProjectsParserTest {
     fun unknownStackIsNull() {
         // moon gives "unknown" if the project does not set stack.
         val json = """{"projects": [{"id": "a", "stack": "unknown", "tasks": {"t": {"id": "t"}}}]}"""
-        assertEquals(mapOf("a" to null), values(json, TaskCategory.STACK))
+        assertEquals(mapOf("a" to emptyList<String>()), values(json, TaskCategory.STACK))
     }
 
     @Test
@@ -224,7 +224,7 @@ class QueryProjectsParserTest {
               {"id": "a", "stack": "Unknown", "tasks": {"t": {"id": "t"}}}, {"id": "b", "stack": "UNKNOWN", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to null, "b" to null), values(json, TaskCategory.STACK))
+        assertEquals(mapOf("a" to emptyList<String>(), "b" to emptyList()), values(json, TaskCategory.STACK))
     }
 
     @Test
@@ -234,7 +234,7 @@ class QueryProjectsParserTest {
               {"id": "a", "config": {"stack": "infrastructure"}, "tasks": {"t": {"id": "t"}}}, {"id": "b", "stack": "", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to "infrastructure", "b" to null), values(json, TaskCategory.STACK))
+        assertEquals(mapOf("a" to listOf("infrastructure"), "b" to emptyList()), values(json, TaskCategory.STACK))
     }
 
     @Test
@@ -262,13 +262,13 @@ class QueryProjectsParserTest {
               {"id": "c", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to null, "b" to null, "c" to null), values(json, TaskCategory.LAYER))
+        assertEquals(mapOf("a" to emptyList<String>(), "b" to emptyList(), "c" to emptyList()), values(json, TaskCategory.LAYER))
     }
 
     @Test
     fun layerComesFromTheConfigIfTheTopLevelValueIsMissing() {
         val json = """{"projects": [{"id": "a", "config": {"layer": "tool"}, "tasks": {"t": {"id": "t"}}}]}"""
-        assertEquals(mapOf("a" to "tool"), values(json, TaskCategory.LAYER))
+        assertEquals(mapOf("a" to listOf("tool")), values(json, TaskCategory.LAYER))
     }
 
     @Test

@@ -166,7 +166,7 @@ The functions that use the moon configuration files are for the workspace mainta
 - An action that opens the project graph, the task graph, or the action graph of moon. The commands `moon project-graph`, `moon task-graph`, and `moon action-graph` show the graph. The plugin does not show the graph itself.
 - An action that runs `moon check` for a project
 - The command of a task in a tooltip in the tree
-- Groups by tag (issue [#80](https://github.com/artptr/moon-explorer/issues/80)) in the tree
+- Groups by tag in the tree. Issue [#80](https://github.com/artptr/moon-explorer/issues/80) added this function. Refer to section 11.
 - The automatic selection of the project when the user opens a different file
 - An icon for the language of each project in the tree. The Moonrepo plugin has this function.
 - A notification when the version of moon is older than the minimum version. The Moonrepo plugin shows a similar notification for problems in the workspace.

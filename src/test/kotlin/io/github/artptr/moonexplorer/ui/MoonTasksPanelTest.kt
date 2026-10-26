@@ -245,6 +245,17 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(listOf("db:build", "ui:build", "utils:build"), panel.selectedTaskNameTasks()?.map { it.target })
     }
 
+    fun testTaskNameNodesWithTheSameNameInTwoTagNodesAreOneList() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.changeCategory(TaskCategory.TAG)
+        // The node internal contains admin and worker. The node react contains admin, ui, and web.
+        panel.tree.selectionPaths = arrayOf(namePath("internal", "build"), namePath("react", "build"))
+        assertEquals(listOf("admin:build", "ui:build", "web:build", "worker:build"), panel.selectedTaskNameTasks()?.map { it.target })
+        panel.tree.addSelectionPath(namePath("react", "lint"))
+        assertNull("Task name nodes with different names have no task list", panel.selectedTaskNameTasks())
+    }
+
     /**
      * Gives a data context with the data of [base] and the data snapshot of the panel.
      * The actions of the context menu get their data from this snapshot.
@@ -441,14 +452,17 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     private fun taskPathIn(value: String, target: String) = pathIn(value) { (it as? TaskNode)?.task?.target == target }
 
-    fun testChangeToTagCategorySelectsAllNodesOfTheTask() {
+    private fun tagPath(tag: String): TreePath = panel.allPaths().single { (it.lastPathComponent as? CategoryNode)?.value == tag }
+
+    fun testChangeToTagCategorySelectsTheFirstNodeOfTheTask() {
         panel.loadRecorded()
         panel.tree.selectionPath = taskPath("web:build")
         panel.changeCategory(TaskCategory.TAG)
         // web has the tags react and public. The tree shows web:build in the two tag nodes.
-        val expected = listOf(taskPathIn("public", "web:build"), taskPathIn("react", "web:build"))
-        assertEquals(expected, panel.tree.selectionPaths.orEmpty().toList())
+        assertEquals(listOf(taskPathIn("public", "web:build")), panel.tree.selectionPaths.orEmpty().toList())
         assertEquals("web:build", panel.selectedTask()?.target)
+        assertTrue(panel.tree.isExpanded(tagPath("public")))
+        assertFalse("The tree must not expand all tag nodes of the task", panel.tree.isExpanded(tagPath("react")))
     }
 
     fun testTwoNodesOfTheSameTaskAreOneTask() {

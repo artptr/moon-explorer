@@ -24,9 +24,10 @@ val SELECTED_TASK: DataKey<MoonTask> = DataKey.create("MoonExplorer.SelectedTask
 val SELECTED_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.SelectedTasks")
 
 /**
- * The tasks in the task name node that the user selected in the tree of the Moon tool window.
+ * The tasks in the task name nodes that the user selected in the tree of the Moon tool window.
  * Below a category node, the task name node contains only the projects of the category. Thus the value contains only these tasks.
- * The value is null if the selection is not one task name node.
+ * The user can select the nodes of one task name in more than one category node. Then the value contains the tasks of all these nodes, each task one time.
+ * The value is null if a selected node is not a task name node, or if the selected nodes have different names.
  */
 val SELECTED_TASK_NAME_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.SelectedTaskNameTasks")
 
