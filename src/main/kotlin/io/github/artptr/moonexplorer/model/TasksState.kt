@@ -31,8 +31,11 @@ sealed interface TasksState {
     /** The plugin runs `moon query projects`. */
     data object Loading : TasksState
 
-    /** The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`. */
-    data class Loaded(val tasks: WorkspaceTasks, val root: Path) : TasksState
+    /**
+     * The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`.
+     * [configFiles] contains the configuration files that existed at the time of the load. Refer to [findExistingConfigFiles].
+     */
+    data class Loaded(val tasks: WorkspaceTasks, val root: Path, val configFiles: ExistingConfigFiles = ExistingConfigFiles()) : TasksState
 
     /**
      * The last load failed after an earlier successful load. [last] is the result of the last successful load.

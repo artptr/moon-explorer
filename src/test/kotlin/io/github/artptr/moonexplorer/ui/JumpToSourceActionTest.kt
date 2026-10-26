@@ -18,7 +18,6 @@ import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.workspacePath
 import io.github.artptr.moonexplorer.testData.TestData
-import java.io.File
 import java.nio.file.Files
 
 class JumpToSourceActionTest : BasePlatformTestCase() {
@@ -32,9 +31,9 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     private var chooserFiles: List<SourceFile> = emptyList()
 
     private val action = JumpToSourceAction().apply {
-        showChooser = { _, choices, _, onChosen ->
-            chooserCalls += choices.map { it.second }
-            chooserFiles = choices.map { it.first }
+        showChooser = { _, files, label, _, onChosen ->
+            chooserCalls += files.map(label)
+            chooserFiles = files
             chosen = onChosen
         }
     }
@@ -82,7 +81,7 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     }
 
     /** Gives the 0-based line of the first line of [path] that starts with [prefix]. */
-    private fun lineOf(path: String, prefix: String): Int = File(TestData.workspace, path).readLines().indexOfFirst { it.startsWith(prefix) }
+    private fun lineOf(path: String, prefix: String): Int = TestData.workspaceText(path).lines().indexOfFirst { it.startsWith(prefix) }
 
     fun testAvailableForATaskAndAProject() {
         assertTrue(isAvailable(task("web:build")))
@@ -100,9 +99,22 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
         val root = FileUtil.createTempDirectory("moon-explorer-test", null, true).toPath()
         Files.createDirectories(root.resolve("apps/empty"))
         val empty = MoonProject("empty", listOf(MoonTask("build", "empty:build", null)))
-        val loaded = TasksState.Loaded(WorkspaceTasks(listOf(empty), listOf(ProjectSource("empty", "apps/empty"))), root)
+        val loaded = TestData.loadedState(WorkspaceTasks(listOf(empty), listOf(ProjectSource("empty", "apps/empty"))), root)
         assertFalse(isAvailable(moonProject = empty, shown = loaded))
         assertFalse(isAvailable(empty.tasks.single(), shown = loaded))
+    }
+
+    fun testAvailabilityUsesTheFilesOfTheLoad() {
+        // The JVM deletes the directory when the tests complete.
+        val root = FileUtil.createTempDirectory("moon-explorer-test", null, true).toPath()
+        val file = Files.writeString(Files.createDirectories(root.resolve("apps/a")).resolve("moon.yml"), "tasks:\n")
+        val a = MoonProject("a", listOf(MoonTask("build", "a:build", null)))
+        val loaded = TestData.loadedState(WorkspaceTasks(listOf(a), listOf(ProjectSource("a", "apps/a"))), root)
+        // The plugin loads the tasks again after this change. Until then, the action uses the files of the last load.
+        Files.delete(file)
+        assertTrue(isAvailable(moonProject = a, shown = loaded))
+        perform(moonProject = a, shown = loaded)
+        assertNull("The file does not exist. Thus no file opens", FileEditorManager.getInstance(project).selectedTextEditor)
     }
 
     fun testOwnTaskOpensTheProjectConfigFileAtTheTaskLine() {
@@ -126,7 +138,7 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
         val missing = MoonTask("missing", "web:missing", null)
         val configs = state.tasks.taskConfigs.getValue("web")
         val tasks = state.tasks.copy(taskConfigs = state.tasks.taskConfigs + ("web" to configs.copy(ownTasks = configs.ownTasks + missing.id)))
-        val loaded = TasksState.Loaded(tasks, state.root)
+        val loaded = state.copy(tasks = tasks)
         assertTrue(isAvailable(missing, shown = loaded))
         perform(missing, shown = loaded)
         assertEquals("apps/web/moon.yml" to 0, openedFileAndLine())

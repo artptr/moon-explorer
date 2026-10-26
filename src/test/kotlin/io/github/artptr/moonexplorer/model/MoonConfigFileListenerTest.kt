@@ -39,7 +39,7 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
         service.refreshDelay = delay
         service.refresh()
-        service.awaitState(TasksState.Loaded(TestData.recordedTasks(), dir))
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), dir))
         calls.set(0)
     }
 

@@ -197,14 +197,14 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         return true
     }
 
+    /** Gives the selected node. The value is null if the selection is not one node of the type [T]. */
+    private inline fun <reified T> singleSelectedNode(): T? = tree.selectionPaths?.singleOrNull()?.lastPathComponent as? T
+
     /** Gives the selected task. The value is null if the selection is not one task node. */
-    internal fun selectedTask(): MoonTask? {
-        val paths = tree.selectionPaths ?: return null
-        return (paths.singleOrNull()?.lastPathComponent as? TaskNode)?.task
-    }
+    internal fun selectedTask(): MoonTask? = singleSelectedNode<TaskNode>()?.task
 
     /** Gives the selected project. The value is null if the selection is not one project node. */
-    internal fun selectedProject(): MoonProject? = (tree.selectionPaths?.singleOrNull()?.lastPathComponent as? ProjectNode)?.project
+    internal fun selectedProject(): MoonProject? = singleSelectedNode<ProjectNode>()?.project
 
     /** Gives the selected tasks. The value is null if the selection has less than two nodes, or if a selected node is not a task node. */
     internal fun selectedTasks(): List<MoonTask>? {
@@ -217,7 +217,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * or if the node has no task nodes.
      */
     internal fun selectedTaskNameTasks(): List<MoonTask>? {
-        val node = tree.selectionPaths?.singleOrNull()?.lastPathComponent as? TaskNameNode ?: return null
+        val node = singleSelectedNode<TaskNameNode>() ?: return null
         return node.children().toList().filterIsInstance<TaskNode>().map { it.task }.takeIf { it.isNotEmpty() }
     }
 

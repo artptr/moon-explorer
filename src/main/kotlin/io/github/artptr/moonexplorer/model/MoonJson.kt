@@ -1,5 +1,6 @@
 package io.github.artptr.moonexplorer.model
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParseException
@@ -25,6 +26,11 @@ internal fun parseMoonJson(json: String): JsonElement = try {
 }
 
 internal fun JsonElement.objectOrNull(): JsonObject? = if (isJsonObject) asJsonObject else null
+
+internal fun JsonElement.arrayOrNull(): JsonArray? = if (isJsonArray) asJsonArray else null
+
+/** Gives the value of the field [name] if the value is a JSON object. If not, gives null. */
+internal fun JsonObject.obj(name: String): JsonObject? = get(name)?.objectOrNull()
 
 /** Gives the value of the field [name] if the value is a JSON string. If not, gives null. */
 internal fun JsonObject.string(name: String): String? = get(name)?.stringOrNull()
