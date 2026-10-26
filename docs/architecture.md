@@ -38,7 +38,7 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 | Action **Show Refresh Error** in the group `MoonExplorer.TasksToolbar` | `ui.ShowRefreshFailureAction` | `plugin.xml` |
 | Load of the tasks and the result state. After a successful load, the loader finds the configuration files of the projects and the tasks on the disk (`model.findExistingConfigFiles`). The state keeps these files until the next successful load. After a failed load, `TasksState.Stale` keeps the files of the last successful load | `model.TasksLoader`, `model.TasksState` | None |
 | Parser of `moon query projects`. The parser also reads the configuration files of the tasks from `config.tasks` and `inherited.layers` | `model.QueryProjectsParser` | None |
-| Category (`TaskCategory`) and main group (`TaskGrouping`) of the tree, and the action group `MoonExplorer.GroupBy` | `ui.CategoryNoneAction`, `ui.CategoryStackAction`, `ui.CategoryLayerAction`, `ui.GroupByProjectAction`, `ui.GroupByTaskNameAction` | `plugin.xml` |
+| Category (`TaskCategory`) and main group (`TaskGrouping`) of the tree, and the action group `MoonExplorer.GroupBy` | `ui.CategoryNoneAction`, `ui.CategoryStackAction`, `ui.CategoryLayerAction`, `ui.CategoryTagAction`, `ui.GroupByProjectAction`, `ui.GroupByTaskNameAction` | `plugin.xml` |
 | Find the workspace root | `cli.MoonWorkspaceLocator` | None |
 | Find the `moon` executable | `cli.MoonExecutableLocator`, `settings.MoonExecutableService` | None (light service) |
 | Settings of the IDE project | `settings.MoonSettings` | None (light service) |
@@ -68,14 +68,16 @@ The `run` package contains the run configuration for moon tasks. It runs `moon r
 
 **NOTE:** The `cli` and `model` packages give the cause of a failure as a type, for example `MoonFailure.ExitCode` or `OutputProblem.NoProjects`. `TasksLoader` changes each `CliFailure` into a `MoonFailure` of the model layer. Thus the `ui` package does not use the `cli` package. The `ui` package gets the text for each cause from `MoonExplorerBundle`. Some messages also contain an error text from moon, from the IntelliJ Platform, or from the JSON parser. The bundle message contains this text without change.
 
-The output of `moon query projects` contains the `stack` value, the `layer` value, and the tasks of each project. Thus the plugin starts only one moon process for each load.
+The output of `moon query projects` contains the `stack` value, the `layer` value, the tags (`config.tags`), and the tasks of each project. Thus the plugin starts only one moon process for each load.
 The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.
 moon does not write the key `tasks` for a project without tasks. The tree does not show these projects.
 
 The tree has two selections in the **Group By** menu. A separator divides them. Each selection does not change the other selection:
 
 - **Main group**: **Project** or **Task Name**. This selection sets the structure in each category node.
-- **Category**: **None**, **Stack**, or **Layer**. If the category is not **None**, the tree has a node for each value at the top. The projects without a value are in the last node, "(none)".
+- **Category**: **None**, **Stack**, **Layer**, or **Tag**. If the category is not **None**, the tree has a node for each value at the top. The projects without a value are in the last node, "(none)".
+
+A project can have more than one tag. With the category **Tag**, the project is in the node of each tag. Thus the tree can show a task in more than one node. The actions on the selected tasks use each task one time.
 
 The plugin keeps the two selections in the workspace file of the IDE project. The plugin changes the setting of version 0.1.0 to the two selections. The plugin changes the old value **Stack** to the category **Stack** and the main group **Project**.
 

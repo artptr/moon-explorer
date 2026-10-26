@@ -269,7 +269,7 @@ This table gives the decision for each function of the extension, version 0.16.6
 | Function of the extension | Moon Explorer | Decision |
 |---------------------------|---------------|----------|
 | A tree of projects and tasks with groups by `stack` and `layer` | Groups by project and by task name, in category nodes for `stack` or `layer` | Complete. Issue [#67](https://github.com/artptr/moon-explorer/issues/67) added the groups by `layer`. |
-| A view of the projects in groups by tag | No | Issue [#80](https://github.com/artptr/moon-explorer/issues/80) records this function. |
+| A view of the projects in groups by tag | Groups by project and by task name, in category nodes for tags | Complete. Issue [#80](https://github.com/artptr/moon-explorer/issues/80) added the groups by tag. |
 | An icon for the language of each project | No | In section 7. |
 | An icon for the type of each task | No | The team does not plan this function. Many tasks have the type `test`, for example `lint`. Refer to section 10. |
 | The command of each task in the tree | The description of each task | A tooltip with the command is in section 7. |
