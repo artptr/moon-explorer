@@ -23,7 +23,7 @@ class TaskSourcesTest {
     /** Gives the files of [target] as paths from the workspace root. */
     private fun files(target: String) = taskSourceFiles(state, task(target)).map {
         assertEquals(targetTaskId(target), it.taskId)
-        state.root.relativize(it.path).toString().replace(File.separatorChar, '/')
+        state.workspacePath(it.path)
     }
 
     private fun workspaceText(path: String) = File(TestData.workspace, path).readText()

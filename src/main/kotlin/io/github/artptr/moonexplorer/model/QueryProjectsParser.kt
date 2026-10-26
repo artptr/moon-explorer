@@ -25,7 +25,7 @@ object QueryProjectsParser {
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
             val projectId = project.string("id") ?: return@mapNotNull null
             project.string("source")?.let { sources += ProjectSource(projectId, it) }
-            taskConfigs(project).takeIf { it != TaskConfigs() }?.let { configsByProject[projectId] = it }
+            taskConfigs(project).takeUnless { it.ownTasks.isEmpty() && it.layers.isEmpty() }?.let { configsByProject[projectId] = it }
             // moon does not write the key "tasks" if the project has no tasks.
             val tasks = project.get("tasks")?.objectOrNull()?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null
@@ -57,12 +57,13 @@ object QueryProjectsParser {
      */
     private fun taskConfigs(project: JsonObject): TaskConfigs {
         val ownTasks = project.get("config")?.objectOrNull()?.get("tasks")?.objectOrNull()?.keySet().orEmpty()
-        val layers = project.get("inherited")?.objectOrNull()?.get("layers")?.objectOrNull()?.entrySet().orEmpty()
-            .associate { (taskId, files) ->
+        val layers = buildMap {
+            project.get("inherited")?.objectOrNull()?.get("layers")?.objectOrNull()?.entrySet().orEmpty().forEach { (taskId, files) ->
                 val paths = if (files.isJsonArray) files.asJsonArray.mapNotNull { it.stringOrNull() } else emptyList()
-                taskId to paths
+                if (paths.isNotEmpty()) put(taskId, paths)
             }
-            .filterValues { it.isNotEmpty() }
+        }
+        // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
         return TaskConfigs(ownTasks.toSet(), layers)
     }
 

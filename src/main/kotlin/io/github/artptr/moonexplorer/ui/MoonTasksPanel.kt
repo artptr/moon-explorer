@@ -204,10 +204,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     }
 
     /** Gives the selected project. The value is null if the selection is not one project node. */
-    internal fun selectedProject(): MoonProject? {
-        val paths = tree.selectionPaths ?: return null
-        return (paths.singleOrNull()?.lastPathComponent as? ProjectNode)?.project
-    }
+    internal fun selectedProject(): MoonProject? = (tree.selectionPaths?.singleOrNull()?.lastPathComponent as? ProjectNode)?.project
 
     /** Gives the selected tasks. The value is null if the selection has less than two nodes, or if a selected node is not a task node. */
     internal fun selectedTasks(): List<MoonTask>? {

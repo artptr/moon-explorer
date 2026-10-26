@@ -16,6 +16,7 @@ import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.allTasks
+import io.github.artptr.moonexplorer.model.workspacePath
 import io.github.artptr.moonexplorer.testData.TestData
 import java.io.File
 import java.nio.file.Files
@@ -31,9 +32,9 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     private var chooserFiles: List<SourceFile> = emptyList()
 
     private val action = JumpToSourceAction().apply {
-        showChooser = { _, files, label, _, onChosen ->
-            chooserCalls += files.map(label)
-            chooserFiles = files
+        showChooser = { _, labels, _, onChosen ->
+            chooserCalls += labels.values.toList()
+            chooserFiles = labels.keys.toList()
             chosen = onChosen
         }
     }
@@ -77,8 +78,7 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     /** Gives the path of the file in the editor from the workspace root, and the line of the caret. */
     private fun openedFileAndLine(): Pair<String, Int> {
         val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: error("No file is open")
-        val path = FileUtil.toSystemIndependentName(state.root.relativize(editor.virtualFile!!.toNioPath()).toString())
-        return path to editor.caretModel.logicalPosition.line
+        return state.workspacePath(editor.virtualFile!!.toNioPath()) to editor.caretModel.logicalPosition.line
     }
 
     /** Gives the 0-based line of the first line of [path] that starts with [prefix]. */

@@ -18,9 +18,15 @@ object MoonWorkspaceLocator {
     fun findWorkspaceRoot(start: Path): Path? =
         generateSequence(start.toAbsolutePath().normalize()) { it.parent }.firstOrNull(::isWorkspaceRoot)
 
+    /**
+     * Gives the file `<baseName>.<ext>` in [dir] with the first extension of [CONFIG_FILE_EXTENSIONS] that exists, for example `moon.yml`.
+     * Gives null if no file exists. Call this function on a background thread.
+     */
+    internal fun findConfigFile(dir: Path, baseName: String): Path? =
+        CONFIG_FILE_EXTENSIONS.asSequence().map { dir.resolve("$baseName.$it") }.firstOrNull(Files::isRegularFile)
+
     private fun isWorkspaceRoot(dir: Path): Boolean {
         val moonDir = dir.resolve(".moon")
-        return Files.isDirectory(moonDir) &&
-            CONFIG_FILE_EXTENSIONS.any { Files.isRegularFile(moonDir.resolve("workspace.$it")) }
+        return Files.isDirectory(moonDir) && findConfigFile(moonDir, "workspace") != null
     }
 }

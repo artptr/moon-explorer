@@ -22,5 +22,10 @@ fun findProjectForFile(root: Path, file: Path, sources: List<ProjectSource>): Pr
  * Gives the directory of [source] in the workspace [root]. [root] must be absolute and normalized.
  * Gives null if the source is not a valid path on this computer. Such a source contains no files.
  */
-internal fun resolveSourceDir(root: Path, source: ProjectSource): Path? =
-    runCatching { root.resolve(source.source).normalize() }.getOrNull()
+internal fun resolveSourceDir(root: Path, source: ProjectSource): Path? = resolveInRoot(root, source.source)
+
+/**
+ * Gives the path [relative] in the workspace [root]. [root] must be absolute and normalized.
+ * Gives null if [relative] is not a valid path on this computer.
+ */
+internal fun resolveInRoot(root: Path, relative: String): Path? = runCatching { root.resolve(relative).normalize() }.getOrNull()

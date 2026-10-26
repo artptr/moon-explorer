@@ -12,7 +12,6 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.ColoredListCellRenderer
 import io.github.artptr.moonexplorer.MoonExplorerBundle
@@ -25,6 +24,7 @@ import io.github.artptr.moonexplorer.model.findTaskKeyOffset
 import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.projectSourceFile
 import io.github.artptr.moonexplorer.model.taskSourceFiles
+import io.github.artptr.moonexplorer.model.workspacePath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -40,13 +40,13 @@ import javax.swing.JList
 class JumpToSourceAction : DumbAwareAction() {
 
     /**
-     * Shows the list of [files] with the title [title] near the selection in [dataContext]. The function calls [onChosen] with the file that
-     * the user selects. [label] gives the text that the list shows for a file. Tests replace this value with a test function. Change it only on the EDT.
+     * Shows the files of [labels] with the title [title] near the selection in [dataContext]. The function calls [onChosen] with the file that
+     * the user selects. [labels] gives the text that the list shows for each file, in the sequence of the list.
+     * Tests replace this value with a test function. Change it only on the EDT.
      */
     internal var showChooser: (
         title: String,
-        files: List<SourceFile>,
-        label: (SourceFile) -> String,
+        labels: Map<SourceFile, String>,
         dataContext: DataContext,
         onChosen: (SourceFile) -> Unit,
     ) -> Unit = ::showFileChooser
@@ -78,7 +78,7 @@ class JumpToSourceAction : DumbAwareAction() {
                 files.size == 1 -> openSourceFile(project, files.single())
                 files.size > 1 && task != null -> withContext(Dispatchers.EDT) {
                     val title = MoonExplorerBundle.message("tasks.jumpToSource.chooseFile", task.target)
-                    showChooser(title, files, { relativePath(state, it) }, dataContext) { file ->
+                    showChooser(title, files.associateWith { state.workspacePath(it.path) }, dataContext) { file ->
                         launch(project) { openSourceFile(project, file) }
                     }
                 }
@@ -115,21 +115,13 @@ internal suspend fun openSourceFile(project: Project, file: SourceFile) {
     }
 }
 
-/** Gives the path of [file] from the workspace root, with `/` as the separator. Example: `.moon/tasks/all.yml`. */
-internal fun relativePath(state: TasksState.Loaded, file: SourceFile): String {
-    val root = state.root.toAbsolutePath().normalize()
-    val path = if (file.path.startsWith(root)) root.relativize(file.path) else file.path
-    return FileUtil.toSystemIndependentName(path.toString())
-}
-
 private fun showFileChooser(
     title: String,
-    files: List<SourceFile>,
-    label: (SourceFile) -> String,
+    labels: Map<SourceFile, String>,
     dataContext: DataContext,
     onChosen: (SourceFile) -> Unit,
 ) {
-    JBPopupFactory.getInstance().createPopupChooserBuilder(files)
+    JBPopupFactory.getInstance().createPopupChooserBuilder(labels.keys.toList())
         .setTitle(title)
         .setRenderer(
             object : ColoredListCellRenderer<SourceFile>() {
@@ -141,7 +133,7 @@ private fun showFileChooser(
                     hasFocus: Boolean,
                 ) {
                     icon = FileTypeManager.getInstance().getFileTypeByFileName(value.path.fileName.toString()).icon
-                    append(label(value))
+                    append(labels.getValue(value))
                 }
             },
         )
