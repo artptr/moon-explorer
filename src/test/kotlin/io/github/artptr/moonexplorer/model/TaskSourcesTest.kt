@@ -8,7 +8,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -60,11 +59,11 @@ class TaskSourcesTest {
 
     @Test
     fun loadFindsTheConfigFilesOfTheRecordedWorkspace() {
-        val files = findExistingConfigFiles(state.tasks, state.root)
+        val files = state.configFiles
         assertEquals(state.tasks.sources.map { it.id }.toSet(), files.projects.keys)
         assertEquals(state.root.resolve("apps/web/moon.yml"), files.projects["web"])
         assertEquals(
-            setOf("all.yml", "backend.yml", "frontend.yml").map { state.root.resolve(".moon/tasks/$it") }.toSet(),
+            listOf("all.yml", "backend.yml", "frontend.yml").map { ".moon/tasks/$it" }.associateWith { state.root.resolve(it) },
             files.inherited,
         )
     }
@@ -77,17 +76,11 @@ class TaskSourcesTest {
 
     @Test
     fun projectWithoutConfigFileHasNoFile() {
-        val root = temp.root.toPath()
-        File(temp.root, "apps/empty").mkdirs()
-        val tasks = WorkspaceTasks(
-            projects = emptyList(),
-            sources = listOf(ProjectSource("empty", "apps/empty")),
-            taskConfigs = mapOf("empty" to TaskConfigs(ownTasks = setOf("build"))),
-        )
-        val loaded = TestData.loadedState(tasks, root)
-        assertNull(projectSourceFile(loaded, "empty"))
+        Files.createDirectories(projectDir)
+        val loaded = loadTempProject()
+        assertNull(projectSourceFile(loaded, "p"))
         assertNull(projectSourceFile(loaded, "unknown"))
-        assertEquals(emptyList<SourceFile>(), taskSourceFiles(loaded, MoonTask("build", "empty:build", null)))
+        assertEquals(emptyList<SourceFile>(), taskSourceFiles(loaded, MoonTask("build", "p:build", null)))
     }
 
     /** The directory of the project `p` in a temporary workspace. */

@@ -16,10 +16,10 @@ data class SourceFile(val path: Path, val taskId: String?)
 /**
  * The configuration files that existed on the disk at the time of a load. The paths are absolute and normalized.
  * [projects] gives the configuration file of each project ID, for example `moon.yml`. A project without this file is not in the map.
- * [inherited] contains the files of [TaskConfigs.layers] that exist, for example `.moon/tasks/all.yml`.
+ * [inherited] gives the path of each file of [TaskConfigs.layers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
  * When a configuration file changes, the plugin loads the tasks again. After a successful load, the plugin finds the files again.
  */
-data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Set<Path>)
+data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>)
 
 /**
  * Finds the configuration files of the projects and the tasks of [tasks] in the workspace [root]. The loader calls this function one time
@@ -35,9 +35,8 @@ internal fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): Existin
     val inherited = tasks.taskConfigs.values.asSequence()
         .flatMap { it.layers.values.flatten() }
         .distinct()
-        .mapNotNull { resolveInRoot(normalizedRoot, it) }
-        .filter(Files::isRegularFile)
-        .toSet()
+        .mapNotNull { layer -> resolveInRoot(normalizedRoot, layer)?.takeIf(Files::isRegularFile)?.let { layer to it } }
+        .toMap()
     return ExistingConfigFiles(projects, inherited)
 }
 
@@ -63,9 +62,8 @@ fun TasksState.Loaded.workspacePath(path: Path): String {
 fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> {
     val projectId = targetProjectId(task.target)
     val configs = state.tasks.taskConfigs[projectId] ?: return emptyList()
-    val root = state.normalizedRoot
     val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId] else null
-    val layers = configs.layers[task.id].orEmpty().mapNotNull { resolveInRoot(root, it) }.filter { it in state.configFiles.inherited }
+    val layers = configs.layers[task.id].orEmpty().mapNotNull(state.configFiles.inherited::get)
     return (listOfNotNull(own) + layers).distinct().map { path -> SourceFile(path, task.id.takeIf { isYamlFile(path) }) }
 }
 

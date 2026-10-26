@@ -95,25 +95,25 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
         assertFalse(isAvailable(task("web:build"), shown = null))
     }
 
-    fun testNotAvailableForAProjectWithoutConfigFile() {
-        // The JVM deletes the directory when the tests complete.
-        val root = FileUtil.createTempDirectory("moon-explorer-test", null, true).toPath()
-        Files.createDirectories(root.resolve("apps/empty"))
-        val empty = MoonProject("empty", listOf(MoonTask("build", "empty:build", null)))
-        val loaded = TestData.loadedState(WorkspaceTasks(listOf(empty), listOf(ProjectSource("empty", "apps/empty"))), root)
-        assertFalse(isAvailable(moonProject = empty, shown = loaded))
-        assertFalse(isAvailable(empty.tasks.single(), shown = loaded))
-    }
-
     /** The project of [loadTempProject]. */
     private val tempProject = MoonProject("a", listOf(MoonTask("build", "a:build", null)))
 
-    /** Loads [tempProject] with the file `apps/a/moon.yml` in a temporary workspace. Gives the state and the path of the file. */
-    private fun loadTempProject(): Pair<TasksState.Loaded, Path> {
+    /**
+     * Loads [tempProject] in the directory `apps/a` of a temporary workspace. If [withConfigFile] is true, the directory contains `moon.yml`.
+     * Gives the state and the path of `moon.yml`.
+     */
+    private fun loadTempProject(withConfigFile: Boolean = true): Pair<TasksState.Loaded, Path> {
         // The JVM deletes the directory when the tests complete.
         val root = FileUtil.createTempDirectory("moon-explorer-test", null, true).toPath()
-        val file = Files.writeString(Files.createDirectories(root.resolve("apps/a")).resolve("moon.yml"), "tasks:\n")
+        val file = Files.createDirectories(root.resolve("apps/a")).resolve("moon.yml")
+        if (withConfigFile) Files.writeString(file, "tasks:\n")
         return TestData.loadedState(WorkspaceTasks(listOf(tempProject), listOf(ProjectSource("a", "apps/a"))), root) to file
+    }
+
+    fun testNotAvailableForAProjectWithoutConfigFile() {
+        val loaded = loadTempProject(withConfigFile = false).first
+        assertFalse(isAvailable(moonProject = tempProject, shown = loaded))
+        assertFalse(isAvailable(tempProject.tasks.single(), shown = loaded))
     }
 
     fun testAvailabilityUsesTheFilesOfTheLoad() {

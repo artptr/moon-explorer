@@ -17,6 +17,13 @@ object TasksLoader {
     fun findRoot(projectDir: Path?): Path? = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot)
 
     /**
+     * Gives the state after a successful load of [tasks] in the workspace [root]. The function finds the configuration files on the disk.
+     * Call this function on a background thread.
+     */
+    internal fun loadedState(tasks: WorkspaceTasks, root: Path): TasksState.Loaded =
+        TasksState.Loaded(tasks, root, findExistingConfigFiles(tasks, root))
+
+    /**
      * Runs [queryProjects] in the workspace [root] and reads the output. If [root] is null, the function gives [TasksState.NoWorkspace].
      * The output of `moon query projects` contains the tasks, the `stack` value, and the `layer` value of each project.
      * Thus the function starts only one moon process. After a success, the function finds the configuration files on the disk.
@@ -26,10 +33,7 @@ object TasksLoader {
         if (root == null) return TasksState.NoWorkspace
         return try {
             when (val result = queryProjects(root)) {
-                is CliResult.Success -> {
-                    val tasks = QueryProjectsParser.parse(result.stdout)
-                    TasksState.Loaded(tasks, root, findExistingConfigFiles(tasks, root))
-                }
+                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root)
                 is CliFailure -> TasksState.MoonFailed(moonFailure(result))
             }
         } catch (e: MoonOutputException) {

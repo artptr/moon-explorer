@@ -1,9 +1,9 @@
 package io.github.artptr.moonexplorer.testData
 
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
+import io.github.artptr.moonexplorer.model.TasksLoader
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
-import io.github.artptr.moonexplorer.model.findExistingConfigFiles
 import java.io.File
 import java.nio.file.Path
 
@@ -33,7 +33,6 @@ object TestData {
     /** The state after a successful load of the recorded `moon query projects` output in [workspace]. */
     fun recordedState(): TasksState.Loaded = loadedState(recordedTasks())
 
-    /** The state after a successful load of [tasks] in [root]. As after a real load, the state contains the configuration files on the disk. */
-    fun loadedState(tasks: WorkspaceTasks, root: Path = workspaceRoot): TasksState.Loaded =
-        TasksState.Loaded(tasks, root, findExistingConfigFiles(tasks, root))
+    /** The state after a successful load of [tasks] in [root]. The loader makes the state. Thus it contains the configuration files on the disk. */
+    fun loadedState(tasks: WorkspaceTasks, root: Path = workspaceRoot): TasksState.Loaded = TasksLoader.loadedState(tasks, root)
 }
