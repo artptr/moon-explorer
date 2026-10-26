@@ -59,7 +59,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             service.projectDir = { TestData.workspace.toPath() }
             service.refresh()
             val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
-            service.awaitState(TasksState.Loaded(WorkspaceTasks(listOf(expected)), TestData.workspaceRoot))
+            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected))))
         } finally {
             settings.executablePath = ""
         }

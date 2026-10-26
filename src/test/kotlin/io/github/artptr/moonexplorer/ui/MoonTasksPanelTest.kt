@@ -141,7 +141,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testEmptyWorkspaceShowsMessage() {
-        panel.render(TasksState.Loaded(WorkspaceTasks(emptyList()), TestData.workspaceRoot))
+        panel.render(TestData.loadedState(WorkspaceTasks(emptyList())))
         assertMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
     }
 
@@ -160,7 +160,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     fun testLargeWorkspaceLoadsInLessThanTwoSeconds() {
         val json = LargeQueryProjectsJson.generate()
         val millis = measureTimeMillis {
-            panel.render(TasksState.Loaded(QueryProjectsParser.parse(json), TestData.workspaceRoot))
+            panel.render(TestData.loadedState(QueryProjectsParser.parse(json)))
         }
         assertEquals(17, panel.tree.model.getChildCount(panel.tree.model.root))
         assertTrue("The tree loaded in $millis ms", millis < 2_000)
@@ -181,7 +181,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     fun testRefreshKeepsExpandedNodesWhenADescriptionChanges() {
         val tasks = TestData.recordedTasks()
-        panel.render(TasksState.Loaded(tasks, TestData.workspaceRoot))
+        panel.render(TestData.loadedState(tasks))
         panel.tree.expandPath(projectPath("web"))
         assertTrue(panel.tree.isExpanded(projectPath("web")))
 
@@ -189,7 +189,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
             project.copy(tasks = project.tasks.map { it.copy(description = "Changed") })
         })
         panel.tree.selectionPath = taskPath("web:build")
-        panel.render(TasksState.Loaded(changed, TestData.workspaceRoot))
+        panel.render(TestData.loadedState(changed))
         assertTrue("The web node must stay expanded", panel.tree.isExpanded(projectPath("web")))
         assertEquals("web:build", (panel.tree.selectionPath?.lastPathComponent as TaskNode).task.target)
     }
@@ -245,9 +245,15 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(listOf("db:build", "ui:build", "utils:build"), panel.selectedTaskNameTasks()?.map { it.target })
     }
 
-    /** Gives the value of [key] in the data snapshot of the panel. The actions of the context menu get their data from this snapshot. */
-    private fun <T : Any> treeData(key: DataKey<T>): T? =
-        CustomizedDataContext.withSnapshot(DataContext.EMPTY_CONTEXT) { panel.uiDataSnapshot(it) }.getData(key)
+    /**
+     * Gives a data context with the data of [base] and the data snapshot of the panel.
+     * The actions of the context menu get their data from this snapshot.
+     */
+    private fun panelData(base: DataContext = DataContext.EMPTY_CONTEXT): DataContext =
+        CustomizedDataContext.withSnapshot(base) { panel.uiDataSnapshot(it) }
+
+    /** Gives the value of [key] in the data snapshot of the panel. */
+    private fun <T : Any> treeData(key: DataKey<T>): T? = panelData().getData(key)
 
     fun testDataContextHasTheSelectedTasks() {
         panel.loadRecorded()
@@ -279,7 +285,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     /** Gives true if the registered action [id] is visible in the context menu of the selected nodes. The action gets the data of the panel. */
     private fun isInContextMenu(id: String): Boolean {
         val action = ActionManager.getInstance().getAction(id)
-        val context = CustomizedDataContext.withSnapshot(SimpleDataContext.getProjectContext(project)) { panel.uiDataSnapshot(it) }
+        val context = panelData(SimpleDataContext.getProjectContext(project))
         return TestActionEvent.createTestEvent(action, context).also(action::update).presentation.isEnabledAndVisible
     }
 

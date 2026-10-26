@@ -17,7 +17,7 @@ object QueryProjectsParser {
      * Throws [MoonOutputException] if the JSON is not correct.
      */
     fun parse(json: String): WorkspaceTasks {
-        val projects = parseMoonJson(json).objectOrNull()?.get("projects")?.takeIf { it.isJsonArray }?.asJsonArray
+        val projects = parseMoonJson(json).objectOrNull()?.get("projects")?.arrayOrNull()
             ?: throw MoonOutputException(OutputProblem.NoProjects)
 
         val sources = mutableListOf<ProjectSource>()
@@ -27,7 +27,7 @@ object QueryProjectsParser {
             project.string("source")?.let { sources += ProjectSource(projectId, it) }
             taskConfigs(project).takeUnless { it.ownTasks.isEmpty() && it.layers.isEmpty() }?.let { configsByProject[projectId] = it }
             // moon does not write the key "tasks" if the project has no tasks.
-            val tasks = project.get("tasks")?.objectOrNull()?.entrySet().orEmpty().mapNotNull { (key, value) ->
+            val tasks = project.obj("tasks")?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null
                 val id = task.string("id") ?: key
                 MoonTask(
@@ -56,10 +56,10 @@ object QueryProjectsParser {
      * `inherited.layers` gives the inherited files of each task. The function ignores values that are not strings.
      */
     private fun taskConfigs(project: JsonObject): TaskConfigs {
-        val ownTasks = project.get("config")?.objectOrNull()?.get("tasks")?.objectOrNull()?.keySet().orEmpty()
+        val ownTasks = project.obj("config")?.obj("tasks")?.keySet().orEmpty()
         val layers = buildMap {
-            project.get("inherited")?.objectOrNull()?.get("layers")?.objectOrNull()?.entrySet().orEmpty().forEach { (taskId, files) ->
-                val paths = if (files.isJsonArray) files.asJsonArray.mapNotNull { it.stringOrNull() } else emptyList()
+            project.obj("inherited")?.obj("layers")?.entrySet().orEmpty().forEach { (taskId, files) ->
+                val paths = files.arrayOrNull()?.mapNotNull { it.stringOrNull() }.orEmpty()
                 if (paths.isNotEmpty()) put(taskId, paths)
             }
         }
@@ -72,7 +72,7 @@ object QueryProjectsParser {
      * in `config`. Gives null if the project does not set the value.
      */
     private fun metadata(project: JsonObject, key: String): String? {
-        val value = project.string(key) ?: project.get("config")?.objectOrNull()?.string(key)
+        val value = project.string(key) ?: project.obj("config")?.string(key)
         return value?.takeUnless { it.isBlank() || it.equals(UNKNOWN_VALUE, ignoreCase = true) }
     }
 
