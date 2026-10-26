@@ -49,6 +49,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
                 "MoonExplorer.CategoryNone",
                 "MoonExplorer.CategoryStack",
                 "MoonExplorer.CategoryLayer",
+                "MoonExplorer.CategoryTag",
             ),
             groupBy.childActionsOrStubs.map { if (it is Separator) "separator" else actionManager.getId(it) },
         )
@@ -60,6 +61,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
         assertTrue(selected(CategoryNoneAction()))
         assertFalse(selected(CategoryStackAction()))
         assertFalse(selected(CategoryLayerAction()))
+        assertFalse(selected(CategoryTagAction()))
     }
 
     fun testGroupByActionChangesOnlyTheMainGroup() {

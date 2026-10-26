@@ -116,6 +116,30 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         assertEquals(listOf("scripts"), tree.child(none, "changelog").childNames())
     }
 
+    fun testTagAndProjectHasTagNodesWithProjectsAndTasks() {
+        val tree = buildTaskTree(tasks, TaskCategory.TAG, TaskGrouping.PROJECT)
+        assertEquals(listOf("internal", "node", "public", "react", "shared", none), tree.childNames())
+        assertEquals(listOf("admin", "ui", "web"), tree.child("react").childNames())
+        assertEquals(listOf("api", "web"), tree.child("public").childNames())
+        assertEquals(listOf("icons", "scripts"), tree.child(none).childNames())
+        assertEquals(listOf("changelog", "format", "lint"), tree.child(none, "scripts").childNames())
+    }
+
+    fun testProjectWithTwoTagsIsInTheTwoTagNodes() {
+        val tree = buildTaskTree(tasks, TaskCategory.TAG)
+        val webNodes = tree.childNodes().filter { tag -> tag.childNodes().any { it.toString() == "web" } }
+        assertEquals(listOf("public", "react"), webNodes.map { it.toString() })
+        assertEquals(tree.child("public", "web").childNames(), tree.child("react", "web").childNames())
+    }
+
+    fun testTagAndTaskNameHasTagNodesWithTaskNames() {
+        val tree = buildTaskTree(tasks, TaskCategory.TAG, TaskGrouping.TASK_NAME)
+        assertEquals(listOf("internal", "node", "public", "react", "shared", none), tree.childNames())
+        assertEquals(listOf("admin", "ui", "web"), tree.child("react", "build").childNames())
+        assertEquals(listOf("api", "db", "worker"), tree.child("node", "audit").childNames())
+        assertTrue(tree.child("react", "build").childNodes().all { it is TaskNode && it.showProject && it.isLeaf })
+    }
+
     fun testNoneNodeIsLastAndGray() {
         val tree = buildTaskTree(tasks, TaskCategory.LAYER)
         val noneNode = tree.childNodes().last() as CategoryNode
@@ -135,9 +159,9 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     }
 
     fun testCategoryNodeKeysAreDifferentForEachCategory() {
-        val stackNone = buildTaskTree(tasks, TaskCategory.STACK).childNodes().last() as CategoryNode
-        val layerNone = buildTaskTree(tasks, TaskCategory.LAYER).childNodes().last() as CategoryNode
-        assertFalse(stackNone.key == layerNone.key)
+        val categories = TaskCategory.entries - TaskCategory.NONE
+        val noneKeys = categories.map { (buildTaskTree(tasks, it).childNodes().last() as CategoryNode).key }
+        assertEquals(categories.size, noneKeys.toSet().size)
     }
 
     private fun render(node: DefaultMutableTreeNode): List<Pair<String, SimpleTextAttributes>> {

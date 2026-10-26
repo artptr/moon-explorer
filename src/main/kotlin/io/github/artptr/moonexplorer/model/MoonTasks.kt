@@ -18,8 +18,15 @@ fun targetTaskId(target: String): String = target.substringAfterLast(':')
 /**
  * A moon project and its tasks, sorted by ID.
  * [stack] is null if the project has no `stack` value. [layer] is null if the project has no `layer` value.
+ * [tags] contains the tags of the project. Each tag is in the list only one time. The list is empty if the project has no tags.
  */
-data class MoonProject(val id: String, val tasks: List<MoonTask>, val stack: String? = null, val layer: String? = null)
+data class MoonProject(
+    val id: String,
+    val tasks: List<MoonTask>,
+    val stack: String? = null,
+    val layer: String? = null,
+    val tags: List<String> = emptyList(),
+)
 
 /**
  * The location of a moon project. [source] is the path from the workspace root to the project directory.
@@ -70,12 +77,16 @@ enum class TaskCategory {
 
     /** A node for each `layer` value. */
     LAYER,
+
+    /** A node for each tag. A project with more than one tag is in more than one node. */
+    TAG,
     ;
 
-    /** Gives the value of [project] for this category, or null if the project has no value. [NONE] has no values. The tree has no category nodes for it. */
-    fun valueFor(project: MoonProject): String? = when (this) {
-        NONE -> null
-        STACK -> project.stack
-        LAYER -> project.layer
+    /** Gives the values of [project] for this category. The list is empty if the project has no value. [NONE] has no values. */
+    fun valuesFor(project: MoonProject): List<String> = when (this) {
+        NONE -> emptyList()
+        STACK -> listOfNotNull(project.stack)
+        LAYER -> listOfNotNull(project.layer)
+        TAG -> project.tags
     }
 }

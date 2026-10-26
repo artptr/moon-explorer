@@ -103,6 +103,17 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         assertTrue(panel.tree.isExpanded(path.parentPath))
     }
 
+    fun testSelectsTheProjectInItsFirstTagNode() {
+        panel.changeCategory(TaskCategory.TAG)
+        panel.loadRecorded()
+        // web has the tags react and public. The tree shows web in the nodes public and react.
+        panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
+        assertEquals("web", selectedProject())
+        val path: TreePath = panel.tree.selectionPath!!
+        assertEquals("public", (path.parentPath.lastPathComponent as CategoryNode).value)
+        assertEquals(1, panel.tree.selectionCount)
+    }
+
     fun testFileThatIsNotInAProjectShowsAMessage() {
         panel.loadRecorded()
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))

@@ -42,6 +42,7 @@ object QueryProjectsParser {
                 tasks = tasks.sortedById { it.id },
                 stack = metadata(project, "stack"),
                 layer = metadata(project, "layer"),
+                tags = tags(project),
             )
         }
         return WorkspaceTasks(
@@ -59,7 +60,7 @@ object QueryProjectsParser {
         val ownTasks = project.obj("config")?.obj("tasks")?.keySet().orEmpty()
         val layers = buildMap {
             project.obj("inherited")?.obj("layers")?.entrySet().orEmpty().forEach { (taskId, files) ->
-                val paths = files.arrayOrNull()?.mapNotNull { it.stringOrNull() }.orEmpty()
+                val paths = files.strings()
                 if (paths.isNotEmpty()) put(taskId, paths)
             }
         }
@@ -75,6 +76,13 @@ object QueryProjectsParser {
         val value = project.string(key) ?: project.obj("config")?.string(key)
         return value?.takeUnless { it.isBlank() || it.equals(UNKNOWN_VALUE, ignoreCase = true) }
     }
+
+    /**
+     * Gives the tags of [project] from `config.tags`. Each tag is in the list only one time. The function ignores values that are not strings, and empty values.
+     * moon gives an empty list if the project has no tags. Thus the function does not ignore the value `unknown`.
+     */
+    private fun tags(project: JsonObject): List<String> =
+        project.obj("config")?.get("tags")?.strings().orEmpty().filterNot(String::isBlank).distinct()
 
     /** Sorts the items in [ID_ORDER] of the ID that [id] gives. */
     private fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(compareBy(ID_ORDER, id))

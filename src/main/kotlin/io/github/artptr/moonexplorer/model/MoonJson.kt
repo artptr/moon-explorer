@@ -35,5 +35,8 @@ internal fun JsonObject.obj(name: String): JsonObject? = get(name)?.objectOrNull
 /** Gives the value of the field [name] if the value is a JSON string. If not, gives null. */
 internal fun JsonObject.string(name: String): String? = get(name)?.stringOrNull()
 
+/** Gives the JSON strings in the array. Gives an empty list if the value is not an array. The function ignores values that are not strings. */
+internal fun JsonElement.strings(): List<String> = arrayOrNull()?.mapNotNull { it.stringOrNull() }.orEmpty()
+
 /** Gives the value if it is a JSON string. If not, gives null. */
 internal fun JsonElement.stringOrNull(): String? = if (isJsonPrimitive && asJsonPrimitive.isString) asString else null

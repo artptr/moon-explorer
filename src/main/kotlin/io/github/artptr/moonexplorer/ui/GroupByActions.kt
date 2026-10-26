@@ -55,3 +55,5 @@ class CategoryNoneAction : CategoryAction(TaskCategory.NONE)
 class CategoryStackAction : CategoryAction(TaskCategory.STACK)
 
 class CategoryLayerAction : CategoryAction(TaskCategory.LAYER)
+
+class CategoryTagAction : CategoryAction(TaskCategory.TAG)

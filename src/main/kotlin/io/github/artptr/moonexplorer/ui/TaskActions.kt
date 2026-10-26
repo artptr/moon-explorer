@@ -11,12 +11,15 @@ import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
 
-/** The task that the user selected in the tree of the Moon tool window. The value is null if the selection is not one task. */
+/**
+ * The task that the user selected in the tree of the Moon tool window. The value is null if the selection is not one task.
+ * The tree can show a task in more than one category node. If the user selects two nodes of the same task, the value is this task.
+ */
 val SELECTED_TASK: DataKey<MoonTask> = DataKey.create("MoonExplorer.SelectedTask")
 
 /**
  * The tasks that the user selected in the tree of the Moon tool window.
- * The value is null if the selection has less than two nodes, or if a selected node is not a task node.
+ * The value is null if the selection has less than two tasks, or if a selected node is not a task node. The list contains each task one time.
  */
 val SELECTED_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.SelectedTasks")
 

@@ -200,17 +200,26 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     /** Gives the selected node. The value is null if the selection is not one node of the type [T]. */
     private inline fun <reified T> singleSelectedNode(): T? = tree.selectionPaths?.singleOrNull()?.lastPathComponent as? T
 
-    /** Gives the selected task. The value is null if the selection is not one task node. */
-    internal fun selectedTask(): MoonTask? = singleSelectedNode<TaskNode>()?.task
+    /**
+     * Gives the tasks of the selected nodes. The value is null if there is no selection, or if a selected node is not a task node.
+     * The tree can show a task in more than one category node. The list contains each task one time.
+     */
+    private fun selectedTaskNodeTasks(): List<MoonTask>? {
+        val paths = tree.selectionPaths?.takeIf { it.isNotEmpty() } ?: return null
+        return paths.map { (it.lastPathComponent as? TaskNode)?.task ?: return null }.distinct()
+    }
+
+    /** Gives the selected task. The value is null if the selection is not one task. Two nodes of the same task are one task. */
+    internal fun selectedTask(): MoonTask? = selectedTaskNodeTasks()?.singleOrNull()
 
     /** Gives the selected project. The value is null if the selection is not one project node. */
     internal fun selectedProject(): MoonProject? = singleSelectedNode<ProjectNode>()?.project
 
-    /** Gives the selected tasks. The value is null if the selection has less than two nodes, or if a selected node is not a task node. */
-    internal fun selectedTasks(): List<MoonTask>? {
-        val nodes = tree.selectionPaths?.map { it.lastPathComponent }?.takeIf { it.size > 1 } ?: return null
-        return nodes.map { (it as? TaskNode)?.task ?: return null }
-    }
+    /**
+     * Gives the selected tasks. The value is null if the selection has less than two tasks, or if a selected node is not a task node.
+     * The list contains each task one time.
+     */
+    internal fun selectedTasks(): List<MoonTask>? = selectedTaskNodeTasks()?.takeIf { it.size > 1 }
 
     /**
      * Gives the tasks in the selected task name node. The value is null if the selection is not one task name node,
@@ -298,6 +307,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         var selection = newPaths.filter { keyPath(it) in selectedKeys }
         if (selection.isEmpty() && selectedTargets.isNotEmpty()) {
             // After a change of the category or the main group, the paths are different. Select the same tasks in the new tree.
+            // The new tree can show a task in more than one category node. Then the function selects all nodes of the task.
             selection = newPaths.filter { (it.lastPathComponent as? TaskNode)?.task?.target in selectedTargets }
             selection.firstOrNull()?.let(tree::scrollPathToVisible)
         }
@@ -322,6 +332,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     /**
      * Selects the node of the project that contains [file]. The function expands the node and its parent nodes, and scrolls to the node.
+     * If the tree shows the project in more than one category node, the function selects the project in the first category node.
      * If no project contains the file, or if the project has no tasks, the function shows a message and does not change the selection.
      * Call this function on the EDT.
      */

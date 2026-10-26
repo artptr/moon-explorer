@@ -14,7 +14,8 @@ class QueryProjectsParserTest {
     private fun project(id: String) = recorded.projects.single { it.id == id }
 
     /** Gives the value of [category] for each project in [json]. */
-    private fun values(json: String, category: TaskCategory) = QueryProjectsParser.parse(json).projects.associate { it.id to category.valueFor(it) }
+    private fun values(json: String, category: TaskCategory) =
+        QueryProjectsParser.parse(json).projects.associate { it.id to category.valuesFor(it).singleOrNull() }
 
     @Test
     fun recordedOutputHasAllProjectsWithTasksInOrder() {
@@ -268,5 +269,39 @@ class QueryProjectsParserTest {
     fun layerComesFromTheConfigIfTheTopLevelValueIsMissing() {
         val json = """{"projects": [{"id": "a", "config": {"layer": "tool"}, "tasks": {"t": {"id": "t"}}}]}"""
         assertEquals(mapOf("a" to "tool"), values(json, TaskCategory.LAYER))
+    }
+
+    @Test
+    fun recordedOutputHasTheTagsOfEachProject() {
+        val expected = mapOf(
+            "admin" to listOf("react", "internal"),
+            "api" to listOf("node", "public"),
+            "db" to listOf("node", "shared"),
+            "icons" to emptyList(),
+            "scripts" to emptyList(),
+            "ui" to listOf("react"),
+            "utils" to listOf("shared"),
+            "web" to listOf("react", "public"),
+            "worker" to listOf("node", "internal"),
+        )
+        assertEquals(expected, recorded.projects.associate { it.id to it.tags })
+    }
+
+    @Test
+    fun tagsIgnoreValuesThatAreNotStringsEmptyValuesAndDuplicates() {
+        val json = """
+            {"projects": [
+              {"id": "a", "config": {"tags": ["web", 5, "", " ", null, "web", "unknown"]}, "tasks": {"t": {"id": "t"}}},
+              {"id": "b", "config": {"tags": "web"}, "tasks": {"t": {"id": "t"}}},
+              {"id": "c", "tasks": {"t": {"id": "t"}}}
+            ]}
+        """
+        assertEquals(mapOf("a" to listOf("web", "unknown"), "b" to emptyList(), "c" to emptyList()), QueryProjectsParser.parse(json).projects.associate { it.id to it.tags })
+    }
+
+    @Test
+    fun tagCategoryGivesEachTagOfAProject() {
+        assertEquals(listOf("react", "public"), TaskCategory.TAG.valuesFor(project("web")))
+        assertEquals(emptyList<String>(), TaskCategory.TAG.valuesFor(project("icons")))
     }
 }
