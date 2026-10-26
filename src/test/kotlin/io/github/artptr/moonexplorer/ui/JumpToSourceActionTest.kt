@@ -96,7 +96,8 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     }
 
     fun testNotAvailableForAProjectWithoutConfigFile() {
-        val root = Files.createTempDirectory("moon-explorer-test")
+        // The JVM deletes the directory when the tests complete.
+        val root = FileUtil.createTempDirectory("moon-explorer-test", null, true).toPath()
         Files.createDirectories(root.resolve("apps/empty"))
         val empty = MoonProject("empty", listOf(MoonTask("build", "empty:build", null)))
         val loaded = TasksState.Loaded(WorkspaceTasks(listOf(empty), listOf(ProjectSource("empty", "apps/empty"))), root)
