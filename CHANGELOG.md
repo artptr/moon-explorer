@@ -18,6 +18,10 @@
 - The **Category** selection in the **Group By** menu of the **Moon** tool window has the option **Tag**. The tree shows a node for each tag. A project with two tags is in the two tag nodes. The projects without tags are in the "(none)" node.
 - Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
 
+### Fixed
+
+- During a refresh after a failed refresh, the toolbar of the **Moon** tool window continues to show the **Show Refresh Error** action. Before, the action was not available until the refresh completed, but the notification of the failure stayed open.
+
 ## [0.2.0] - 2026-10-22
 
 ### Added

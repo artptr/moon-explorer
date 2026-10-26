@@ -101,7 +101,9 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         previous?.cancel()
         // Show the Loading state before the function returns, not when the new coroutine starts.
         // The state keeps the last successful load. Thus the tree, **Search Everywhere**, and **Run Anything** keep the tasks during the load.
-        _state.value = TasksState.Loading(_state.value.lastLoaded)
+        // The state also keeps the failure of the last refresh. Thus the user can see the error during the load.
+        val current = _state.value
+        _state.value = TasksState.Loading(current.lastLoaded, current.refreshFailure)
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
         val queryProjectsFn = queryProjects

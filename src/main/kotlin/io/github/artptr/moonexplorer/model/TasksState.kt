@@ -31,8 +31,9 @@ sealed interface TasksState {
     /**
      * The plugin runs `moon query projects`. [last] is the result of the last successful load, or null if no load was successful.
      * During the load, the tree, **Search Everywhere**, and **Run Anything** use [last].
+     * [failure] is the failure of the [Stale] state before the load, or null. Thus the toolbar keeps the action **Show Refresh Error** during the load.
      */
-    data class Loading(val last: Loaded?) : TasksState
+    data class Loading(val last: Loaded?, val failure: Failure? = null) : TasksState
 
     /**
      * The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`.
@@ -70,6 +71,17 @@ val TasksState.lastLoaded: TasksState.Loaded?
         is TasksState.Loaded -> this
         is TasksState.Stale -> last
         is TasksState.Loading -> last
+        else -> null
+    }
+
+/**
+ * Gives the failure of the last refresh while the tree shows old tasks, or null.
+ * The value is not null for [TasksState.Stale], and for [TasksState.Loading] after [TasksState.Stale].
+ */
+val TasksState.refreshFailure: TasksState.Failure?
+    get() = when (this) {
+        is TasksState.Stale -> failure
+        is TasksState.Loading -> failure
         else -> null
     }
 

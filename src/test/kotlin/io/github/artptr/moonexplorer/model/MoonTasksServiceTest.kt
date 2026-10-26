@@ -117,7 +117,20 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
 
     fun testRefreshAfterAFailedRefreshKeepsTheLastLoad() {
         val stale = service.loadStale()
-        assertEquals(TasksState.Loading(stale.last), service.startEndlessRefresh())
+        assertEquals(TasksState.Loading(stale.last, stale.failure), service.startEndlessRefresh())
+    }
+
+    fun testSecondRefreshDuringALoadKeepsTheFailure() {
+        val stale = service.loadStale()
+        service.startEndlessRefresh()
+        assertEquals(TasksState.Loading(stale.last, stale.failure), service.startEndlessRefresh())
+    }
+
+    fun testRefreshAfterAFailureWithoutAnEarlierLoadHasNoFailure() {
+        service.queryProjects = { CliResult.Failed("bad config") }
+        service.refresh()
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
+        assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
     }
 
     fun testRefreshAfterNoWorkspaceDoesNotKeepTheOldTasks() {

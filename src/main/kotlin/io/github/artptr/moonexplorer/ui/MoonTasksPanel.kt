@@ -256,7 +256,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * Call this function on the EDT.
      */
     internal fun render(state: TasksState) {
-        // The action ShowRefreshFailureAction is visible only in the Stale state. This call updates the toolbar for all states, also for the Loading state.
+        // The action ShowRefreshFailureAction is visible only while the state has a refresh failure. This call updates the toolbar for all states.
         updateToolbar()
         val previous = shown
         this.state = state
