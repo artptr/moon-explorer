@@ -3,9 +3,11 @@ package io.github.artptr.moonexplorer.cli
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.EnvironmentUtil
+import com.intellij.util.SystemProperties
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import kotlin.io.path.extension
 
 /**
  * The result of a search for the `moon` executable.
@@ -24,7 +26,7 @@ data class SearchEnvironment(
         /** The environment of the IDE. On macOS, this environment also contains the values from the login shell. */
         fun current() = SearchEnvironment(
             EnvironmentUtil.getEnvironmentMap(),
-            Path.of(System.getProperty("user.home")),
+            Path.of(SystemProperties.getUserHome()),
             SystemInfo.isWindows,
         )
     }
@@ -136,7 +138,7 @@ object MoonExecutableLocator {
         // On Windows, the extension tells if a file is an executable. A file without an extension, for example
         // the shell script node_modules/.bin/moon, cannot start.
         return if (isWindows) {
-            file.fileName.toString().substringAfterLast('.', "").lowercase() in WINDOWS_EXECUTABLE_EXTENSIONS
+            file.extension.lowercase() in WINDOWS_EXECUTABLE_EXTENSIONS
         } else {
             Files.isExecutable(file)
         }

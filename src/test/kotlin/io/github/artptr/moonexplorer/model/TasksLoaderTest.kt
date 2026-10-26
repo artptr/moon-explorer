@@ -2,6 +2,7 @@ package io.github.artptr.moonexplorer.model
 
 import com.intellij.execution.ExecutionException
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -20,7 +21,7 @@ class TasksLoaderTest {
 
     private val recorded = CliResult.Success(TestData.recorded("query-projects.json"))
 
-    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) = TasksLoader.loadTasksIn(TasksLoader.findRoot(dir), query)
+    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) = TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query)
 
     private fun load(dir: Path?, result: CliResult) = runBlocking { loadTasks(dir) { result } }
 

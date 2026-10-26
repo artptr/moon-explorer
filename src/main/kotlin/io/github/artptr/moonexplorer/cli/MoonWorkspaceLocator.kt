@@ -9,6 +9,15 @@ object MoonWorkspaceLocator {
     /** The file extensions that moon accepts for its configuration files, for example `.moon/workspace.*` and `moon.*`. */
     internal val CONFIG_FILE_EXTENSIONS = listOf("yml", "yaml", "json", "jsonc", "pkl", "hcl", "toml")
 
+    /** The directory of the workspace configuration in the workspace root. */
+    internal const val MOON_DIR = ".moon"
+
+    /** The base name of the workspace configuration file in [MOON_DIR], for example `workspace.yml`. */
+    internal const val WORKSPACE_CONFIG = "workspace"
+
+    /** The base name of the configuration file of a project, for example `moon.yml`. */
+    internal const val PROJECT_CONFIG = "moon"
+
     /**
      * Goes up from [start] through its parent directories and gives the first workspace root.
      * A workspace root has a `.moon/` directory with a `workspace.*` file.
@@ -26,7 +35,7 @@ object MoonWorkspaceLocator {
         CONFIG_FILE_EXTENSIONS.asSequence().map { dir.resolve("$baseName.$it") }.firstOrNull(Files::isRegularFile)
 
     private fun isWorkspaceRoot(dir: Path): Boolean {
-        val moonDir = dir.resolve(".moon")
-        return Files.isDirectory(moonDir) && findConfigFile(moonDir, "workspace") != null
+        val moonDir = dir.resolve(MOON_DIR)
+        return Files.isDirectory(moonDir) && findConfigFile(moonDir, WORKSPACE_CONFIG) != null
     }
 }

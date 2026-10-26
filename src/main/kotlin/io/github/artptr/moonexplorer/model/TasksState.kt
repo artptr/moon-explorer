@@ -33,6 +33,7 @@ sealed interface TasksState {
 
     /**
      * The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`.
+     * [root] is absolute and normalized. Use [TasksLoader.loadedState] to make this state.
      * [configFiles] contains the configuration files that existed at the time of the load. Refer to [findExistingConfigFiles].
      */
     data class Loaded(val tasks: WorkspaceTasks, val root: Path, val configFiles: ExistingConfigFiles) : TasksState

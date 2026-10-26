@@ -107,8 +107,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     }
 
     /** The name of the card that the panel shows now. */
-    internal var visibleCard: String = TREE_CARD
-        private set
+    internal val visibleCard: String get() = if (messagePanel.isVisible) MESSAGE_CARD else TREE_CARD
 
     private val job: Job
 
@@ -269,10 +268,12 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     private fun showLoaded(state: TasksState.Loaded) {
         if (state.tasks.projects.isEmpty()) {
             showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
-        } else {
-            shown = state
-            showTree(state.tasks)
+            return
         }
+        // A failed refresh and a refresh without changes give the tasks that the tree shows now. Then the tree stays the same.
+        val sameTasks = state.tasks == shown?.tasks
+        shown = state
+        if (sameTasks) cardLayout.show(cards, TREE_CARD) else showTree(state.tasks)
     }
 
     /** The main group of the tree. The plugin keeps the value in the settings of the IDE project. */
@@ -285,13 +286,18 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     internal fun changeMainGroup(value: TaskGrouping) {
         if (value == mainGroup) return
         settings.mainGroup = value
-        shown?.tasks?.let(::showTree)
+        showTreeAgain()
     }
 
     /** Saves [value] and shows the tree again with this category. Call this function on the EDT. */
     internal fun changeCategory(value: TaskCategory) {
         if (value == category) return
         settings.taskCategory = value
+        showTreeAgain()
+    }
+
+    /** Shows the tree again for the current main group and category. */
+    private fun showTreeAgain() {
         shown?.tasks?.let(::showTree)
     }
 
@@ -329,7 +335,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         }
         if (kept.isEmpty()) moved.firstOrNull()?.let(tree::scrollPathToVisible)
         tree.selectionPaths = (kept.values + moved).toTypedArray()
-        showCard(TREE_CARD)
+        cardLayout.show(cards, TREE_CARD)
     }
 
     /**
@@ -422,12 +428,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         messageArea.text = text
         settingsLink.isVisible = showSettingsLink
         messageArea.caretPosition = 0
-        showCard(MESSAGE_CARD)
-    }
-
-    private fun showCard(name: String) {
-        visibleCard = name
-        cardLayout.show(cards, name)
+        cardLayout.show(cards, MESSAGE_CARD)
     }
 
     override fun dispose() {

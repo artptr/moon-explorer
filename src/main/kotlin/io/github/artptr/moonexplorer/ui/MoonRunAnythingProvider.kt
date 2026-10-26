@@ -12,6 +12,7 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.MoonIcons
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonCommandRunner
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
@@ -67,7 +68,7 @@ class MoonRunAnythingProvider : RunAnythingCommandLineProvider() {
     override fun suggestCompletionVariants(dataContext: DataContext, commandLine: CommandLine): Sequence<String> {
         val state = tasksState(dataContext)
         if (!hasWorkspace(state)) return emptySequence()
-        val targets = state?.loadedTasks?.projects.orEmpty().asSequence().flatMap { it.tasks }.map { it.target }
+        val targets = state?.loadedTasks?.allTasks.orEmpty().asSequence().map { it.target }
         return when (commandLine.completedParameters) {
             emptyList<String>() -> sequenceOf(RUN_COMMAND) + targets.map { "$RUN_COMMAND $it" }
             listOf(RUN_COMMAND) -> targets

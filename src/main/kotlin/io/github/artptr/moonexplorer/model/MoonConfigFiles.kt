@@ -2,8 +2,13 @@ package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.util.io.FileUtil
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
+import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator.MOON_DIR
+import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator.PROJECT_CONFIG
+import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator.WORKSPACE_CONFIG
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import kotlin.io.path.extension
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * The data that [MoonConfigFiles] uses to find a change of the moon configuration.
@@ -15,8 +20,16 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
     val root: Path? = root?.toAbsolutePath()?.normalize()
     val projectDir: Path? = projectDir?.toAbsolutePath()?.normalize()
 
-    /** The project directories of [sources]. A source that is not a valid path on this computer is not in the list. */
-    internal val sourceDirs: List<Path> = this.root?.let { r -> sources.mapNotNull { resolveSourceDir(r, it) } }.orEmpty()
+    /**
+     * The project directories of [sources] and all their parent directories in [root]. A source that is not a valid path on this computer
+     * is not in the set. The VFS listener does one lookup for each event, not one comparison for each project.
+     */
+    internal val sourceDirs: Set<Path> = this.root?.let { r ->
+        sources.asSequence()
+            .mapNotNull { resolveInRoot(r, it.source) }
+            .flatMap { dir -> generateSequence(dir) { it.parent }.takeWhile { it.startsWith(r) } }
+            .toHashSet()
+    }.orEmpty()
 
     /** The root with `/` as the separator, as in the paths of the VFS. */
     internal val rootPrefix: String? = this.root?.let { FileUtil.toSystemIndependentName(it.toString()) }
@@ -25,9 +38,8 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
 /** Finds the changes of the moon configuration files after which the tree shows old tasks. */
 object MoonConfigFiles {
 
-    private const val MOON_DIR = ".moon"
     private const val CACHE_DIR = "cache"
-    private const val WORKSPACE_FILE_PART = "/$MOON_DIR/workspace."
+    private const val WORKSPACE_FILE_PART = "/$MOON_DIR/$WORKSPACE_CONFIG."
     private val CONFIG_EXTENSIONS = MoonWorkspaceLocator.CONFIG_FILE_EXTENSIONS.toSet()
 
     /**
@@ -56,13 +68,13 @@ object MoonConfigFiles {
         if (rel.nameCount > 0 && rel.getName(0).toString() == MOON_DIR) {
             return !(rel.nameCount > 1 && rel.getName(1).toString() == CACHE_DIR)
         }
-        return isConfigName(file, "moon") || watch.sourceDirs.any { it.startsWith(file) }
+        return isConfigName(file, PROJECT_CONFIG) || file in watch.sourceDirs
     }
 
     /** Gives true if the name of [file] is `<base>.<ext>` with an extension that moon accepts. */
     private fun isConfigName(file: Path, base: String): Boolean {
-        val name = file.fileName?.toString() ?: return false
-        return name.substringBeforeLast('.') == base && name.substringAfterLast('.', "") in CONFIG_EXTENSIONS
+        if (file.fileName == null) return false
+        return file.nameWithoutExtension == base && file.extension in CONFIG_EXTENSIONS
     }
 
     /**
@@ -70,7 +82,7 @@ object MoonConfigFiles {
      * The plugin looks for the workspace root in these directories.
      */
     private fun isWorkspaceFileForProject(file: Path, projectDir: Path?): Boolean {
-        if (projectDir == null || !isConfigName(file, "workspace")) return false
+        if (projectDir == null || !isConfigName(file, WORKSPACE_CONFIG)) return false
         val moonDir = file.parent ?: return false
         if (moonDir.fileName?.toString() != MOON_DIR) return false
         val dir = moonDir.parent ?: return false

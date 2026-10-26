@@ -50,7 +50,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         private set
 
     private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
-    private val defaultQueryProjects: suspend (Path) -> CliResult = { root -> query(root, "projects") }
+    private val defaultQueryProjects: suspend (Path) -> CliResult = ::queryProjects
 
     /**
      * Gives the IDE project directory. Tests change this value.
@@ -112,7 +112,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
             previous?.join()
             _state.value = withContext(Dispatchers.IO) {
                 val dir = projectDirFn()
-                val root = TasksLoader.findRoot(dir)
+                val root = project.service<MoonExecutableService>().workspaceRoot(dir)
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
                 configWatch = ConfigWatch(root, dir, lastLoaded?.tasks?.sources.orEmpty())
                 publish(TasksLoader.loadTasksIn(root, queryProjectsFn))
@@ -133,18 +133,20 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
             else -> result.also { lastLoaded = null }
         }
         val watch = configWatch
-        configWatch = ConfigWatch(watch.root, watch.projectDir, lastLoaded?.tasks?.sources.orEmpty())
+        val sources = lastLoaded?.tasks?.sources.orEmpty()
+        // A failed load keeps the sources. Then the watch stays the same.
+        if (sources !== watch.sources) configWatch = ConfigWatch(watch.root, watch.projectDir, sources)
         return state
     }
 
     /**
-     * Runs `moon query <subject>` in [root] with the executable of [MoonExecutableService].
+     * Runs `moon query projects` in [root] with the executable of [MoonExecutableService].
      * Each call gets the current time limit from [timeoutMillis].
      */
-    private suspend fun query(root: Path, subject: String): CliResult {
+    private suspend fun queryProjects(root: Path): CliResult {
         val search = project.service<MoonExecutableService>().findInWorkspace(root)
         val executable = search.executable ?: return CliResult.NotFound(search.examined)
-        return MoonCli.query(executable, root, subject, timeoutMillis())
+        return MoonCli.queryProjects(executable, root, timeoutMillis())
     }
 
     /** Gives the time limit from [MoonSettings] in milliseconds. */

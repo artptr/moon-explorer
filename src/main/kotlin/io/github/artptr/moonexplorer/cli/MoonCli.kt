@@ -41,13 +41,12 @@ object MoonCli {
     private val ANSI_ESCAPE = Regex("\u001B\\[[0-9;?]*[ -/]*[@-~]")
 
     /**
-     * Runs `moon query <subject>` with [executable] in [workspaceRoot], for example `moon query projects`.
-     * In moon v2, the output of `moon query projects` is always JSON.
+     * Runs `moon query projects` with [executable] in [workspaceRoot]. In moon v2, the output is always JSON.
      * If the caller cancels the coroutine, or if moon does not complete in [timeoutMillis], the function stops the moon process.
      * Call this function on a background thread.
      */
-    suspend fun query(executable: Path, workspaceRoot: Path, subject: String, timeoutMillis: Int): CliResult =
-        run(executable, workspaceRoot, timeoutMillis, "query", subject)
+    suspend fun queryProjects(executable: Path, workspaceRoot: Path, timeoutMillis: Int): CliResult =
+        run(executable, workspaceRoot, timeoutMillis, "query", "projects")
 
     /**
      * Makes the command line `moon <args>` in [workspaceRoot], for example `moon query projects`.

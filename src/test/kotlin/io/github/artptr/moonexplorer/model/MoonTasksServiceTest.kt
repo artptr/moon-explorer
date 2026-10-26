@@ -7,6 +7,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.testData.TestData
+import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
@@ -47,13 +48,12 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // The fake moon is a shell script. Thus this test does not run on Windows.
         if (SystemInfo.isWindows) return
         // The script writes one project. The ID of the project is the first two arguments.
-        val moon = FileUtil.createTempDirectory("fake-moon", null, true).resolve("moon").apply {
-            writeText("#!/bin/sh\nprintf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n")
-            setExecutable(true)
-        }
+        val moon = fakeMoonExecutable(
+            content = "#!/bin/sh\nprintf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n",
+        )
         val settings = project.service<MoonSettings>()
         try {
-            settings.executablePath = moon.path
+            settings.executablePath = moon.toString()
             // Use the default query, not the fake from setUp.
             runBlocking { service.resetForTests() }
             service.projectDir = { TestData.workspace.toPath() }
@@ -79,13 +79,10 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // The fake moon is a shell script. Thus this test does not run on Windows.
         if (SystemInfo.isWindows) return
         // The script does not stop before the time limit. `exec` replaces the shell. Thus the plugin stops the `sleep` process.
-        val moon = FileUtil.createTempDirectory("fake-moon", null, true).resolve("moon").apply {
-            writeText("#!/bin/sh\nexec sleep 30\n")
-            setExecutable(true)
-        }
+        val moon = fakeMoonExecutable(content = "#!/bin/sh\nexec sleep 30\n")
         val settings = project.service<MoonSettings>()
         try {
-            settings.executablePath = moon.path
+            settings.executablePath = moon.toString()
             settings.timeoutSeconds = 1
             // Use the default query, not the fake from setUp.
             runBlocking { service.resetForTests() }
