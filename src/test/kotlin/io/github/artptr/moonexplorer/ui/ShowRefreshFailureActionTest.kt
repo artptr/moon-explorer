@@ -9,15 +9,14 @@ import io.github.artptr.moonexplorer.model.MoonFailure
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
+import io.github.artptr.moonexplorer.model.loadRecorded
+import io.github.artptr.moonexplorer.model.loadStale
 import io.github.artptr.moonexplorer.model.prepareForTests
-import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 
 class ShowRefreshFailureActionTest : BasePlatformTestCase() {
 
     private lateinit var service: MoonTasksService
-    private val loaded get() = TestData.recordedState()
-    private val stale get() = TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad config")))
 
     override fun setUp() {
         super.setUp()
@@ -42,17 +41,8 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
         return event.presentation.isVisible
     }
 
-    private fun loadStale() {
-        service.refresh()
-        service.awaitState(loaded)
-        service.queryProjects = { CliResult.Failed("bad config") }
-        service.refresh()
-        service.awaitState(stale)
-    }
-
     fun testActionIsHiddenAfterASuccessfulLoad() {
-        service.refresh()
-        service.awaitState(loaded)
+        service.loadRecorded()
         assertFalse(isVisible())
     }
 
@@ -64,12 +54,12 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
     }
 
     fun testActionIsVisibleWhenTheTreeIsStale() {
-        loadStale()
+        service.loadStale("bad config")
         assertTrue(isVisible())
     }
 
     fun testActionShowsTheNotificationAgain() {
-        loadStale()
+        service.loadStale("bad config")
         val shown = collectRefreshNotifications(project, testRootDisposable)
         val action = ShowRefreshFailureAction()
         action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))

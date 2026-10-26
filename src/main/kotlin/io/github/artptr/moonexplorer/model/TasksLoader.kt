@@ -3,7 +3,6 @@ package io.github.artptr.moonexplorer.model
 import com.intellij.openapi.diagnostic.thisLogger
 import io.github.artptr.moonexplorer.cli.CliFailure
 import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -11,17 +10,14 @@ import kotlin.coroutines.cancellation.CancellationException
 object TasksLoader {
 
     /**
-     * Finds the workspace root from [projectDir]. Gives null if there is no workspace.
-     * Call this function on a background thread.
-     */
-    fun findRoot(projectDir: Path?): Path? = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot)
-
-    /**
      * Gives the state after a successful load of [tasks] in the workspace [root]. The function finds the configuration files on the disk.
+     * The state contains [root] as an absolute and normalized path. Thus the users of the state do not normalize it again.
      * Call this function on a background thread.
      */
-    internal fun loadedState(tasks: WorkspaceTasks, root: Path): TasksState.Loaded =
-        TasksState.Loaded(tasks, root, findExistingConfigFiles(tasks, root))
+    internal fun loadedState(tasks: WorkspaceTasks, root: Path): TasksState.Loaded {
+        val normalizedRoot = root.toAbsolutePath().normalize()
+        return TasksState.Loaded(tasks, normalizedRoot, findExistingConfigFiles(tasks, normalizedRoot))
+    }
 
     /**
      * Runs [queryProjects] in the workspace [root] and reads the output. If [root] is null, the function gives [TasksState.NoWorkspace].

@@ -60,7 +60,7 @@ class TaskSourcesTest {
     @Test
     fun loadFindsTheConfigFilesOfTheRecordedWorkspace() {
         val files = state.configFiles
-        assertEquals(state.tasks.sources.map { it.id }.toSet(), files.projects.keys)
+        assertEquals(state.tasks.projects.map { it.id }.toSet(), files.projects.keys)
         assertEquals(state.root.resolve("apps/web/moon.yml"), files.projects["web"])
         assertEquals(
             listOf("all.yml", "backend.yml", "frontend.yml").map { ".moon/tasks/$it" }.associateWith { state.root.resolve(it) },
@@ -95,7 +95,7 @@ class TaskSourcesTest {
     /** Loads the project `p` in [projectDir]. The configuration file of the project contains the task `build`. */
     private fun loadTempProject(): TasksState.Loaded {
         val tasks = WorkspaceTasks(
-            projects = emptyList(),
+            projects = listOf(MoonProject("p", listOf(MoonTask("build", "p:build", null)))),
             sources = listOf(ProjectSource("p", "p")),
             taskConfigs = mapOf("p" to TaskConfigs(ownTasks = setOf("build"))),
         )

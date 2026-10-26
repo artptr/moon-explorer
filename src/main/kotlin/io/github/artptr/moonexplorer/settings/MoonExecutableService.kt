@@ -21,12 +21,10 @@ class MoonExecutableService(private val project: Project, val scope: CoroutineSc
     private val settingsPath: String get() = project.service<MoonSettings>().executablePath
 
     /**
-     * Finds moon with [settingsPath] and the workspace root of the IDE project.
-     * The default value of [settingsPath] is the path from the settings. The settings page gives the text of its field.
+     * Finds moon with [settingsPath] and the workspace root of the IDE project. The settings page gives the text of its field.
      * Call this function on a background thread.
      */
-    fun find(settingsPath: String = this.settingsPath): MoonExecutableSearch =
-        find(settingsPath, project.basePath?.let(Path::of))
+    fun find(settingsPath: String): MoonExecutableSearch = find(settingsPath, projectDir())
 
     /**
      * Finds moon with the path from the settings in [workspaceRoot]. Use this function if the caller has the workspace root.
@@ -34,16 +32,18 @@ class MoonExecutableService(private val project: Project, val scope: CoroutineSc
      */
     fun findInWorkspace(workspaceRoot: Path?): MoonExecutableSearch = MoonExecutableLocator.find(settingsPath, workspaceRoot)
 
-    /** Gives the workspace root of the IDE project, or null if the IDE project does not contain a moon workspace. */
-    fun workspaceRoot(): Path? = project.basePath?.let { MoonWorkspaceLocator.findWorkspaceRoot(Path.of(it)) }
+    /**
+     * Gives the workspace root for [projectDir], or null if [projectDir] is not in a moon workspace.
+     * The default value of [projectDir] is the directory of the IDE project. Call this function on a background thread.
+     */
+    fun workspaceRoot(projectDir: Path? = projectDir()): Path? = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot)
 
     /** Finds the workspace root from [projectDir] and then finds moon in [env]. Tests give the values. */
     internal fun find(
         settingsPath: String,
         projectDir: Path?,
         env: SearchEnvironment = SearchEnvironment.current(),
-    ): MoonExecutableSearch {
-        val root = projectDir?.let(MoonWorkspaceLocator::findWorkspaceRoot)
-        return MoonExecutableLocator.find(settingsPath, root, env)
-    }
+    ): MoonExecutableSearch = MoonExecutableLocator.find(settingsPath, workspaceRoot(projectDir), env)
+
+    private fun projectDir(): Path? = project.basePath?.let(Path::of)
 }

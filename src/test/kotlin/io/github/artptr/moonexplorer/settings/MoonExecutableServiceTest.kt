@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.settings
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.SearchEnvironment
@@ -15,7 +16,7 @@ class MoonExecutableServiceTest : BasePlatformTestCase() {
 
     /** An environment without PATH and PROTO_HOME, and with an empty home directory. Thus a moon on this computer is not found. */
     private val env by lazy {
-        SearchEnvironment(emptyMap(), FileUtil.createTempDirectory("home", null, true).toPath(), File.separatorChar == '\\')
+        SearchEnvironment(emptyMap(), FileUtil.createTempDirectory("home", null, true).toPath(), SystemInfo.isWindows)
     }
 
     /** Makes a workspace with `.moon/workspace.yml`, `node_modules/.bin/moon`, and the subdirectory `apps/web`. */
@@ -24,8 +25,7 @@ class MoonExecutableServiceTest : BasePlatformTestCase() {
         root.resolve(".moon").toFile().mkdirs()
         root.resolve(".moon/workspace.yml").toFile().writeText("")
         root.resolve("apps/web").toFile().mkdirs()
-        root.resolve("node_modules/.bin").toFile().mkdirs()
-        root.resolve("node_modules/.bin/$FAKE_MOON_NAME").toFile().apply { writeText(""); setExecutable(true) }
+        fakeMoonExecutable(root.resolve("node_modules/.bin"))
         return root
     }
 
@@ -48,8 +48,7 @@ class MoonExecutableServiceTest : BasePlatformTestCase() {
 
     fun testRelativeSettingsPathStartsAtTheWorkspaceRoot() {
         val root = workspace()
-        root.resolve("tools").toFile().mkdirs()
-        root.resolve("tools/$FAKE_MOON_NAME").toFile().apply { writeText(""); setExecutable(true) }
+        fakeMoonExecutable(root.resolve("tools"))
         val result = service.find("tools/$FAKE_MOON_NAME", root.resolve("apps/web"), env)
         assertEquals(root.toRealPath().resolve("tools/$FAKE_MOON_NAME"), result.executable?.toRealPath())
     }

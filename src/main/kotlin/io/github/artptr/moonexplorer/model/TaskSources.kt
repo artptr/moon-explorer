@@ -15,27 +15,29 @@ data class SourceFile(val path: Path, val taskId: String?)
 
 /**
  * The configuration files that existed on the disk at the time of a load. The paths are absolute and normalized.
- * [projects] gives the configuration file of each project ID, for example `moon.yml`. A project without this file is not in the map.
+ * [projects] gives the configuration file of each project ID with tasks, for example `moon.yml`. A project without this file is not in the map.
  * [inherited] gives the path of each file of [TaskConfigs.layers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
  * When a configuration file changes, the plugin loads the tasks again. After a successful load, the plugin finds the files again.
  */
 data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>)
 
 /**
- * Finds the configuration files of the projects and the tasks of [tasks] in the workspace [root]. The loader calls this function one time
- * for each load. Thus the actions do not read the disk to find the files. The function reads the disk. Call it on a background thread.
+ * Finds the configuration files of the projects and the tasks of [tasks] in the workspace [root]. [root] must be absolute and normalized.
+ * The loader calls this function one time for each load. Thus the actions do not read the disk to find the files.
+ * The function examines only the projects with tasks, because the tree shows only these projects.
+ * The function reads the disk. Call it on a background thread.
  */
 internal fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): ExistingConfigFiles {
-    val normalizedRoot = root.toAbsolutePath().normalize()
-    val projects = tasks.sources.mapNotNull { source ->
-        val file = resolveSourceDir(normalizedRoot, source)?.let { MoonWorkspaceLocator.findConfigFile(it, "moon") }
+    val withTasks = tasks.projects.mapTo(HashSet()) { it.id }
+    val projects = tasks.sources.filter { it.id in withTasks }.mapNotNull { source ->
+        val file = resolveInRoot(root, source.source)?.let { MoonWorkspaceLocator.findConfigFile(it, MoonWorkspaceLocator.PROJECT_CONFIG) }
         file?.let { source.id to it }
     }.toMap()
     // Many projects inherit the same files. Thus the function examines each file only one time.
     val inherited = tasks.taskConfigs.values.asSequence()
         .flatMap { it.layers.values.flatten() }
         .distinct()
-        .mapNotNull { layer -> resolveInRoot(normalizedRoot, layer)?.takeIf(Files::isRegularFile)?.let { layer to it } }
+        .mapNotNull { layer -> resolveInRoot(root, layer)?.takeIf(Files::isRegularFile)?.let { layer to it } }
         .toMap()
     return ExistingConfigFiles(projects, inherited)
 }
@@ -45,14 +47,9 @@ private val YAML_EXTENSIONS = setOf("yml", "yaml")
 /** Gives true if [path] is a YAML file. */
 internal fun isYamlFile(path: Path): Boolean = path.extension.lowercase() in YAML_EXTENSIONS
 
-/** The workspace root of the state, absolute and normalized. */
-private val TasksState.Loaded.normalizedRoot: Path get() = root.toAbsolutePath().normalize()
-
 /** Gives the path of [path] from the workspace root, with `/` as the separator. Example: `.moon/tasks/all.yml`. */
-fun TasksState.Loaded.workspacePath(path: Path): String {
-    val root = normalizedRoot
-    return FileUtil.toSystemIndependentName((if (path.startsWith(root)) root.relativize(path) else path).toString())
-}
+fun TasksState.Loaded.workspacePath(path: Path): String =
+    FileUtil.toSystemIndependentName((if (path.startsWith(root)) root.relativize(path) else path).toString())
 
 /**
  * Gives the files that contain the configuration of [task]. The configuration file of the project is the first file.
