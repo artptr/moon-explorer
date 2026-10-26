@@ -65,6 +65,7 @@ The Vale tool checks some STE rules. The rules are in `.vale/styles/STE/`.
 The `Docs` workflow runs the same check on each pull request.
 
 Vale examines the Markdown files and the comments in `.github/workflows/*.yml`. Vale does not examine the YAML keys and values.
+Vale does not examine the files in `.claude/worktrees/`. Claude Code makes a git worktree in this directory for each separate session.
 
 **NOTE:** Vale cannot find all comments in a shell script in a `run` key. Vale also does not examine the comments in other YAML files. A person or the `ste-reviewer` subagent must do a review of these comments.
 
