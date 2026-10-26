@@ -18,14 +18,14 @@ fun targetTaskId(target: String): String = target.substringAfterLast(':')
 /**
  * A moon project and its tasks, sorted by ID.
  * [stack] is null if the project has no `stack` value. [layer] is null if the project has no `layer` value.
- * [tags] contains the tags of the project. Each tag is in the list only one time. The list is empty if the project has no tags.
+ * [tags] contains the tags of the project in the sequence of the configuration. The set is empty if the project has no tags.
  */
 data class MoonProject(
     val id: String,
     val tasks: List<MoonTask>,
     val stack: String? = null,
     val layer: String? = null,
-    val tags: List<String> = emptyList(),
+    val tags: Set<String> = emptySet(),
 )
 
 /**
@@ -83,14 +83,13 @@ enum class TaskCategory {
     ;
 
     /**
-     * Gives the values of [project] for this category. Each value is in the list only one time. The list is empty if the project has no value.
-     * [NONE] has no values. The tree adds the project one time below the node of each value.
+     * Gives the values of [project] for this category. Each value is in the collection only one time. The collection is empty if the project
+     * has no value. [NONE] has no values. The tree adds the project one time below the node of each value.
      */
-    fun valuesFor(project: MoonProject): List<String> = when (this) {
+    fun valuesFor(project: MoonProject): Collection<String> = when (this) {
         NONE -> emptyList()
         STACK -> listOfNotNull(project.stack)
         LAYER -> listOfNotNull(project.layer)
-        // The parser removes duplicate tags, but a MoonProject from a different source can have them.
-        TAG -> project.tags.distinct()
+        TAG -> project.tags
     }
 }

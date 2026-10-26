@@ -109,12 +109,9 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         // web has the tags react and public. The tree shows web in the nodes public and react.
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         assertEquals("web", selectedProject())
-        val path: TreePath = panel.tree.selectionPath!!
-        assertEquals("public", (path.parentPath.lastPathComponent as CategoryNode).value)
+        assertEquals("public", selectedTag())
         assertEquals(1, panel.tree.selectionCount)
     }
-
-    private fun tagPath(tag: String): TreePath = panel.allPaths().single { (it.lastPathComponent as? CategoryNode)?.value == tag }
 
     /** Gives the tag node of the selected project node. */
     private fun selectedTag(): String? = (panel.tree.selectionPath?.parentPath?.lastPathComponent as? CategoryNode)?.value
@@ -123,10 +120,8 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         panel.changeCategory(TaskCategory.TAG)
         panel.loadRecorded()
         // The user can see web in the two tag nodes. The selection is in the node react.
-        panel.tree.expandPath(tagPath("public"))
-        panel.tree.selectionPath = panel.allPaths().single { path ->
-            (path.lastPathComponent as? TaskNode)?.task?.target == "web:build" && path.getPathComponent(1) == tagPath("react").lastPathComponent
-        }
+        panel.tree.expandPath(panel.categoryPath("public"))
+        panel.tree.selectionPath = panel.taskPathIn("react", "web:build")
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         assertEquals("web", selectedProject())
         assertEquals("react", selectedTag())
@@ -135,11 +130,11 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     fun testSelectsTheProjectInATagNodeThatTheUserCanSee() {
         panel.changeCategory(TaskCategory.TAG)
         panel.loadRecorded()
-        panel.tree.expandPath(tagPath("react"))
+        panel.tree.expandPath(panel.categoryPath("react"))
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         assertEquals("web", selectedProject())
         assertEquals("react", selectedTag())
-        assertFalse(panel.tree.isExpanded(tagPath("public")))
+        assertFalse(panel.tree.isExpanded(panel.categoryPath("public")))
     }
 
     fun testFileThatIsNotInAProjectShowsAMessage() {

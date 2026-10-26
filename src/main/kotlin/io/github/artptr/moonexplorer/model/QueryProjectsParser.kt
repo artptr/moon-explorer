@@ -78,11 +78,11 @@ object QueryProjectsParser {
     }
 
     /**
-     * Gives the tags of [project] from `config.tags`. Each tag is in the list only one time. The function ignores values that are not strings, and empty values.
+     * Gives the tags of [project] from `config.tags`, in the sequence of the configuration. The function ignores values that are not strings, and empty values.
      * moon gives an empty list if the project has no tags. Thus the function does not ignore the value `unknown`.
      */
-    private fun tags(project: JsonObject): List<String> =
-        project.obj("config")?.get("tags")?.strings().orEmpty().filterNot(String::isBlank).distinct()
+    private fun tags(project: JsonObject): Set<String> =
+        project.obj("config")?.get("tags")?.strings().orEmpty().filterNot(String::isBlank).toSet()
 
     /** Sorts the items in [ID_ORDER] of the ID that [id] gives. */
     private fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(compareBy(ID_ORDER, id))

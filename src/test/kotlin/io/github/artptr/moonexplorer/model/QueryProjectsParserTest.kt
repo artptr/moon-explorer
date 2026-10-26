@@ -15,7 +15,7 @@ class QueryProjectsParserTest {
 
     /** Gives the values of [category] for each project in [json]. */
     private fun values(json: String, category: TaskCategory) =
-        QueryProjectsParser.parse(json).projects.associate { it.id to category.valuesFor(it) }
+        QueryProjectsParser.parse(json).projects.associate { it.id to category.valuesFor(it).toList() }
 
     @Test
     fun recordedOutputHasAllProjectsWithTasksInOrder() {
@@ -284,7 +284,7 @@ class QueryProjectsParserTest {
             "web" to listOf("react", "public"),
             "worker" to listOf("node", "internal"),
         )
-        assertEquals(expected, recorded.projects.associate { it.id to it.tags })
+        assertEquals(expected, recorded.projects.associate { it.id to it.tags.toList() })
     }
 
     @Test
@@ -296,13 +296,12 @@ class QueryProjectsParserTest {
               {"id": "c", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to listOf("web", "unknown"), "b" to emptyList(), "c" to emptyList()), QueryProjectsParser.parse(json).projects.associate { it.id to it.tags })
+        assertEquals(mapOf("a" to listOf("web", "unknown"), "b" to emptyList(), "c" to emptyList()), QueryProjectsParser.parse(json).projects.associate { it.id to it.tags.toList() })
     }
 
     @Test
     fun tagCategoryGivesEachTagOfAProject() {
-        assertEquals(listOf("react", "public"), TaskCategory.TAG.valuesFor(project("web")))
-        assertEquals(emptyList<String>(), TaskCategory.TAG.valuesFor(project("icons")))
-        assertEquals(listOf("a", "b"), TaskCategory.TAG.valuesFor(MoonProject("p", emptyList(), tags = listOf("a", "b", "a"))))
+        assertEquals(listOf("react", "public"), TaskCategory.TAG.valuesFor(project("web")).toList())
+        assertEquals(emptyList<String>(), TaskCategory.TAG.valuesFor(project("icons")).toList())
     }
 }
