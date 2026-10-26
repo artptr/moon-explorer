@@ -183,6 +183,8 @@ If `platformVersion` is not a fixed version number, the `Build` workflow stops w
 
 Run `vale .`.
 Vale examines the Markdown files and the comments in `.github/workflows/*.yml`.
+Vale does not examine the files in `.claude/worktrees/`.
+Claude Code makes a git worktree in this directory for each separate session.
 Refer to [ste/guide.md](ste/guide.md).
 
 The `Docs` workflow uses the Vale version in `.github/workflows/docs.yml`. Use the same Vale version on your computer.
