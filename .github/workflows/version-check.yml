@@ -1,0 +1,236 @@
+# Find new versions that Dependabot does not update. Refer to docs/development.md, section 7.1.
+# - Compare 'platformVersion' in gradle.properties with the newest released IntelliJ IDEA versions.
+# - Compare the Vale version in docs.yml with the newest Vale release.
+# - If a new version is available, create or update one issue.
+#
+# The workflow does not commit or push changes. Only a run on 'main' changes an issue.
+# A pull request that changes this file also starts the workflow. That run does a check of the scripts and writes only the job summary.
+#
+# GitHub Actions reference: https://docs.github.com/actions
+#
+
+name: Version check
+on:
+  schedule:
+    # Each Monday at 06:30 UTC
+    - cron: '30 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths: [ .github/workflows/version-check.yml ]
+
+# Give the GITHUB_TOKEN read access only. Jobs that write data set their own permissions.
+permissions:
+  contents: read
+
+# The runs on 'main' occur in sequence. Thus two runs do not create two issues.
+# A run for a pull request does not change an issue. Thus it has a different group.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+
+  check:
+    name: Check versions
+    runs-on: ubuntu-latest
+    # The limit stops a run that does not end, for example because a Gradle command does not end.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    steps:
+
+      # The job does not push. Thus the job does not keep the GITHUB_TOKEN in .git/config.
+      - name: Fetch Sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Get the Vale version of the 'Docs' workflow and the version of the newest Vale release. The newest release is not a pre-release.
+      # This step does not use Gradle. Thus it runs before the Java and Gradle setup, and an error stops the job early.
+      - name: Get Vale versions
+        id: vale
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT="$(yq -r '.jobs.vale.steps[] | select((.uses // "") | test("^errata-ai/vale-action@")) | .with.version' .github/workflows/docs.yml)"
+          if [[ ! "$CURRENT" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+            echo "::error::The step cannot find the Vale version in .github/workflows/docs.yml. The value is '$CURRENT'."
+            exit 1
+          fi
+          TAG="$(gh release view --repo errata-ai/vale --json tagName --jq .tagName)"
+          NEWEST="${TAG#v}"
+          if [[ ! "$NEWEST" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+            echo "::error::The tag of the newest Vale release is not a version number. The tag is '$TAG'."
+            exit 1
+          fi
+          {
+            echo "current=$CURRENT"
+            echo "newest=$NEWEST"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # The job does not save the Gradle cache. Only the 'Build' workflow puts data into the cache.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      # Get the newest released IDE of each IDE line, for example 'IU-2025.3.7' for the line 2025.3. The 'Build' workflow uses the same task.
+      # The task gives IntelliJ IDEA versions with the prefix 'IU-'. If the build uses a different IDE, change the 'sed' filter below and the 'Get IDE Versions' step in build.yml.
+      # The 'printProductsReleases' task does not download the IDEs. With 'quickVerification', the task does not include EAP builds.
+      # A line is the first two numbers of a version, for example 2025.3.
+      - name: Get IDE versions
+        id: ide
+        run: |
+          set -euo pipefail
+          PLATFORM_VERSION="$(sed -n 's/^platformVersion[[:space:]]*=[[:space:]]*//p' gradle.properties)"
+          # The check can compare only the version of a released IDE, for example '2025.3.6.1'. It cannot compare an EAP build number, for example '261.12345.67'.
+          if [[ ! "$PLATFORM_VERSION" =~ ^20[0-9]{2}\.[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "::error::'platformVersion' in gradle.properties must be the version of a released IDE, for example '2025.3.6.1'. The value is '$PLATFORM_VERSION'."
+            exit 1
+          fi
+          CURRENT_LINE="$(cut -d . -f 1,2 <<< "$PLATFORM_VERSION")"
+
+          # The step keeps the Gradle output in a variable. Do not send the Gradle output to a command that can close the pipe before Gradle completes.
+          if ! RELEASES="$(./gradlew printProductsReleases -PquickVerification=true --quiet --console=plain)"; then
+            printf '%s\n' "${RELEASES:-}"
+            echo "::error::The Gradle task printProductsReleases did not complete."
+            exit 1
+          fi
+          # Keep the newest version of each line. The list is in sequence from the oldest line to the newest line.
+          NEWEST_OF_EACH_LINE="$(printf '%s\n' "$RELEASES" | sed -n -E 's/^IU-([0-9]+(\.[0-9]+)+)$/\1/p' | sort -V \
+            | awk -F . '{ newest[$1 "." $2] = $0 } END { for (line in newest) print newest[line] }' | sort -V)"
+          if [[ -z "$NEWEST_OF_EACH_LINE" ]]; then
+            printf '%s\n' "$RELEASES"
+            echo "::error::The Gradle output does not contain a released IDE version, for example 'IU-2025.3.7'."
+            exit 1
+          fi
+          NEWEST_IN_LINE="$(awk -v line="$CURRENT_LINE" 'index($0, line ".") == 1' <<< "$NEWEST_OF_EACH_LINE")"
+          # The new lines are the lines after the current line. The current line is in the list as a separator, because '2025.3' is before '2025.3.6.1' in the sequence.
+          NEW_LINES="$({ printf '%s\n' "$CURRENT_LINE" "$NEWEST_OF_EACH_LINE"; } | sort -V \
+            | awk -v line="$CURRENT_LINE" 'found && index($0, line ".") != 1 { print } $0 == line { found = 1 }' | paste -s -d ' ' -)"
+
+          {
+            echo "current=$PLATFORM_VERSION"
+            echo "newest-in-line=$NEWEST_IN_LINE"
+            echo "new-lines=$NEW_LINES"
+          } >> "$GITHUB_OUTPUT"
+
+      # Create an issue, or update the open issue from a previous run. Refer to docs/development.md, section 7.1.
+      # The issue text has a marker with the reported items, for example 'ide=2025.3.7 line=2026.1 vale=3.25.0'.
+      # The step adds a comment or creates an issue only for an item that the marker of the previous issue does not contain.
+      # An available update does not cause a failure of the job. Only an error causes a failure.
+      - name: Report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          # The step finds the issue from a previous run by this label. Refer to .github/labels.yml.
+          ISSUE_LABEL: version-check
+          ISSUE_TITLE: A new IntelliJ IDEA or Vale version is available
+          IDE_CURRENT: ${{ steps.ide.outputs.current }}
+          IDE_NEWEST_IN_LINE: ${{ steps.ide.outputs.newest-in-line }}
+          IDE_NEW_LINES: ${{ steps.ide.outputs.new-lines }}
+          VALE_CURRENT: ${{ steps.vale.outputs.current }}
+          VALE_NEWEST: ${{ steps.vale.outputs.newest }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # The function is true if version $1 is newer than version $2.
+          newer() { [[ "$1" != "$2" && "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" == "$1" ]]; }
+
+          ITEMS="$RUNNER_TEMP/items.txt"
+          : > "$ITEMS"
+          {
+            echo "| Item | Version in the repository | Newest version | Action |"
+            echo "|------|---------------------------|----------------|--------|"
+            ACTION="No action"
+            if [[ -n "$IDE_NEWEST_IN_LINE" ]] && newer "$IDE_NEWEST_IN_LINE" "$IDE_CURRENT"; then
+              echo "ide=$IDE_NEWEST_IN_LINE" >> "$ITEMS"
+              ACTION="Change \`platformVersion\` in \`gradle.properties\`."
+            fi
+            echo "| IntelliJ IDEA $(cut -d . -f 1,2 <<< "$IDE_CURRENT") | $IDE_CURRENT | ${IDE_NEWEST_IN_LINE:-none} | $ACTION |"
+            # A new line has no patch version in the marker. Thus a new patch version of a new line does not cause a second notification.
+            for VERSION in $IDE_NEW_LINES; do
+              LINE="$(cut -d . -f 1,2 <<< "$VERSION")"
+              echo "line=$LINE" >> "$ITEMS"
+              echo "| IntelliJ IDEA $LINE (new line) | - | $VERSION | Information only. A change to this line also changes the minimum IDE version of the plugin. |"
+            done
+            ACTION="No action"
+            if newer "$VALE_NEWEST" "$VALE_CURRENT"; then
+              echo "vale=$VALE_NEWEST" >> "$ITEMS"
+              ACTION="Change \`version\` in \`.github/workflows/docs.yml\`."
+            fi
+            echo "| Vale | $VALE_CURRENT | $VALE_NEWEST | $ACTION |"
+          } > "$RUNNER_TEMP/result.md"
+          cat "$RUNNER_TEMP/result.md" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "The run is not on main. The job does not change an issue." >> "$GITHUB_STEP_SUMMARY"
+            if [[ -s "$ITEMS" ]]; then
+              echo "::warning::A new version is available. The run is not on main. Thus the job did not change an issue. Refer to the job summary."
+            fi
+            exit 0
+          fi
+
+          # Get the open issue with the label. If no issue is open, get the newest closed issue with the label. Then get the items in its marker.
+          PREVIOUS="$(gh issue list --state all --label "$ISSUE_LABEL" --limit 20 --json number,state,body \
+            --jq '(map(select(.state == "OPEN")) | .[0]) // .[0] // {}')"
+          read -r NUMBER STATE < <(jq -r '"\(.number // "") \(.state // "")"' <<< "$PREVIOUS")
+          jq -r '.body // empty' <<< "$PREVIOUS" \
+            | sed -n 's/^<!-- versions: \(.*\) -->\r\{0,1\}$/\1/p' | tr -s ' ' '\n' | sed '/^$/d' > "$RUNNER_TEMP/previous.txt"
+          # The new items are the items that the previous marker does not contain.
+          NEW_ITEMS="$(grep -v -x -F -f "$RUNNER_TEMP/previous.txt" "$ITEMS" || true)"
+
+          if [[ ! -s "$ITEMS" ]]; then
+            echo "No new version is available."
+            if [[ "$STATE" == "OPEN" ]]; then
+              gh issue close "$NUMBER" --comment "The versions in the repository are the newest versions. Workflow run: $RUN_URL"
+              echo "Closed issue: $GITHUB_SERVER_URL/$GH_REPO/issues/$NUMBER" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          fi
+
+          if [[ "$STATE" != "OPEN" && -z "$NEW_ITEMS" ]]; then
+            echo "The closed issue #$NUMBER contains all available versions. The job does not create an issue." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BODY="$RUNNER_TEMP/issue.md"
+          {
+            echo "<!-- versions: $(paste -s -d ' ' "$ITEMS") -->"
+            echo "The \`Version check\` workflow found a new IntelliJ IDEA version or a new Vale version. Dependabot does not update these versions."
+            echo
+            cat "$RUNNER_TEMP/result.md"
+            echo
+            echo "Workflow run: $RUN_URL"
+            echo
+            echo "To change a version, refer to \`docs/development.md\`, section 7.1."
+            echo "Put \`Closes #<issue-number>\` in the text of the pull request."
+            echo
+            echo "A new IntelliJ IDEA line is only information. If you close the issue, the workflow does not open it again for the same versions."
+            echo
+            echo "The workflow replaces this text at each run. Write notes in comments."
+          } > "$BODY"
+
+          if [[ "$STATE" == "OPEN" ]]; then
+            gh issue edit "$NUMBER" --body-file "$BODY"
+            if [[ -n "$NEW_ITEMS" ]]; then
+              gh issue comment "$NUMBER" --body "The workflow found a new version: $(paste -s -d ' ' - <<< "$NEW_ITEMS"). The issue text shows the new result. Workflow run: $RUN_URL"
+            fi
+            ISSUE_URL="$GITHUB_SERVER_URL/$GH_REPO/issues/$NUMBER"
+          else
+            # The 'Labels' workflow creates the label from .github/labels.yml. This workflow can run before the 'Labels' workflow.
+            # Thus the step also creates the label. The step gets the color and the description from .github/labels.yml.
+            IFS=$'\t' read -r COLOR DESCRIPTION < <(yq -r '.[] | select(.name == strenv(ISSUE_LABEL)) | [.color, .description] | @tsv' .github/labels.yml)
+            gh label create "$ISSUE_LABEL" --color "$COLOR" --description "$DESCRIPTION" --force
+            ISSUE_URL="$(gh issue create --title "$ISSUE_TITLE" --label "type/chore,area/build,dependencies,$ISSUE_LABEL" --body-file "$BODY")"
+          fi
+          echo "Issue: $ISSUE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::A new version is available. Refer to $ISSUE_URL."
