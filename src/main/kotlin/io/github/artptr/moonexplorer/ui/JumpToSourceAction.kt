@@ -40,13 +40,13 @@ import javax.swing.JList
 class JumpToSourceAction : DumbAwareAction() {
 
     /**
-     * Shows the files of [labels] with the title [title] near the selection in [dataContext]. The function calls [onChosen] with the file that
-     * the user selects. [labels] gives the text that the list shows for each file, in the sequence of the list.
+     * Shows the files of [choices] with the title [title] near the selection in [dataContext]. The function calls [onChosen] with the file that
+     * the user selects. Each item of [choices] is a file and the text that the list shows for it. The list keeps the sequence of [choices].
      * Tests replace this value with a test function. Change it only on the EDT.
      */
     internal var showChooser: (
         title: String,
-        labels: Map<SourceFile, String>,
+        choices: List<Pair<SourceFile, String>>,
         dataContext: DataContext,
         onChosen: (SourceFile) -> Unit,
     ) -> Unit = ::showFileChooser
@@ -78,7 +78,7 @@ class JumpToSourceAction : DumbAwareAction() {
                 files.size == 1 -> openSourceFile(project, files.single())
                 files.size > 1 && task != null -> withContext(Dispatchers.EDT) {
                     val title = MoonExplorerBundle.message("tasks.jumpToSource.chooseFile", task.target)
-                    showChooser(title, files.associateWith { state.workspacePath(it.path) }, dataContext) { file ->
+                    showChooser(title, files.map { it to state.workspacePath(it.path) }, dataContext) { file ->
                         launch(project) { openSourceFile(project, file) }
                     }
                 }
@@ -117,11 +117,12 @@ internal suspend fun openSourceFile(project: Project, file: SourceFile) {
 
 private fun showFileChooser(
     title: String,
-    labels: Map<SourceFile, String>,
+    choices: List<Pair<SourceFile, String>>,
     dataContext: DataContext,
     onChosen: (SourceFile) -> Unit,
 ) {
-    JBPopupFactory.getInstance().createPopupChooserBuilder(labels.keys.toList())
+    val labels = choices.toMap()
+    JBPopupFactory.getInstance().createPopupChooserBuilder(choices.map { it.first })
         .setTitle(title)
         .setRenderer(
             object : ColoredListCellRenderer<SourceFile>() {

@@ -32,9 +32,9 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     private var chooserFiles: List<SourceFile> = emptyList()
 
     private val action = JumpToSourceAction().apply {
-        showChooser = { _, labels, _, onChosen ->
-            chooserCalls += labels.values.toList()
-            chooserFiles = labels.keys.toList()
+        showChooser = { _, choices, _, onChosen ->
+            chooserCalls += choices.map { it.second }
+            chooserFiles = choices.map { it.first }
             chosen = onChosen
         }
     }
