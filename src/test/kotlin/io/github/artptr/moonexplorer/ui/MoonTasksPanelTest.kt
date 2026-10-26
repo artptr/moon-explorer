@@ -526,6 +526,32 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(listOf("ui:build", "web:build"), panel.selectedTasks()?.map { it.target })
     }
 
+    fun testChangeMainGroupKeepsTheTagNodeOfTheSelectedTask() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        // web has the tags public and react. The node public is before the node react.
+        panel.tree.selectionPath = panel.taskPathIn("react", "web:build")
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        assertEquals(listOf(panel.taskPathIn("react", "web:build")), panel.tree.selectionPaths.orEmpty().toList())
+        assertFalse("The tree must not expand a different tag node", panel.tree.isExpanded(panel.categoryPath("public")))
+        panel.changeMainGroup(TaskGrouping.PROJECT)
+        assertEquals(listOf(panel.taskPathIn("react", "web:build")), panel.tree.selectionPaths.orEmpty().toList())
+    }
+
+    fun testRefreshSelectsAProjectAndItsTaskInOneTagNode() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.expandPath(panel.categoryPath("public"))
+        panel.tree.selectionPaths = arrayOf(panel.projectPathIn("react", "web"), panel.taskPathIn("react", "web:build"))
+        // Change the tags of web to internal and public. The user can see the project web below public, but not its tasks.
+        val tasks = TestData.recordedTasks()
+        val changed = tasks.copy(projects = tasks.projects.map { if (it.id == "web") it.copy(tags = setOf("internal", "public")) else it })
+        panel.render(TestData.loadedState(changed))
+        val expected = listOf(panel.projectPathIn("public", "web"), panel.taskPathIn("public", "web:build"))
+        assertEquals(expected, panel.tree.selectionPaths.orEmpty().toList())
+        assertFalse(panel.tree.isExpanded(panel.categoryPath("internal")))
+    }
+
     fun testChangeCategoryWithAMessageShowsTheMessage() {
         panel.render(TasksState.NoWorkspace)
         panel.changeCategory(TaskCategory.STACK)

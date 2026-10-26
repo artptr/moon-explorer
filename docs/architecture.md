@@ -79,7 +79,19 @@ The tree has two selections in the **Group By** menu. A separator divides them. 
 
 A project can have more than one tag. With the category **Tag**, the project is in the node of each tag. Thus the tree can show a task in more than one node. The actions on the selected tasks, projects, and task name nodes use each task and each project one time.
 
-After a change of the category, the tree selects the selected tasks and projects again. If an item is in more than one node, the tree uses a node that you can see, or the first node. **Select Opened File** selects the project in the tag node that contains the selection. If no tag node contains the selection, the action uses a tag node that you can see, or the first tag node.
+After a change of the category, the main group, or the tags of a project, the tree selects the selected tasks and projects again. If an item is in more than one node, the tree uses the first node that agrees with the first applicable rule in this list:
+
+1. The node is in the old category node of the item. For example, after a change of the main group, the task stays in its tag node.
+2. The node is in a category node that contains a different selected item. For example, a task goes to the tag node of its selected project.
+3. The node is in the visible area of the tree.
+4. The tree shows the node when you scroll. All parent nodes of the node are open.
+5. The node is the first node of the item.
+
+**Select Opened File** uses these rules for the project node:
+
+1. The project node contains the selection.
+2. The category node of the project node contains the selection.
+3. The rules 3 to 5 of the list above.
 
 The plugin keeps the two selections in the workspace file of the IDE project. The plugin changes the setting of version 0.1.0 to the two selections. The plugin changes the old value **Stack** to the category **Stack** and the main group **Project**.
 

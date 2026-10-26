@@ -28,10 +28,14 @@ val SELECTED_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.Selec
  * Below a category node, the task name node contains only the projects of the category. Thus the value contains only these tasks.
  * The user can select the nodes of one task name in more than one category node. Then the value contains the tasks of all these nodes, each task one time.
  * The value is null if a selected node is not a task name node, or if the selected nodes have different names.
+ * The value is also null if the selected nodes have no task nodes.
  */
 val SELECTED_TASK_NAME_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.SelectedTaskNameTasks")
 
-/** The project that the user selected in the tree of the Moon tool window. The value is null if the selection is not one project node. */
+/**
+ * The project that the user selected in the tree of the Moon tool window. The value is null if the selection is not one project.
+ * The tree can show a project in more than one category node. If the user selects two nodes of the same project, the value is this project.
+ */
 val SELECTED_PROJECT: DataKey<MoonProject> = DataKey.create("MoonExplorer.SelectedProject")
 
 /**
@@ -115,11 +119,11 @@ abstract class SelectedTasksRunAction(
     }
 }
 
-/** Runs the task of the selected task name node in all projects of the node. */
+/** Runs the task of the selected task name nodes in all projects of the nodes. Refer to [SELECTED_TASK_NAME_TASKS]. */
 class RunInProjectsAction :
     SelectedTasksRunAction(SELECTED_TASK_NAME_TASKS, affected = false, "action.MoonExplorer.RunInProjects.textWithCount")
 
-/** Runs the task of the selected task name node only in the projects of the node that the changed files affect. */
+/** Runs the task of the selected task name nodes only in the projects of the nodes that the changed files affect. */
 class RunAffectedInProjectsAction :
     SelectedTasksRunAction(SELECTED_TASK_NAME_TASKS, affected = true, "action.MoonExplorer.RunAffectedInProjects.textWithCount")
 

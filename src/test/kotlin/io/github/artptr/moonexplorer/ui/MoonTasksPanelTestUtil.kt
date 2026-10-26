@@ -10,6 +10,11 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.TestActionEvent
 import io.github.artptr.moonexplorer.testData.TestData
+import java.awt.Component
+import java.awt.Container
+import java.awt.Point
+import javax.swing.JViewport
+import javax.swing.SwingUtilities
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 
@@ -35,6 +40,30 @@ fun MoonTasksPanel.taskPathIn(value: String, target: String): TreePath = pathIn(
 
 /** Gives the path of the project node [id] below the category node [value]. */
 fun MoonTasksPanel.projectPathIn(value: String, id: String): TreePath = pathIn(value) { (it as? ProjectNode)?.project?.id == id }
+
+/**
+ * Sets the size of the panel and lays out its components. Then the visible area of the tree shows [rows] rows.
+ * A panel in a test is not on the screen. Thus the tree has no visible area before a call of this function.
+ */
+fun MoonTasksPanel.layOut(rows: Int) {
+    fun layOutAll(component: Component) {
+        component.doLayout()
+        (component as? Container)?.components?.forEach(::layOutAll)
+    }
+    setSize(LAYOUT_WIDTH, LAYOUT_WIDTH * 4)
+    layOutAll(this)
+    val viewport = SwingUtilities.getAncestorOfClass(JViewport::class.java, tree) as JViewport
+    setSize(LAYOUT_WIDTH, height - viewport.height + rows * tree.getRowBounds(0).height)
+    layOutAll(this)
+}
+
+private const val LAYOUT_WIDTH = 400
+
+/** Scrolls the tree. Then the node of [path] is at the top of the visible area. Call [layOut] first. */
+fun MoonTasksPanel.scrollToTop(path: TreePath) {
+    val viewport = SwingUtilities.getAncestorOfClass(JViewport::class.java, tree) as JViewport
+    viewport.viewPosition = Point(0, tree.getPathBounds(path)!!.y)
+}
 
 /** Collects the notifications of [RefreshFailureNotifier] in [project] until [disposable] is disposed. */
 fun collectRefreshNotifications(project: Project, disposable: Disposable): List<Notification> {
