@@ -132,6 +132,13 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         assertEquals(tree.child("public", "web").childNames(), tree.child("react", "web").childNames())
     }
 
+    fun testProjectWithADuplicateTagIsOneTimeInTheTagNode() {
+        val project = MoonProject("a", listOf(MoonTask("build", "a:build", null)), tags = listOf("web", "web"))
+        val tree = buildTaskTree(WorkspaceTasks(listOf(project)), TaskCategory.TAG)
+        assertEquals(listOf("web"), tree.childNames())
+        assertEquals(listOf("a"), tree.child("web").childNames())
+    }
+
     fun testTagAndTaskNameHasTagNodesWithTaskNames() {
         val tree = buildTaskTree(tasks, TaskCategory.TAG, TaskGrouping.TASK_NAME)
         assertEquals(listOf("internal", "node", "public", "react", "shared", none), tree.childNames())

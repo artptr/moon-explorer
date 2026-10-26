@@ -472,6 +472,37 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertFalse(panel.tree.isExpanded(webIn("public")))
     }
 
+    fun testTwoNodesOfTheSameProjectAreOneProject() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        fun projectIn(tag: String, id: String) = pathIn(tag) { (it as? ProjectNode)?.project?.id == id }
+        panel.tree.selectionPaths = arrayOf(projectIn("public", "web"), projectIn("react", "web"))
+        assertEquals("web", panel.selectedProject()?.id)
+        panel.tree.addSelectionPath(projectIn("react", "ui"))
+        assertNull(panel.selectedProject())
+    }
+
+    fun testRefreshKeepsTheSelectedNodeOfATaskInOneTagNode() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.selectionPath = taskPathIn("react", "web:build")
+        panel.loadRecorded()
+        assertEquals(listOf(taskPathIn("react", "web:build")), panel.tree.selectionPaths.orEmpty().toList())
+    }
+
+    fun testRefreshSelectsATaskAgainAfterAChangeOfItsTags() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.selectionPaths = arrayOf(taskPathIn("react", "web:build"), taskPathIn("react", "ui:build"))
+        // Remove the tag react from web. Then the tree shows web:build only in the node public.
+        val tasks = TestData.recordedTasks()
+        val changed = tasks.copy(projects = tasks.projects.map { if (it.id == "web") it.copy(tags = listOf("public")) else it })
+        panel.render(TestData.loadedState(changed))
+        val expected = listOf(taskPathIn("react", "ui:build"), taskPathIn("public", "web:build"))
+        assertEquals(expected, panel.tree.selectionPaths.orEmpty().toList())
+        assertEquals(listOf("ui:build", "web:build"), panel.selectedTasks()?.map { it.target })
+    }
+
     fun testChangeCategoryWithAMessageShowsTheMessage() {
         panel.render(TasksState.NoWorkspace)
         panel.changeCategory(TaskCategory.STACK)

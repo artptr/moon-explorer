@@ -82,11 +82,15 @@ enum class TaskCategory {
     TAG,
     ;
 
-    /** Gives the values of [project] for this category. The list is empty if the project has no value. [NONE] has no values. */
+    /**
+     * Gives the values of [project] for this category. Each value is in the list only one time. The list is empty if the project has no value.
+     * [NONE] has no values. The tree adds the project one time below the node of each value.
+     */
     fun valuesFor(project: MoonProject): List<String> = when (this) {
         NONE -> emptyList()
         STACK -> listOfNotNull(project.stack)
         LAYER -> listOfNotNull(project.layer)
-        TAG -> project.tags
+        // The parser removes duplicate tags, but a MoonProject from a different source can have them.
+        TAG -> project.tags.distinct()
     }
 }

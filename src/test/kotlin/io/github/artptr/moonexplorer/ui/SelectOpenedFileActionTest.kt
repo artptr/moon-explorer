@@ -114,6 +114,34 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         assertEquals(1, panel.tree.selectionCount)
     }
 
+    private fun tagPath(tag: String): TreePath = panel.allPaths().single { (it.lastPathComponent as? CategoryNode)?.value == tag }
+
+    /** Gives the tag node of the selected project node. */
+    private fun selectedTag(): String? = (panel.tree.selectionPath?.parentPath?.lastPathComponent as? CategoryNode)?.value
+
+    fun testSelectsTheProjectInTheTagNodeThatContainsTheSelection() {
+        panel.changeCategory(TaskCategory.TAG)
+        panel.loadRecorded()
+        // The user can see web in the two tag nodes. The selection is in the node react.
+        panel.tree.expandPath(tagPath("public"))
+        panel.tree.selectionPath = panel.allPaths().single { path ->
+            (path.lastPathComponent as? TaskNode)?.task?.target == "web:build" && path.getPathComponent(1) == tagPath("react").lastPathComponent
+        }
+        panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
+        assertEquals("web", selectedProject())
+        assertEquals("react", selectedTag())
+    }
+
+    fun testSelectsTheProjectInATagNodeThatTheUserCanSee() {
+        panel.changeCategory(TaskCategory.TAG)
+        panel.loadRecorded()
+        panel.tree.expandPath(tagPath("react"))
+        panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
+        assertEquals("web", selectedProject())
+        assertEquals("react", selectedTag())
+        assertFalse(panel.tree.isExpanded(tagPath("public")))
+    }
+
     fun testFileThatIsNotInAProjectShowsAMessage() {
         panel.loadRecorded()
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))

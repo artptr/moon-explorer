@@ -303,5 +303,6 @@ class QueryProjectsParserTest {
     fun tagCategoryGivesEachTagOfAProject() {
         assertEquals(listOf("react", "public"), TaskCategory.TAG.valuesFor(project("web")))
         assertEquals(emptyList<String>(), TaskCategory.TAG.valuesFor(project("icons")))
+        assertEquals(listOf("a", "b"), TaskCategory.TAG.valuesFor(MoonProject("p", emptyList(), tags = listOf("a", "b", "a"))))
     }
 }
