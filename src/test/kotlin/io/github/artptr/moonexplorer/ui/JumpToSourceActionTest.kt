@@ -19,6 +19,7 @@ import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.workspacePath
 import io.github.artptr.moonexplorer.testData.TestData
 import java.nio.file.Files
+import java.nio.file.Path
 
 class JumpToSourceActionTest : BasePlatformTestCase() {
 
@@ -104,17 +105,33 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
         assertFalse(isAvailable(empty.tasks.single(), shown = loaded))
     }
 
-    fun testAvailabilityUsesTheFilesOfTheLoad() {
+    /** The project of [loadTempProject]. */
+    private val tempProject = MoonProject("a", listOf(MoonTask("build", "a:build", null)))
+
+    /** Loads [tempProject] with the file `apps/a/moon.yml` in a temporary workspace. Gives the state and the path of the file. */
+    private fun loadTempProject(): Pair<TasksState.Loaded, Path> {
         // The JVM deletes the directory when the tests complete.
         val root = FileUtil.createTempDirectory("moon-explorer-test", null, true).toPath()
         val file = Files.writeString(Files.createDirectories(root.resolve("apps/a")).resolve("moon.yml"), "tasks:\n")
-        val a = MoonProject("a", listOf(MoonTask("build", "a:build", null)))
-        val loaded = TestData.loadedState(WorkspaceTasks(listOf(a), listOf(ProjectSource("a", "apps/a"))), root)
-        // The plugin loads the tasks again after this change. Until then, the action uses the files of the last load.
+        return TestData.loadedState(WorkspaceTasks(listOf(tempProject), listOf(ProjectSource("a", "apps/a"))), root) to file
+    }
+
+    fun testAvailabilityUsesTheFilesOfTheLoad() {
+        val (loaded, file) = loadTempProject()
+        // The plugin loads the tasks again after this change. Until then, the action uses the files of the last successful load.
         Files.delete(file)
-        assertTrue(isAvailable(moonProject = a, shown = loaded))
-        perform(moonProject = a, shown = loaded)
+        assertTrue(isAvailable(moonProject = tempProject, shown = loaded))
+        perform(moonProject = tempProject, shown = loaded)
         assertNull("The file does not exist. Thus no file opens", FileEditorManager.getInstance(project).selectedTextEditor)
+    }
+
+    fun testPathThatIsNowADirectoryOpensNoFile() {
+        val (loaded, file) = loadTempProject()
+        Files.delete(file)
+        Files.createDirectory(file)
+        perform(moonProject = tempProject, shown = loaded)
+        assertFalse("The action completes without an error", action.lastJob!!.isCancelled)
+        assertNull("The path is a directory. Thus no file opens", FileEditorManager.getInstance(project).selectedTextEditor)
     }
 
     fun testOwnTaskOpensTheProjectConfigFileAtTheTaskLine() {

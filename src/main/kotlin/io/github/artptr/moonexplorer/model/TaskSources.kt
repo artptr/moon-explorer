@@ -17,15 +17,15 @@ data class SourceFile(val path: Path, val taskId: String?)
  * The configuration files that existed on the disk at the time of a load. The paths are absolute and normalized.
  * [projects] gives the configuration file of each project ID, for example `moon.yml`. A project without this file is not in the map.
  * [inherited] contains the files of [TaskConfigs.layers] that exist, for example `.moon/tasks/all.yml`.
- * When a configuration file changes, the plugin loads the tasks again and finds the files again.
+ * When a configuration file changes, the plugin loads the tasks again. After a successful load, the plugin finds the files again.
  */
-data class ExistingConfigFiles(val projects: Map<String, Path> = emptyMap(), val inherited: Set<Path> = emptySet())
+data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Set<Path>)
 
 /**
  * Finds the configuration files of the projects and the tasks of [tasks] in the workspace [root]. The loader calls this function one time
  * for each load. Thus the actions do not read the disk to find the files. The function reads the disk. Call it on a background thread.
  */
-fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): ExistingConfigFiles {
+internal fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): ExistingConfigFiles {
     val normalizedRoot = root.toAbsolutePath().normalize()
     val projects = tasks.sources.mapNotNull { source ->
         val file = resolveSourceDir(normalizedRoot, source)?.let { MoonWorkspaceLocator.findConfigFile(it, "moon") }

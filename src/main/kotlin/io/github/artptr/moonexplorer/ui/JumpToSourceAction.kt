@@ -34,7 +34,7 @@ import kotlinx.coroutines.withContext
  * For a task, the IDE opens the file at the line of the task key. If the task is in more than one file, the IDE shows a list of the files.
  * For a project, the IDE opens the configuration file of the project at the first line.
  * The action does not start moon, and it is not available if the selection has no configuration file.
- * The action uses the configuration files that the plugin found at the time of the load. Thus [update] does not read the disk.
+ * The action uses the configuration files that the plugin found at the last successful load. Thus [update] does not read the disk.
  */
 class JumpToSourceAction : DumbAwareAction() {
 
@@ -95,9 +95,11 @@ class JumpToSourceAction : DumbAwareAction() {
 /**
  * Opens [file] in the editor. If [SourceFile.taskId] is not null, the editor shows the line of the task key.
  * If the function does not find the task key, the editor shows the first line.
+ * The state keeps the paths until the next successful load. If a path is now missing or is a directory, the function does nothing.
  */
 internal suspend fun openSourceFile(project: Project, file: SourceFile) {
-    val virtualFile = withContext(Dispatchers.IO) { LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file.path) } ?: return
+    val virtualFile = withContext(Dispatchers.IO) { LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file.path) }
+        ?.takeUnless { it.isDirectory } ?: return
     val offset = file.taskId?.let { taskId ->
         // The document contains the changes that the user did not save.
         val text = readAction { FileDocumentManager.getInstance().getDocument(virtualFile)?.immutableCharSequence }
