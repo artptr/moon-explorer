@@ -13,8 +13,9 @@ class QueryProjectsParserTest {
 
     private fun project(id: String) = recorded.projects.single { it.id == id }
 
-    /** Gives the value of [category] for each project in [json]. */
-    private fun values(json: String, category: TaskCategory) = QueryProjectsParser.parse(json).projects.associate { it.id to category.valueFor(it) }
+    /** Gives the values of [category] for each project in [json]. */
+    private fun values(json: String, category: TaskCategory) =
+        QueryProjectsParser.parse(json).projects.associate { it.id to category.valuesFor(it).toList() }
 
     @Test
     fun recordedOutputHasAllProjectsWithTasksInOrder() {
@@ -213,7 +214,7 @@ class QueryProjectsParserTest {
     fun unknownStackIsNull() {
         // moon gives "unknown" if the project does not set stack.
         val json = """{"projects": [{"id": "a", "stack": "unknown", "tasks": {"t": {"id": "t"}}}]}"""
-        assertEquals(mapOf("a" to null), values(json, TaskCategory.STACK))
+        assertEquals(mapOf("a" to emptyList<String>()), values(json, TaskCategory.STACK))
     }
 
     @Test
@@ -223,7 +224,7 @@ class QueryProjectsParserTest {
               {"id": "a", "stack": "Unknown", "tasks": {"t": {"id": "t"}}}, {"id": "b", "stack": "UNKNOWN", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to null, "b" to null), values(json, TaskCategory.STACK))
+        assertEquals(mapOf("a" to emptyList<String>(), "b" to emptyList()), values(json, TaskCategory.STACK))
     }
 
     @Test
@@ -233,7 +234,7 @@ class QueryProjectsParserTest {
               {"id": "a", "config": {"stack": "infrastructure"}, "tasks": {"t": {"id": "t"}}}, {"id": "b", "stack": "", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to "infrastructure", "b" to null), values(json, TaskCategory.STACK))
+        assertEquals(mapOf("a" to listOf("infrastructure"), "b" to emptyList()), values(json, TaskCategory.STACK))
     }
 
     @Test
@@ -261,12 +262,46 @@ class QueryProjectsParserTest {
               {"id": "c", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to null, "b" to null, "c" to null), values(json, TaskCategory.LAYER))
+        assertEquals(mapOf("a" to emptyList<String>(), "b" to emptyList(), "c" to emptyList()), values(json, TaskCategory.LAYER))
     }
 
     @Test
     fun layerComesFromTheConfigIfTheTopLevelValueIsMissing() {
         val json = """{"projects": [{"id": "a", "config": {"layer": "tool"}, "tasks": {"t": {"id": "t"}}}]}"""
-        assertEquals(mapOf("a" to "tool"), values(json, TaskCategory.LAYER))
+        assertEquals(mapOf("a" to listOf("tool")), values(json, TaskCategory.LAYER))
+    }
+
+    @Test
+    fun recordedOutputHasTheTagsOfEachProject() {
+        val expected = mapOf(
+            "admin" to listOf("react", "internal"),
+            "api" to listOf("node", "public"),
+            "db" to listOf("node", "shared"),
+            "icons" to emptyList(),
+            "scripts" to emptyList(),
+            "ui" to listOf("react"),
+            "utils" to listOf("shared"),
+            "web" to listOf("react", "public"),
+            "worker" to listOf("node", "internal"),
+        )
+        assertEquals(expected, recorded.projects.associate { it.id to it.tags.toList() })
+    }
+
+    @Test
+    fun tagsIgnoreValuesThatAreNotStringsEmptyValuesAndDuplicates() {
+        val json = """
+            {"projects": [
+              {"id": "a", "config": {"tags": ["web", 5, "", " ", null, "web", "unknown"]}, "tasks": {"t": {"id": "t"}}},
+              {"id": "b", "config": {"tags": "web"}, "tasks": {"t": {"id": "t"}}},
+              {"id": "c", "tasks": {"t": {"id": "t"}}}
+            ]}
+        """
+        assertEquals(mapOf("a" to listOf("web", "unknown"), "b" to emptyList(), "c" to emptyList()), QueryProjectsParser.parse(json).projects.associate { it.id to it.tags.toList() })
+    }
+
+    @Test
+    fun tagCategoryGivesEachTagOfAProject() {
+        assertEquals(listOf("react", "public"), TaskCategory.TAG.valuesFor(project("web")).toList())
+        assertEquals(emptyList<String>(), TaskCategory.TAG.valuesFor(project("icons")).toList())
     }
 }

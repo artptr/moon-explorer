@@ -245,6 +245,17 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(listOf("db:build", "ui:build", "utils:build"), panel.selectedTaskNameTasks()?.map { it.target })
     }
 
+    fun testTaskNameNodesWithTheSameNameInTwoTagNodesAreOneList() {
+        panel.loadRecorded()
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        panel.changeCategory(TaskCategory.TAG)
+        // The node internal contains admin and worker. The node react contains admin, ui, and web.
+        panel.tree.selectionPaths = arrayOf(namePath("internal", "build"), namePath("react", "build"))
+        assertEquals(listOf("admin:build", "ui:build", "web:build", "worker:build"), panel.selectedTaskNameTasks()?.map { it.target })
+        panel.tree.addSelectionPath(namePath("react", "lint"))
+        assertNull("Task name nodes with different names have no task list", panel.selectedTaskNameTasks())
+    }
+
     /**
      * Gives a data context with the data of [base] and the data snapshot of the panel.
      * The actions of the context menu get their data from this snapshot.
@@ -386,6 +397,8 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertEquals(listOf("backend", "frontend", "(none)"), topNodeNames())
         panel.changeCategory(TaskCategory.LAYER)
         assertEquals(listOf("application", "library", "(none)"), topNodeNames())
+        panel.changeCategory(TaskCategory.TAG)
+        assertEquals(listOf("internal", "node", "public", "react", "shared", "(none)"), topNodeNames())
         panel.changeCategory(TaskCategory.NONE)
         panel.changeMainGroup(TaskGrouping.PROJECT)
         assertEquals(9, topNodeNames().size)
@@ -430,6 +443,114 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.loadRecorded()
         val again = panel.allPaths().single { (it.lastPathComponent as? ProjectNode)?.project?.id == "web" }
         assertTrue(panel.tree.isExpanded(again))
+    }
+
+    fun testChangeToTagCategorySelectsTheFirstNodeOfTheTask() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = taskPath("web:build")
+        panel.changeCategory(TaskCategory.TAG)
+        // web has the tags react and public. The tree shows web:build in the two tag nodes.
+        assertEquals(listOf(panel.taskPathIn("public", "web:build")), panel.selectedPaths())
+        assertEquals("web:build", panel.selectedTask()?.target)
+        assertTrue(panel.tree.isExpanded(panel.categoryPath("public")))
+        assertFalse("The tree must not expand all tag nodes of the task", panel.tree.isExpanded(panel.categoryPath("react")))
+    }
+
+    fun testChangeToTagCategorySelectsTheProjectAgain() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        panel.changeCategory(TaskCategory.TAG)
+        assertEquals(listOf(panel.projectPathIn("public", "web")), panel.selectedPaths())
+        assertEquals("web", panel.selectedProject()?.id)
+    }
+
+    fun testRefreshPrefersTheNodeOfTheTaskThatTheUserCanSee() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.expandPath(panel.projectPathIn("react", "web"))
+        panel.tree.selectionPath = panel.taskPathIn("public", "web:build")
+        // Change the tags of web to internal and react. The node internal is before the node react, but the user cannot see web below it.
+        renderWithWebTags("internal", "react")
+        assertEquals(listOf(panel.taskPathIn("react", "web:build")), panel.selectedPaths())
+    }
+
+    /** Shows the recorded tasks, but gives the project web the tags [tags]. */
+    private fun renderWithWebTags(vararg tags: String) {
+        val tasks = TestData.recordedTasks()
+        val changed = tasks.copy(projects = tasks.projects.map { if (it.id == "web") it.copy(tags = tags.toSet()) else it })
+        panel.render(TestData.loadedState(changed))
+    }
+
+    fun testTwoNodesOfTheSameTaskAreOneTask() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.selectionPaths = arrayOf(panel.taskPathIn("public", "web:build"), panel.taskPathIn("react", "web:build"))
+        assertEquals("web:build", panel.selectedTask()?.target)
+        assertNull(panel.selectedTasks())
+        panel.tree.addSelectionPath(panel.taskPathIn("react", "ui:build"))
+        assertNull(panel.selectedTask())
+        assertEquals(listOf("web:build", "ui:build"), panel.selectedTasks()?.map { it.target })
+    }
+
+    fun testRefreshKeepsExpandedNodesInTagCategory() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.expandPath(panel.projectPathIn("react", "web"))
+        panel.loadRecorded()
+        assertTrue(panel.tree.isExpanded(panel.projectPathIn("react", "web")))
+        assertFalse(panel.tree.isExpanded(panel.projectPathIn("public", "web")))
+    }
+
+    fun testTwoNodesOfTheSameProjectAreOneProject() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.selectionPaths = arrayOf(panel.projectPathIn("public", "web"), panel.projectPathIn("react", "web"))
+        assertEquals("web", panel.selectedProject()?.id)
+        panel.tree.addSelectionPath(panel.projectPathIn("react", "ui"))
+        assertNull(panel.selectedProject())
+    }
+
+    fun testRefreshKeepsTheSelectedNodeOfATaskInOneTagNode() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.selectionPath = panel.taskPathIn("react", "web:build")
+        panel.loadRecorded()
+        assertEquals(listOf(panel.taskPathIn("react", "web:build")), panel.selectedPaths())
+    }
+
+    fun testRefreshSelectsATaskAgainAfterAChangeOfItsTags() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.selectionPaths = arrayOf(panel.taskPathIn("react", "web:build"), panel.taskPathIn("react", "ui:build"))
+        // Remove the tag react from web. Then the tree shows web:build only in the node public.
+        renderWithWebTags("public")
+        val expected = listOf(panel.taskPathIn("react", "ui:build"), panel.taskPathIn("public", "web:build"))
+        assertEquals(expected, panel.selectedPaths())
+        assertEquals(listOf("ui:build", "web:build"), panel.selectedTasks()?.map { it.target })
+    }
+
+    fun testChangeMainGroupKeepsTheTagNodeOfTheSelectedTask() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        // web has the tags public and react. The node public is before the node react.
+        panel.tree.selectionPath = panel.taskPathIn("react", "web:build")
+        panel.changeMainGroup(TaskGrouping.TASK_NAME)
+        assertEquals(listOf(panel.taskPathIn("react", "web:build")), panel.selectedPaths())
+        assertFalse("The tree must not expand a different tag node", panel.tree.isExpanded(panel.categoryPath("public")))
+        panel.changeMainGroup(TaskGrouping.PROJECT)
+        assertEquals(listOf(panel.taskPathIn("react", "web:build")), panel.selectedPaths())
+    }
+
+    fun testRefreshSelectsAProjectAndItsTaskInOneTagNode() {
+        panel.loadRecorded()
+        panel.changeCategory(TaskCategory.TAG)
+        panel.tree.expandPath(panel.categoryPath("public"))
+        panel.tree.selectionPaths = arrayOf(panel.projectPathIn("react", "web"), panel.taskPathIn("react", "web:build"))
+        // Change the tags of web to internal and public. The user can see the project web below public, but not its tasks.
+        renderWithWebTags("internal", "public")
+        val expected = listOf(panel.projectPathIn("public", "web"), panel.taskPathIn("public", "web:build"))
+        assertEquals(expected, panel.selectedPaths())
+        assertFalse(panel.tree.isExpanded(panel.categoryPath("internal")))
     }
 
     fun testChangeCategoryWithAMessageShowsTheMessage() {

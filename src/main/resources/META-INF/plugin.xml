@@ -61,6 +61,8 @@
                         class="io.github.artptr.moonexplorer.ui.CategoryStackAction"/>
                 <action id="MoonExplorer.CategoryLayer"
                         class="io.github.artptr.moonexplorer.ui.CategoryLayerAction"/>
+                <action id="MoonExplorer.CategoryTag"
+                        class="io.github.artptr.moonexplorer.ui.CategoryTagAction"/>
             </group>
         </group>
         <group id="MoonExplorer.TaskPopup">

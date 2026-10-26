@@ -70,7 +70,7 @@ The test workspace contains these items:
 
 - Application projects and library projects. Each of these projects has the `layer` value `application` or `library`, and the `stack` value `frontend` or `backend`.
 - The project `scripts` has no `stack` value and no `layer` value. moon gives the value `unknown` for `stack` and for `layer`.
-- Tags. Some tags are on more than one project.
+- Tags. Some tags are on more than one project. Some projects have two tags. The projects `icons` and `scripts` have no tags.
 - Three files in `.moon/tasks/`. All projects inherit `all.yml`. Frontend projects inherit `frontend.yml`. Backend projects inherit `backend.yml`.
 - The project `web` changes the inherited task `lint`.
 - Tasks with a description and tasks without a description

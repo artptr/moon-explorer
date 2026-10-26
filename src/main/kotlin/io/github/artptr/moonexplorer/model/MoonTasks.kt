@@ -6,6 +6,9 @@ package io.github.artptr.moonexplorer.model
  */
 val ID_ORDER: Comparator<String> = String.CASE_INSENSITIVE_ORDER.thenComparing(naturalOrder())
 
+/** Sorts the items in [ID_ORDER] of the ID that [id] gives. */
+internal fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(compareBy(ID_ORDER, id))
+
 /** A task of a moon project. [target] has the format `<project>:<task>`. */
 data class MoonTask(val id: String, val target: String, val description: String?)
 
@@ -18,8 +21,15 @@ fun targetTaskId(target: String): String = target.substringAfterLast(':')
 /**
  * A moon project and its tasks, sorted by ID.
  * [stack] is null if the project has no `stack` value. [layer] is null if the project has no `layer` value.
+ * [tags] contains the tags of the project in the sequence of the configuration. The set is empty if the project has no tags.
  */
-data class MoonProject(val id: String, val tasks: List<MoonTask>, val stack: String? = null, val layer: String? = null)
+data class MoonProject(
+    val id: String,
+    val tasks: List<MoonTask>,
+    val stack: String? = null,
+    val layer: String? = null,
+    val tags: Set<String> = emptySet(),
+)
 
 /**
  * The location of a moon project. [source] is the path from the workspace root to the project directory.
@@ -70,12 +80,19 @@ enum class TaskCategory {
 
     /** A node for each `layer` value. */
     LAYER,
+
+    /** A node for each tag. A project with more than one tag is in more than one node. */
+    TAG,
     ;
 
-    /** Gives the value of [project] for this category, or null if the project has no value. [NONE] has no values. The tree has no category nodes for it. */
-    fun valueFor(project: MoonProject): String? = when (this) {
-        NONE -> null
-        STACK -> project.stack
-        LAYER -> project.layer
+    /**
+     * Gives the values of [project] for this category. Each value is in the collection only one time. The collection is empty if the project
+     * has no value. [NONE] has no values. The tree adds the project one time below the node of each value.
+     */
+    fun valuesFor(project: MoonProject): Collection<String> = when (this) {
+        NONE -> emptyList()
+        STACK -> listOfNotNull(project.stack)
+        LAYER -> listOfNotNull(project.layer)
+        TAG -> project.tags
     }
 }

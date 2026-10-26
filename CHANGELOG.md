@@ -15,6 +15,7 @@
 - When you select two or more task nodes in the **Moon** tool window, the context menu has the action **Run N Tasks**. This action runs the selected tasks with one `moon run` command.
 - A moon run configuration can contain more than one target. Put spaces between the targets. The option **Run only the affected tasks** adds `--affected` to the command.
 - The task nodes and the project nodes in the **Moon** tool window have the action **Jump to Source**. Use the shortcut of **Jump to Source** (F4 or Cmd+Down) or the context menu. For a task, the IDE opens the configuration file of the project, for example `moon.yml`, or a file in `.moon/tasks/`. If the task is in more than one file, the IDE shows a list of the files. In a YAML file, the IDE shows the line of the task. In a file of a different format, and for a project, the IDE shows the first line.
+- The **Category** selection in the **Group By** menu of the **Moon** tool window has the option **Tag**. The tree shows a node for each tag. A project with two tags is in the two tag nodes. The projects without tags are in the "(none)" node.
 - Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
 
 ## [0.2.0] - 2026-10-22

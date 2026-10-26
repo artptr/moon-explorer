@@ -41,6 +41,8 @@ import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.findProjectForFile
+import io.github.artptr.moonexplorer.model.sortedById
+import io.github.artptr.moonexplorer.model.targetProjectId
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
 import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable
@@ -197,29 +199,40 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         return true
     }
 
-    /** Gives the selected node. The value is null if the selection is not one node of the type [T]. */
-    private inline fun <reified T> singleSelectedNode(): T? = tree.selectionPaths?.singleOrNull()?.lastPathComponent as? T
+    /**
+     * Gives the items of the selected nodes. [item] gives the item of a node, or null if the node is not of the correct type.
+     * The value is null if there is no selection, or if [item] gives null for a selected node.
+     * The tree can show an item in more than one category node. The list contains each item one time.
+     */
+    private inline fun <T> selectedItems(item: (Any?) -> T?): List<T>? =
+        tree.selectionPaths?.map { item(it.lastPathComponent) ?: return null }?.distinct()
 
-    /** Gives the selected task. The value is null if the selection is not one task node. */
-    internal fun selectedTask(): MoonTask? = singleSelectedNode<TaskNode>()?.task
+    private fun selectedTaskNodeTasks(): List<MoonTask>? = selectedItems { (it as? TaskNode)?.task }
 
-    /** Gives the selected project. The value is null if the selection is not one project node. */
-    internal fun selectedProject(): MoonProject? = singleSelectedNode<ProjectNode>()?.project
+    /** Gives the selected task. The value is null if the selection is not one task. Two nodes of the same task are one task. */
+    internal fun selectedTask(): MoonTask? = selectedTaskNodeTasks()?.singleOrNull()
 
-    /** Gives the selected tasks. The value is null if the selection has less than two nodes, or if a selected node is not a task node. */
-    internal fun selectedTasks(): List<MoonTask>? {
-        val nodes = tree.selectionPaths?.map { it.lastPathComponent }?.takeIf { it.size > 1 } ?: return null
-        return nodes.map { (it as? TaskNode)?.task ?: return null }
-    }
+    /** Gives the selected project. The value is null if the selection is not one project. Two nodes of the same project are one project. */
+    internal fun selectedProject(): MoonProject? = selectedItems { (it as? ProjectNode)?.project }?.singleOrNull()
 
     /**
-     * Gives the tasks in the selected task name node. The value is null if the selection is not one task name node,
-     * or if the node has no task nodes.
+     * Gives the selected tasks. The value is null if the selection has less than two tasks, or if a selected node is not a task node.
+     * The list contains each task one time.
+     */
+    internal fun selectedTasks(): List<MoonTask>? = selectedTaskNodeTasks()?.takeIf { it.size > 1 }
+
+    /**
+     * Gives the tasks in the selected task name nodes, sorted by project ID. All selected nodes must have the same task name.
+     * The tree can show a task name in more than one category node. The list contains the tasks of all these nodes, each task one time.
+     * The value is null if a selected node is not a task name node, or if the nodes have different names.
+     * The value is also null if the nodes have no task nodes.
      */
     internal fun selectedTaskNameTasks(): List<MoonTask>? {
-        val node = singleSelectedNode<TaskNameNode>() ?: return null
-        return node.children().toList().filterIsInstance<TaskNode>().map { it.task }.takeIf { it.isNotEmpty() }
+        val nodes = selectedItems { it as? TaskNameNode }?.takeIf { nodes -> nodes.distinctBy { it.name }.size == 1 } ?: return null
+        return nodes.flatMap(::childTasks).distinct().sortedById { targetProjectId(it.target) }.takeIf { it.isNotEmpty() }
     }
+
+    private fun childTasks(node: TaskNameNode): List<MoonTask> = node.children().toList().filterIsInstance<TaskNode>().map { it.task }
 
     override fun uiDataSnapshot(sink: DataSink) {
         super.uiDataSnapshot(sink)
@@ -285,31 +298,83 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     private fun showTree(tasks: WorkspaceTasks) {
         // Keep the expanded nodes and the selected nodes after a refresh. The keys of the nodes contain IDs,
         // thus a change of a description does not collapse a node.
-        val oldPaths = allPaths()
-        val expanded = oldPaths.filter(tree::isExpanded).map(::keyPath).toSet()
-        val selectedPaths = tree.selectionPaths.orEmpty()
-        val selectedKeys = selectedPaths.map(::keyPath).toSet()
-        val selectedTargets = selectedPaths.mapNotNull { (it.lastPathComponent as? TaskNode)?.task?.target }.toSet()
+        val expanded = TreeUtil.collectExpandedObjects(tree, ::keyPath).toSet()
+        val selectedKeys = tree.selectionPaths.orEmpty().map(::keyPath).toSet()
 
         (tree.model as DefaultTreeModel).setRoot(buildTaskTree(tasks, category, mainGroup))
 
-        val newPaths = allPaths()
-        newPaths.filter { keyPath(it) in expanded }.forEach(tree::expandPath)
-        var selection = newPaths.filter { keyPath(it) in selectedKeys }
-        if (selection.isEmpty() && selectedTargets.isNotEmpty()) {
-            // After a change of the category or the main group, the paths are different. Select the same tasks in the new tree.
-            selection = newPaths.filter { (it.lastPathComponent as? TaskNode)?.task?.target in selectedTargets }
-            selection.firstOrNull()?.let(tree::scrollPathToVisible)
+        // The tree can have many nodes, for example with the category Tag. Thus examine only the nodes on the way to the old
+        // expanded nodes and the old selected nodes. The key paths of the expanded nodes already contain the key paths of their parent nodes.
+        val found = findPaths(expanded + selectedKeys.flatMap { keys -> keys.indices.map { keys.take(it + 1) } })
+        found.filterKeys { it in expanded }.values.forEach(tree::expandPath)
+        val kept = found.filterKeys { it in selectedKeys }
+        // After a change of the category, the main group, or the tags of a project, some selected paths are not in the new tree.
+        // Select the same tasks and projects in the new tree. A task name node below a category node contains only the tasks
+        // of the category. Thus the function does not select a task name node again.
+        val missing = selectedKeys.mapNotNull { it.lastOrNull() }.toSet() - kept.keys.map { it.last() }.toSet()
+        val moved = mutableListOf<TreePath>()
+        if (missing.isNotEmpty()) {
+            // The keys of the old top nodes of each selected item. After a change of the main group, the old category node can contain the item.
+            val oldTopKeys = selectedKeys.filter { it.size > 1 }.groupBy({ it.last() }, { it.first() })
+            // The keys of the category nodes that contain a selected item.
+            val selectedCategories = kept.values.mapNotNullTo(HashSet(), ::categoryKey)
+            val candidates = pathsOf { it.key in missing && it !is TaskNameNode }.groupBy { (it.lastPathComponent as TaskTreeNode).key }
+            // The first node of a project is before the first node of its tasks. Thus a task goes to the category node of its project.
+            for ((key, paths) in candidates) {
+                val topKeys = oldTopKeys[key].orEmpty()
+                val path = preferredPath(paths, { categoryKey(it) in topKeys }, { categoryKey(it) in selectedCategories }) ?: continue
+                moved += path
+                categoryKey(path)?.let(selectedCategories::add)
+            }
         }
-        tree.selectionPaths = selection.toTypedArray()
+        if (kept.isEmpty()) moved.firstOrNull()?.let(tree::scrollPathToVisible)
+        tree.selectionPaths = (kept.values + moved).toTypedArray()
         showCard(TREE_CARD)
     }
 
-    /** Gives the paths of all nodes below the root, also the nodes in collapsed nodes. Each parent node is before its child nodes. */
-    internal fun allPaths(): List<TreePath> {
-        val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyList()
-        return root.preorderEnumeration().toList().drop(1).map { TreePath((it as DefaultMutableTreeNode).path) }
+    /**
+     * Gives the paths of the nodes that have a key path in [keyPaths], with the key path of each node. The sequence is the sequence of the tree.
+     * The function examines the child nodes of a node only if [keyPaths] contains the key path of the node. Thus it does not examine all nodes.
+     */
+    private fun findPaths(keyPaths: Set<List<String>>): Map<List<String>, TreePath> {
+        val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyMap()
+        val result = LinkedHashMap<List<String>, TreePath>()
+        fun visit(path: TreePath, keys: List<String>) {
+            for (child in (path.lastPathComponent as DefaultMutableTreeNode).children()) {
+                val childKeys = keys + (child as TaskTreeNode).key
+                if (childKeys !in keyPaths) continue
+                val childPath = path.pathByAddingChild(child)
+                result[childKeys] = childPath
+                visit(childPath, childKeys)
+            }
+        }
+        visit(TreePath(root), emptyList())
+        return result
     }
+
+    /** Gives the paths of the nodes for which [match] gives true, in the sequence of the tree. The function examines all nodes. */
+    internal fun pathsOf(match: (TaskTreeNode) -> Boolean): List<TreePath> {
+        val root = tree.model.root as? DefaultMutableTreeNode ?: return emptyList()
+        return root.preorderEnumeration().asSequence().filterIsInstance<TaskTreeNode>().filter(match).map { TreePath(it.path) }.toList()
+    }
+
+    /**
+     * Gives the path in [paths] that the tree selects, for example for a task or a project in more than one category node.
+     * The rules are, in this sequence: the rules in [preferred], a node on the screen, a node with expanded parent nodes.
+     * The function gives the first path that obeys the first applicable rule. If no path obeys a rule, the function gives the first path.
+     */
+    private fun preferredPath(paths: List<TreePath>, vararg preferred: (TreePath) -> Boolean): TreePath? {
+        for (rule in listOf<(TreePath) -> Boolean>(*preferred, ::isOnScreen, tree::isVisible)) {
+            paths.firstOrNull(rule)?.let { return it }
+        }
+        return paths.firstOrNull()
+    }
+
+    /** Gives true if the node of [path] is in the visible area of the tree. If the tree has no size, the function gives false. */
+    private fun isOnScreen(path: TreePath): Boolean = tree.isVisible(path) && tree.getPathBounds(path)?.intersects(tree.visibleRect) == true
+
+    /** Gives the key of the category node of [path], or null if the tree has no category nodes. */
+    private fun categoryKey(path: TreePath): String? = (path.path.getOrNull(1) as? CategoryNode)?.key
 
     private fun keyPath(path: TreePath): List<String> = path.path.drop(1).map { (it as TaskTreeNode).key }
 
@@ -322,6 +387,9 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
 
     /**
      * Selects the node of the project that contains [file]. The function expands the node and its parent nodes, and scrolls to the node.
+     * If the tree shows the project in more than one category node, the function selects one of these nodes.
+     * The function uses these rules first: a project node that contains the selection, then a category node that contains the selection.
+     * Then it uses the other rules of [preferredPath].
      * If no project contains the file, or if the project has no tasks, the function shows a message and does not change the selection.
      * Call this function on the EDT.
      */
@@ -332,14 +400,18 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             showInfo(MoonExplorerBundle.message("tasks.selectOpenedFile.notInProject", file.fileName?.toString() ?: file.toString()))
             return
         }
-        val root = tree.model.root as? DefaultMutableTreeNode ?: return
-        val node = root.preorderEnumeration().asSequence().filterIsInstance<ProjectNode>().firstOrNull { it.project.id == source.id }
-        if (node == null) {
+        val selected = tree.selectionPaths.orEmpty()
+        val selectedCategories = selected.mapNotNullTo(HashSet(), ::categoryKey)
+        val path = preferredPath(
+            pathsOf { it is ProjectNode && it.project.id == source.id },
+            { path -> selected.any(path::isDescendant) },
+            { categoryKey(it) in selectedCategories },
+        )
+        if (path == null) {
             // The tree shows only the projects with tasks.
             showInfo(MoonExplorerBundle.message("tasks.selectOpenedFile.noTasks", source.id))
             return
         }
-        val path = TreePath(node.path)
         // TreeUtil.selectPath expands the parent nodes, but not the project node. Expand it to show the tasks.
         tree.expandPath(path)
         TreeUtil.selectPath(tree, path)

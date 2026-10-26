@@ -23,6 +23,7 @@ import javax.swing.tree.DefaultMutableTreeNode
  *
  * If [category] is not [TaskCategory.NONE], the top nodes are a node for each value of the category.
  * The projects without a value are in the last node, "(none)". The tree always shows a category node, also if it is the only category node.
+ * A project with more than one value, for example with two tags, is in each node of its values. Thus the tree can show a task more than one time.
  *
  * [grouping] sets the structure below the root, or below each category node:
  * - [TaskGrouping.PROJECT]: a node for each project. Each project node has a node for each task.
@@ -37,9 +38,12 @@ fun buildTaskTree(
     if (category == TaskCategory.NONE) {
         addGroups(root, tasks.projects, grouping)
     } else {
-        tasks.projects.groupBy(category::valueFor)
-            .toSortedMap(nullsLast(ID_ORDER))
-            .forEach { (value, projects) -> root.add(CategoryNode(category, value).also { addGroups(it, projects, grouping) }) }
+        // The key null is the node of the projects without a value.
+        val projectsByValue = sortedMapOf<String?, MutableList<MoonProject>>(nullsLast(ID_ORDER))
+        for (project in tasks.projects) {
+            category.valuesFor(project).ifEmpty { listOf(null) }.forEach { projectsByValue.getOrPut(it, ::mutableListOf) += project }
+        }
+        projectsByValue.forEach { (value, projects) -> root.add(CategoryNode(category, value).also { addGroups(it, projects, grouping) }) }
     }
     return root
 }

@@ -166,7 +166,7 @@ The functions that use the moon configuration files are for the workspace mainta
 - An action that opens the project graph, the task graph, or the action graph of moon. The commands `moon project-graph`, `moon task-graph`, and `moon action-graph` show the graph. The plugin does not show the graph itself.
 - An action that runs `moon check` for a project
 - The command of a task in a tooltip in the tree
-- Groups by tag (issue [#80](https://github.com/artptr/moon-explorer/issues/80)) in the tree
+- Groups by tag in the tree. Issue [#80](https://github.com/artptr/moon-explorer/issues/80) added this function. Refer to section 11.
 - The automatic selection of the project when the user opens a different file
 - An icon for the language of each project in the tree. The Moonrepo plugin has this function.
 - A notification when the version of moon is older than the minimum version. The Moonrepo plugin shows a similar notification for problems in the workspace.
@@ -269,7 +269,7 @@ This table gives the decision for each function of the extension, version 0.16.6
 | Function of the extension | Moon Explorer | Decision |
 |---------------------------|---------------|----------|
 | A tree of projects and tasks with groups by `stack` and `layer` | Groups by project and by task name, in category nodes for `stack` or `layer` | Complete. Issue [#67](https://github.com/artptr/moon-explorer/issues/67) added the groups by `layer`. |
-| A view of the projects in groups by tag | No | Issue [#80](https://github.com/artptr/moon-explorer/issues/80) records this function. |
+| A view of the projects in groups by tag | Groups by project and by task name, in category nodes for tags | Complete. Issue [#80](https://github.com/artptr/moon-explorer/issues/80) added the groups by tag. |
 | An icon for the language of each project | No | In section 7. |
 | An icon for the type of each task | No | The team does not plan this function. Many tasks have the type `test`, for example `lint`. Refer to section 10. |
 | The command of each task in the tree | The description of each task | A tooltip with the command is in section 7. |
