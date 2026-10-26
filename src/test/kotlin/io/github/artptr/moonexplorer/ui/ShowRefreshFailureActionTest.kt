@@ -12,6 +12,7 @@ import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.loadStale
 import io.github.artptr.moonexplorer.model.prepareForTests
+import io.github.artptr.moonexplorer.model.startEndlessRefresh
 import kotlinx.coroutines.runBlocking
 
 class ShowRefreshFailureActionTest : BasePlatformTestCase() {
@@ -26,7 +27,7 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            project.service<RefreshFailureNotifier>().onState(TasksState.Loading)
+            project.service<RefreshFailureNotifier>().onState(TasksState.Loading(null))
             project.service<RefreshFailureNotifier>().onState(TasksState.NoWorkspace)
             runBlocking { service.resetForTests() }
         } finally {
@@ -56,6 +57,27 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
     fun testActionIsVisibleWhenTheTreeIsStale() {
         service.loadStale("bad config")
         assertTrue(isVisible())
+    }
+
+    fun testActionStaysVisibleDuringARefreshAfterAFailedRefresh() {
+        service.loadStale("bad config")
+        service.startEndlessRefresh()
+        assertTrue(isVisible())
+    }
+
+    fun testActionIsHiddenDuringARefreshAfterASuccessfulLoad() {
+        service.loadRecorded()
+        service.startEndlessRefresh()
+        assertFalse(isVisible())
+    }
+
+    fun testActionShowsTheNotificationAgainDuringARefresh() {
+        service.loadStale("bad config")
+        service.startEndlessRefresh()
+        val shown = collectRefreshNotifications(project, testRootDisposable)
+        val action = ShowRefreshFailureAction()
+        action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
+        assertTrue(shown.single().content.contains("bad config"))
     }
 
     fun testActionShowsTheNotificationAgain() {

@@ -10,13 +10,17 @@
 - When you type `moon`, **Run Anything** shows `moon run <target>` for each moon task. A target has the form `<project>:<task>`. When you run `moon run <target>`, the plugin runs the target with a run configuration.
 - **Run Anything** runs all other moon commands with the moon executable that the plugin finds, in the workspace root. An example is `moon query projects`. Thus these commands also operate when moon is not in `PATH`. The **Run** tool window shows the output. If the IDE project has no moon workspace, **Run Anything** runs moon commands in the usual way.
 - The moon icon marks the moon tasks in the **Moon** tool window, in **Search Everywhere**, and in **Run Anything**. In the new UI, the icon is an outline with a light fill, the same as the other node icons. In the classic UI, the icon is solid. The moon run configurations also show this icon. The button of the **Moon** tool window shows a gray outline of the icon, the same as the other tool window buttons.
-- **Search Everywhere** and **Run Anything** use the tasks that the plugin loaded. They also operate when the **Moon** tool window is closed.
+- **Search Everywhere** and **Run Anything** use the tasks that the plugin loaded. They also operate when the **Moon** tool window is closed. During a refresh, they use the tasks of the last successful load. Thus the results remain when you save a moon configuration file. Each time that you save the file, the plugin starts a refresh.
 - A task name node in the **Moon** tool window has the actions **Run in N Projects** and **Run Affected in N Projects**. N is the number of projects in the node. Below a category node, the actions use only the projects of that category. The plugin gives the full list of targets to `moon run`. **Run Affected in N Projects** adds the option `--affected`. Thus moon runs only the tasks that the changed files affect.
 - When you select two or more task nodes in the **Moon** tool window, the context menu has the action **Run N Tasks**. This action runs the selected tasks with one `moon run` command.
 - A moon run configuration can contain more than one target. Put spaces between the targets. The option **Run only the affected tasks** adds `--affected` to the command.
 - The task nodes and the project nodes in the **Moon** tool window have the action **Jump to Source**. Use the shortcut of **Jump to Source** (F4 or Cmd+Down) or the context menu. For a task, the IDE opens the configuration file of the project, for example `moon.yml`, or a file in `.moon/tasks/`. If the task is in more than one file, the IDE shows a list of the files. In a YAML file, the IDE shows the line of the task. In a file of a different format, and for a project, the IDE shows the first line.
 - The **Category** selection in the **Group By** menu of the **Moon** tool window has the option **Tag**. The tree shows a node for each tag. A project with two tags is in the two tag nodes. The projects without tags are in the "(none)" node.
 - Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
+
+### Fixed
+
+- During a refresh after a failed refresh, the toolbar of the **Moon** tool window continues to show the **Show Refresh Error** action. Before, the action was not available until the refresh completed, but the notification of the failure stayed open.
 
 ## [0.2.0] - 2026-10-22
 

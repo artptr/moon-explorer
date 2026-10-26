@@ -12,6 +12,7 @@ import com.intellij.openapi.startup.ProjectActivity
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.refreshFailure
 import io.github.artptr.moonexplorer.settings.MoonSettingsConfigurable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,15 +42,14 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
     internal fun onState(state: TasksState) {
         when (state) {
             is TasksState.Stale -> show(state.failure)
-            TasksState.Loading -> Unit
+            is TasksState.Loading -> Unit
             else -> expire()
         }
     }
 
-    /** Shows the notification of the current [TasksState.Stale] state again. Call this function on the EDT. */
+    /** Shows the notification for the [refreshFailure] of the current state again. Call this function on the EDT. */
     fun showAgain() {
-        val state = project.service<MoonTasksService>().state.value as? TasksState.Stale ?: return
-        show(state.failure)
+        project.service<MoonTasksService>().state.value.refreshFailure?.let(::show)
     }
 
     private fun show(failure: TasksState.Failure) {

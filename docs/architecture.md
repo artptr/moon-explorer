@@ -144,12 +144,14 @@ A change in an IDE editor applies when the IDE saves the document. moon reads on
 
 **NOTE:** If `git checkout` makes a new project directory, the VFS can send an event only for the directory. Then the plugin does not see the new `moon.yml` file. A later change or a manual refresh corrects the tree.
 
+During a load, the service gives the state `TasksState.Loading`. This state contains the last successful load, or null if no load was successful. Thus the tree, **Search Everywhere**, and **Run Anything** use the old tasks until the load completes.
+
 If a load fails after a successful load, the service gives the state `TasksState.Stale`. This state contains the last successful load and the error. This rule applies to all loads: at startup, after **Refresh**, and after a change.
 
 - The tree shows the tasks of the last successful load. The expanded nodes and the selected nodes do not change.
 - `ui.RefreshFailureNotifier` shows a notification with the message for the failure. The notification has the action **Refresh**. The notification also has **Open Settings** if the plugin cannot find or start moon, or if moon did not complete in the time limit.
 - The plugin shows a maximum of one notification. A new failure replaces it. A successful load closes it.
-- While the state is `Stale`, the toolbar shows the action **Show Refresh Error** with a warning icon. The action shows the notification again.
+- While the state is `Stale`, the toolbar shows the action **Show Refresh Error** with a warning icon. The action shows the notification again. During the next load, `TasksState.Loading` keeps the failure. Thus the action stays available until the load completes.
 
 If a load finds no workspace, the old tasks are not correct. The tool window then shows a message and the plugin closes the notification.
 If a load fails and there was no successful load before it, the tool window shows the message for the failure instead of the tree.

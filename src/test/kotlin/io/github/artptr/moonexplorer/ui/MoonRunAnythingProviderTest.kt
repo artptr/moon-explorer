@@ -14,6 +14,7 @@ import io.github.artptr.moonexplorer.model.loadNoWorkspace
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.loadStale
 import io.github.artptr.moonexplorer.model.prepareForTests
+import io.github.artptr.moonexplorer.model.startEndlessRefresh
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 
@@ -73,9 +74,17 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         assertSameElements(values, expected)
     }
 
-    fun testWhileTheTasksLoadTheProviderRunsCommandsButHasNoTargets() {
+    fun testDuringARefreshTheCompletionUsesTheLastTargets() {
+        // When you save a configuration file, the plugin starts a refresh. The completion must show the tasks during the refresh.
+        assertEquals(TasksState.Loading(TestData.recordedState()), service.startEndlessRefresh())
+        val expected = TestData.recordedTasks().allTasks.map { "moon run ${it.target}" }
+        assertSameElements(provider.getValues(context, "moon run "), expected)
+        assertEquals("moon query projects", provider.findMatchingValue(context, "moon query projects"))
+    }
+
+    fun testDuringTheFirstLoadTheProviderRunsCommandsButHasNoTargets() {
         runBlocking { service.resetForTests() }
-        assertEquals(TasksState.Loading, service.state.value)
+        assertEquals(TasksState.Loading(null), service.state.value)
         assertSameElements(provider.getValues(context, "moon "), "moon run")
         assertEmpty(provider.getValues(context, "moon run "))
         assertEquals("moon query projects", provider.findMatchingValue(context, "moon query projects"))

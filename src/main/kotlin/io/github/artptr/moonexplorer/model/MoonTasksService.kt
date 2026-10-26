@@ -30,7 +30,7 @@ import kotlin.time.Duration.Companion.seconds
 @Service(Service.Level.PROJECT)
 class MoonTasksService(private val project: Project, val scope: CoroutineScope) {
 
-    private val _state = MutableStateFlow<TasksState>(TasksState.Loading)
+    private val _state = MutableStateFlow<TasksState>(TasksState.Loading(null))
 
     /** The current state. The tool window shows this state. */
     val state: StateFlow<TasksState> = _state.asStateFlow()
@@ -39,10 +39,6 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     /** The refresh that [scheduleRefresh] started. It waits for [refreshDelay]. The value is null if no refresh waits. */
     private var pending: Job? = null
-
-    /** The result of the last successful load. The tree shows it if a later load fails. */
-    @Volatile
-    private var lastLoaded: TasksState.Loaded? = null
 
     /** The data of the last load for [MoonConfigFileListener]. */
     @Volatile
@@ -104,7 +100,10 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         // Cancel the previous load now. Thus two moon processes do not run at the same time for long.
         previous?.cancel()
         // Show the Loading state before the function returns, not when the new coroutine starts.
-        _state.value = TasksState.Loading
+        // The state keeps the last successful load. Thus the tree, **Search Everywhere**, and **Run Anything** keep the tasks during the load.
+        // The state also keeps the failure of the last refresh. Thus the user can see the error during the load.
+        val current = _state.value
+        _state.value = TasksState.Loading(current.lastLoaded, current.refreshFailure)
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
         val queryProjectsFn = queryProjects
@@ -113,30 +112,24 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
             _state.value = withContext(Dispatchers.IO) {
                 val dir = projectDirFn()
                 val root = project.service<MoonExecutableService>().workspaceRoot(dir)
+                // The code gets the last successful load after the old load stops. The old load can set its result before it stops.
+                val last = _state.value.lastLoaded
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
-                configWatch = ConfigWatch(root, dir, lastLoaded?.tasks?.sources.orEmpty())
-                publish(TasksLoader.loadTasksIn(root, queryProjectsFn))
+                watchConfig(root, dir, last)
+                val result = TasksLoader.loadTasksIn(root, queryProjectsFn)
+                // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
+                // NoWorkspace does not keep the last load, because the old tasks are not correct.
+                val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
+                // A failed load keeps the last successful load. Then the watch does not change.
+                if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
+                state
             }
         }
     }
 
-    /**
-     * Gives the state for the [result] of a load, and keeps the data for the next loads.
-     * A failure after a successful load gives [TasksState.Stale]. Thus the tree keeps the last correct tasks.
-     * If the last successful load changes, the function also changes the sources in [configWatch].
-     */
-    private fun publish(result: TasksState): TasksState {
-        val state = when (result) {
-            is TasksState.Failure -> return lastLoaded?.let { TasksState.Stale(it, result) } ?: result
-            is TasksState.Loaded -> result.also { lastLoaded = it }
-            // The workspace is not there. The old tasks are not correct.
-            else -> result.also { lastLoaded = null }
-        }
-        val watch = configWatch
-        val sources = lastLoaded?.tasks?.sources.orEmpty()
-        // A failed load keeps the sources. Then the watch stays the same.
-        if (sources !== watch.sources) configWatch = ConfigWatch(watch.root, watch.projectDir, sources)
-        return state
+    /** Sets [configWatch] for [root] and [projectDir]. The sources come from [last], the result of the last successful load. */
+    private fun watchConfig(root: Path?, projectDir: Path?, last: TasksState.Loaded?) {
+        configWatch = ConfigWatch(root, projectDir, last?.tasks?.sources.orEmpty())
     }
 
     /**
@@ -153,8 +146,8 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     internal fun timeoutMillis(): Int = project.service<MoonSettings>().timeoutSeconds * 1000
 
     /**
-     * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading].
-     * Also cancels the refresh that waits, removes the data of the last load,
+     * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading] without the last successful load.
+     * Also cancels the refresh that waits, removes the data of the last successful load from [configWatch],
      * and sets [projectDir], [queryProjects], and [refreshDelay] to their default values. Only tests use this function.
      * Call it only on the test thread.
      */
@@ -169,9 +162,8 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
             job.also { job = null }
         }
         previous?.cancelAndJoin()
-        lastLoaded = null
         configWatch = ConfigWatch(null, null)
-        _state.value = TasksState.Loading
+        _state.value = TasksState.Loading(null)
     }
 
     internal companion object {
