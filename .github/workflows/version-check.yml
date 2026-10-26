@@ -83,7 +83,7 @@ jobs:
           cache-read-only: true
 
       # Get the newest released IDE of each IDE line, for example 'IU-2025.3.7' for the line 2025.3. The 'Build' workflow uses the same task.
-      # The task gives IntelliJ IDEA versions with the prefix 'IU-'. If the build uses a different IDE, change the 'sed' filter below.
+      # The task gives IntelliJ IDEA versions with the prefix 'IU-'. If the build uses a different IDE, change the 'sed' filter below and the 'Get IDE Versions' step in build.yml.
       # The 'printProductsReleases' task does not download the IDEs. With 'quickVerification', the task does not include EAP builds.
       # A line is the first two numbers of a version, for example 2025.3.
       - name: Get IDE versions
