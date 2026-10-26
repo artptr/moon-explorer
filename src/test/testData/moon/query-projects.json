@@ -2,7 +2,7 @@
   "projects": [
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -57,7 +57,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "dependencies": [
@@ -186,12 +187,14 @@
             {
               "args": [],
               "env": {},
-              "target": "ui:build"
+              "target": "ui:build",
+              "cacheStrategy": "hash"
             },
             {
               "args": [],
               "env": {},
-              "target": "utils:build"
+              "target": "utils:build",
+              "cacheStrategy": "hash"
             }
           ],
           "description": "Make the production bundle.",
@@ -202,12 +205,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/admin/**/*": {
@@ -217,14 +220,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -235,7 +242,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -271,12 +278,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/admin/**/*": {
@@ -286,14 +293,18 @@
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "outputStyle": "stream",
             "persistent": true,
@@ -305,7 +316,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "preset": "server",
           "state": {
@@ -331,7 +342,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -342,7 +353,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/admin/src/**/*": {
@@ -352,14 +363,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -370,7 +385,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -394,7 +409,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -405,7 +420,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/admin/src/**/*": {
@@ -415,14 +430,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -433,7 +452,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -458,7 +477,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -469,7 +488,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/admin/**/*": {
@@ -479,14 +498,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -497,7 +520,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -521,7 +544,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -532,7 +555,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/admin/**/*": {
@@ -542,14 +565,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -560,7 +587,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -587,7 +614,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -645,7 +672,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "dependencies": [
@@ -778,7 +806,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -789,7 +817,7 @@
             ".moon/tasks/backend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/api/**/*": {
@@ -799,14 +827,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -817,7 +849,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -839,12 +871,14 @@
             {
               "args": [],
               "env": {},
-              "target": "db:build"
+              "target": "db:build",
+              "cacheStrategy": "hash"
             },
             {
               "args": [],
               "env": {},
-              "target": "utils:build"
+              "target": "utils:build",
+              "cacheStrategy": "hash"
             }
           ],
           "id": "build",
@@ -854,12 +888,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/api/**/*": {
@@ -869,14 +903,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -887,7 +925,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -922,7 +960,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -933,7 +971,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/api/src/**/*": {
@@ -943,14 +981,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -961,7 +1003,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -985,7 +1027,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -996,7 +1038,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/api/src/**/*": {
@@ -1006,14 +1048,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1024,7 +1070,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -1045,7 +1091,8 @@
             {
               "args": [],
               "env": {},
-              "target": "db:migrate"
+              "target": "db:migrate",
+              "cacheStrategy": "ignored"
             }
           ],
           "description": "Start the API server.",
@@ -1056,12 +1103,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/api/**/*": {
@@ -1071,14 +1118,18 @@
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "outputStyle": "stream",
             "persistent": true,
@@ -1090,7 +1141,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "preset": "server",
           "state": {
@@ -1118,7 +1169,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -1129,7 +1180,7 @@
             ".moon/tasks/backend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/api/**/*": {
@@ -1139,14 +1190,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1157,7 +1212,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -1184,7 +1239,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -1209,7 +1264,8 @@
         "workspace": {
           "inheritedTasks": {
             "include": []
-          }
+          },
+          "mergeStrategies": {}
         }
       },
       "id": "config",
@@ -1278,7 +1334,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -1328,7 +1384,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "id": "db",
@@ -1447,7 +1504,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -1461,21 +1518,25 @@
             "packages/db/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1486,7 +1547,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -1511,7 +1572,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
@@ -1519,21 +1580,25 @@
             "packages/db/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1544,7 +1609,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -1579,7 +1644,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -1590,7 +1655,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/db/src/**/*": {
@@ -1600,14 +1665,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1618,7 +1687,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -1642,7 +1711,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -1653,7 +1722,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/db/src/**/*": {
@@ -1663,14 +1732,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1681,7 +1754,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -1705,7 +1778,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
@@ -1713,21 +1786,25 @@
             "packages/db/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1738,7 +1815,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -1764,7 +1841,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -1778,21 +1855,25 @@
             "packages/db/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -1803,7 +1884,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -1830,7 +1911,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -1861,7 +1942,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "id": "icons",
@@ -1978,7 +2060,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -1992,21 +2074,25 @@
             "packages/ui/icons/src/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2017,7 +2103,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -2041,7 +2127,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2055,21 +2141,25 @@
             "packages/ui/icons/src/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2080,7 +2170,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -2105,7 +2195,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
@@ -2113,21 +2203,25 @@
             "packages/ui/icons/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2138,7 +2232,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -2164,7 +2258,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2178,21 +2272,25 @@
             "packages/ui/icons/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2203,7 +2301,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -2227,7 +2325,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2241,21 +2339,25 @@
             "packages/ui/icons/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2266,7 +2368,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -2292,7 +2394,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -2324,7 +2426,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "id": "scripts",
@@ -2401,7 +2504,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
@@ -2409,21 +2512,25 @@
             "tools/scripts/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2434,7 +2541,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -2458,7 +2565,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2469,7 +2576,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "tools/scripts/src/**/*": {
@@ -2479,14 +2586,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2497,7 +2608,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -2521,7 +2632,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2532,7 +2643,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "tools/scripts/src/**/*": {
@@ -2542,14 +2653,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2560,7 +2675,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -2583,7 +2698,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -2643,7 +2758,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "id": "ui",
@@ -2761,12 +2877,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/ui/**/*": {
@@ -2776,14 +2892,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2794,7 +2914,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -2829,7 +2949,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2843,21 +2963,25 @@
             "packages/ui/src/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2868,7 +2992,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -2892,7 +3016,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -2906,21 +3030,25 @@
             "packages/ui/src/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -2931,7 +3059,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -2955,12 +3083,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/ui/**/*": {
@@ -2970,14 +3098,18 @@
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": true,
             "priority": "normal",
@@ -2988,7 +3120,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -3014,7 +3146,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3025,7 +3157,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/ui/**/*": {
@@ -3035,14 +3167,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3053,7 +3189,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -3077,7 +3213,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3088,7 +3224,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/ui/**/*": {
@@ -3098,14 +3234,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3116,7 +3256,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -3144,7 +3284,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -3184,7 +3324,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "id": "utils",
@@ -3303,12 +3444,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/utils/**/*": {
@@ -3318,14 +3459,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3336,7 +3481,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -3371,7 +3516,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3382,7 +3527,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/utils/src/**/*": {
@@ -3392,14 +3537,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3410,7 +3559,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -3434,7 +3583,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3445,7 +3594,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/utils/src/**/*": {
@@ -3455,14 +3604,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3473,7 +3626,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -3498,7 +3651,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3509,7 +3662,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/utils/**/*": {
@@ -3519,14 +3672,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3537,7 +3694,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -3561,7 +3718,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3572,7 +3729,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "packages/utils/**/*": {
@@ -3582,14 +3739,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3600,7 +3761,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -3626,7 +3787,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -3704,7 +3865,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "dependencies": [
@@ -3833,12 +3995,14 @@
             {
               "args": [],
               "env": {},
-              "target": "ui:build"
+              "target": "ui:build",
+              "cacheStrategy": "hash"
             },
             {
               "args": [],
               "env": {},
-              "target": "utils:build"
+              "target": "utils:build",
+              "cacheStrategy": "hash"
             }
           ],
           "description": "Make the production bundle.",
@@ -3849,12 +4013,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/web/**/*": {
@@ -3864,14 +4028,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -3882,7 +4050,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -3919,12 +4087,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/web/**/*": {
@@ -3934,14 +4102,18 @@
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "outputStyle": "stream",
             "persistent": true,
@@ -3953,7 +4125,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "preset": "server",
           "state": {
@@ -3979,7 +4151,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -3993,21 +4165,25 @@
             "apps/web/src/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4018,7 +4194,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -4044,7 +4220,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4058,21 +4234,25 @@
             "apps/web/src/**/*": {
               "cache": true
             },
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             }
           },
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4083,7 +4263,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -4104,7 +4284,8 @@
             {
               "args": [],
               "env": {},
-              "target": "web:build"
+              "target": "web:build",
+              "cacheStrategy": "hash"
             }
           ],
           "id": "preview",
@@ -4114,12 +4295,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/web/**/*": {
@@ -4129,14 +4310,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4147,7 +4332,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -4173,7 +4358,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4184,7 +4369,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/web/**/*": {
@@ -4194,14 +4379,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4212,7 +4401,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -4236,7 +4425,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4247,7 +4436,7 @@
             ".moon/tasks/frontend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/web/**/*": {
@@ -4257,14 +4446,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4275,7 +4468,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -4303,7 +4496,7 @@
     },
     {
       "config": {
-        "schema": "",
+        "$schema": "",
         "docker": {
           "file": {},
           "scaffold": {}
@@ -4357,7 +4550,8 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {}
+          "inheritedTasks": {},
+          "mergeStrategies": {}
         }
       },
       "dependencies": [
@@ -4484,7 +4678,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4495,7 +4689,7 @@
             ".moon/tasks/backend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/worker/**/*": {
@@ -4505,14 +4699,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4523,7 +4721,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
@@ -4545,7 +4743,8 @@
             {
               "args": [],
               "env": {},
-              "target": "db:build"
+              "target": "db:build",
+              "cacheStrategy": "hash"
             }
           ],
           "description": "Compile the worker.",
@@ -4556,12 +4755,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/worker/**/*": {
@@ -4571,14 +4770,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4589,7 +4792,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "outputs": [
             {
@@ -4624,7 +4827,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4635,7 +4838,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/worker/src/**/*": {
@@ -4645,14 +4848,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4663,7 +4870,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -4687,7 +4894,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4698,7 +4905,7 @@
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/worker/src/**/*": {
@@ -4708,14 +4915,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4726,7 +4937,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "expanded": true
@@ -4750,12 +4961,12 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             }
           ],
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/worker/**/*": {
@@ -4765,14 +4976,18 @@
           "options": {
             "allowFailure": false,
             "cache": false,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "outputStyle": "stream",
             "persistent": true,
@@ -4784,7 +4999,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "preset": "server",
           "state": {
@@ -4812,7 +5027,7 @@
               "cache": true
             },
             {
-              "glob": "/.moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
             },
             {
@@ -4823,7 +5038,7 @@
             ".moon/tasks/backend.yml": {}
           },
           "inputGlobs": {
-            ".moon/*.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
             "apps/worker/**/*": {
@@ -4833,14 +5048,18 @@
           "options": {
             "allowFailure": false,
             "cache": true,
+            "envOverride": false,
+            "expectFailure": false,
             "inferInputs": false,
             "internal": false,
             "interactive": false,
             "mergeArgs": "append",
+            "mergeChecks": "append",
             "mergeDeps": "append",
             "mergeEnv": "append",
             "mergeInputs": "append",
             "mergeOutputs": "append",
+            "mergeTags": "append",
             "mergeToolchains": "append",
             "persistent": false,
             "priority": "normal",
@@ -4851,7 +5070,7 @@
             "runFromWorkspaceRoot": false,
             "shell": true,
             "unixShell": "bash",
-            "windowsShell": "powershell"
+            "windowsShell": "pwsh"
           },
           "state": {
             "defaultInputs": true,
