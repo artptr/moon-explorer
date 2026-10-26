@@ -260,20 +260,14 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         updateToolbar()
         val previous = shown
         this.state = state
-        if (state is TasksState.Loading) {
-            loadingPanel.startLoading()
-            // Usually the tree already shows the last successful load. If the panel opens during a load, this code shows the last successful load.
-            state.last?.let { showLoaded(it, previous) }
-            return
-        }
         // Stop the loading indicator first. Thus an error in the code below does not keep the indicator visible.
-        loadingPanel.stopLoading()
-        when (state) {
-            is TasksState.Loaded -> showLoaded(state, previous)
-            is TasksState.Stale -> showLoaded(state.last, previous)
-            TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
-            is TasksState.Failure -> showMessage(failureText(state), showSettingsLink = hasSettingsLink(state))
-            is TasksState.Loading -> Unit
+        if (state is TasksState.Loading) loadingPanel.startLoading() else loadingPanel.stopLoading()
+        // During a load, the tree usually shows the last successful load already. If the panel opens during a load, this code shows it.
+        val last = state.lastLoaded
+        when {
+            last != null -> showLoaded(last, previous)
+            state == TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
+            state is TasksState.Failure -> showMessage(failureText(state), showSettingsLink = hasSettingsLink(state))
         }
     }
 

@@ -123,6 +123,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testRefreshAfterNoWorkspaceDoesNotKeepTheOldTasks() {
         service.loadRecorded()
         service.loadNoWorkspace()
+        service.projectDir = { TestData.workspace.toPath() }
         assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
     }
 
@@ -234,10 +235,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
 
     fun testConfigWatchKeepsTheSourcesDuringARefresh() {
         service.loadRecorded()
-        val started = CompletableDeferred<Unit>()
-        service.queryProjects = { started.complete(Unit); awaitCancellation() }
-        service.refresh()
-        runBlocking { withTimeout(10_000) { started.await() } }
+        service.startEndlessRefresh()
         assertEquals(TestData.workspaceRoot, service.configWatch.root)
         assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
     }
@@ -250,10 +248,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testConfigWatchHasTheRootDuringTheFirstLoad() {
-        val started = CompletableDeferred<Unit>()
-        service.queryProjects = { started.complete(Unit); awaitCancellation() }
-        service.refresh()
-        runBlocking { withTimeout(10_000) { started.await() } }
+        service.startEndlessRefresh()
         // A change during the first load must cause a refresh. Thus the listener must know the root before moon completes.
         assertEquals(TestData.workspaceRoot, service.configWatch.root)
     }

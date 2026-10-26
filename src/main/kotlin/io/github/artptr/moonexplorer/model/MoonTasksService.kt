@@ -114,10 +114,13 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
                 val last = _state.value.lastLoaded
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
                 watchConfig(root, dir, last)
-                stateAfter(TasksLoader.loadTasksIn(root, queryProjectsFn), last).also { state ->
-                    // A failed load keeps the last successful load. Then the watch does not change.
-                    if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
-                }
+                val result = TasksLoader.loadTasksIn(root, queryProjectsFn)
+                // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
+                // NoWorkspace does not keep the last load, because the old tasks are not correct.
+                val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
+                // A failed load keeps the last successful load. Then the watch does not change.
+                if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
+                state
             }
         }
     }
@@ -125,16 +128,6 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     /** Sets [configWatch] for [root] and [projectDir]. The sources come from [last], the result of the last successful load. */
     private fun watchConfig(root: Path?, projectDir: Path?, last: TasksState.Loaded?) {
         configWatch = ConfigWatch(root, projectDir, last?.tasks?.sources.orEmpty())
-    }
-
-    /**
-     * Gives the state for the [result] of a load. [last] is the result of the last successful load before this load.
-     * A failure after a successful load gives [TasksState.Stale]. Thus the tree keeps the last correct tasks.
-     * For [TasksState.NoWorkspace], the state does not keep [last], because the old tasks are not correct.
-     */
-    private fun stateAfter(result: TasksState, last: TasksState.Loaded?): TasksState = when (result) {
-        is TasksState.Failure -> last?.let { TasksState.Stale(it, result) } ?: result
-        else -> result
     }
 
     /**
