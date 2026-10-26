@@ -28,10 +28,22 @@ data class MoonProject(val id: String, val tasks: List<MoonTask>, val stack: Str
 data class ProjectSource(val id: String, val source: String)
 
 /**
+ * The configuration files of the tasks of a project.
+ * [ownTasks] contains the IDs of the tasks in the configuration file of the project, for example `moon.yml`.
+ * [layers] gives the inherited files of each task ID. Each file is a path from the workspace root, for example `.moon/tasks/all.yml`.
+ */
+data class TaskConfigs(val ownTasks: Set<String> = emptySet(), val layers: Map<String, List<String>> = emptyMap())
+
+/**
  * All projects of a workspace that have tasks, sorted by ID.
  * [sources] contains the location of each project, sorted by ID. This list also contains the projects without tasks.
+ * [taskConfigs] gives the configuration files of the tasks of each project ID. A project without these files is not in the map.
  */
-data class WorkspaceTasks(val projects: List<MoonProject>, val sources: List<ProjectSource> = emptyList())
+data class WorkspaceTasks(
+    val projects: List<MoonProject>,
+    val sources: List<ProjectSource> = emptyList(),
+    val taskConfigs: Map<String, TaskConfigs> = emptyMap(),
+)
 
 /** All tasks of all projects, in the sequence of [WorkspaceTasks.projects]. */
 val WorkspaceTasks.allTasks: List<MoonTask> get() = projects.flatMap { it.tasks }

@@ -21,9 +21,11 @@ object QueryProjectsParser {
             ?: throw MoonOutputException(OutputProblem.NoProjects)
 
         val sources = mutableListOf<ProjectSource>()
+        val taskConfigs = mutableMapOf<String, TaskConfigs>()
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
             val projectId = project.string("id") ?: return@mapNotNull null
             project.string("source")?.let { sources += ProjectSource(projectId, it) }
+            taskConfigs(project).takeIf { it != TaskConfigs() }?.let { taskConfigs[projectId] = it }
             // moon does not write the key "tasks" if the project has no tasks.
             val tasks = project.get("tasks")?.objectOrNull()?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null
@@ -45,7 +47,23 @@ object QueryProjectsParser {
         return WorkspaceTasks(
             projects = result.sortedById { it.id },
             sources = sources.sortedById { it.id },
+            taskConfigs = taskConfigs,
         )
+    }
+
+    /**
+     * Gives the configuration files of the tasks of [project]. `config.tasks` contains the tasks of the configuration file of the project.
+     * `inherited.layers` gives the inherited files of each task. The function ignores values that are not strings.
+     */
+    private fun taskConfigs(project: JsonObject): TaskConfigs {
+        val ownTasks = project.get("config")?.objectOrNull()?.get("tasks")?.objectOrNull()?.keySet().orEmpty()
+        val layers = project.get("inherited")?.objectOrNull()?.get("layers")?.objectOrNull()?.entrySet().orEmpty()
+            .associate { (taskId, files) ->
+                val paths = if (files.isJsonArray) files.asJsonArray.mapNotNull { it.stringOrNull() } else emptyList()
+                taskId to paths
+            }
+            .filterValues { it.isNotEmpty() }
+        return TaskConfigs(ownTasks.toSet(), layers)
     }
 
     /**

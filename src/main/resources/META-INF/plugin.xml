@@ -78,6 +78,11 @@
                     icon="AllIcons.Actions.Execute"/>
             <action id="MoonExplorer.CreateRunConfiguration"
                     class="io.github.artptr.moonexplorer.ui.CreateRunConfigurationAction"/>
+            <separator/>
+            <action id="MoonExplorer.JumpToSource"
+                    class="io.github.artptr.moonexplorer.ui.JumpToSourceAction"
+                    icon="AllIcons.Actions.EditSource"
+                    use-shortcut-of="EditSource"/>
         </group>
     </actions>
 </idea-plugin>

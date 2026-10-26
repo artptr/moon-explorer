@@ -51,6 +51,36 @@ class QueryProjectsParserTest {
     }
 
     @Test
+    fun recordedOutputHasTheTaskConfigsOfAProject() {
+        // The project web changes the inherited task lint in its moon.yml. Thus lint is in the two lists.
+        val configs = recorded.taskConfigs.getValue("web")
+        assertEquals(setOf("build", "dev", "lint", "preview"), configs.ownTasks)
+        assertEquals(listOf(".moon/tasks/all.yml"), configs.layers["lint"])
+        assertEquals(listOf(".moon/tasks/frontend.yml"), configs.layers["test"])
+        assertNull(configs.layers["build"])
+    }
+
+    @Test
+    fun recordedOutputHasTheTaskConfigsOfAProjectWithoutTasks() {
+        val configs = recorded.taskConfigs.getValue("config")
+        assertEquals(emptySet<String>(), configs.ownTasks)
+        assertEquals(setOf("format", "lint"), configs.layers.keys)
+    }
+
+    @Test
+    fun taskConfigsIgnoreValuesThatAreNotStrings() {
+        val json = """
+            {"projects": [
+              {"id": "a", "config": {"tasks": {"build": {}}}, "inherited": {"layers": {"lint": [".moon/tasks/all.yml", 5], "test": "x", "e": []}}},
+              {"id": "b", "config": {"tasks": []}, "inherited": 5}
+            ]}
+        """
+        val configs = QueryProjectsParser.parse(json).taskConfigs
+        assertEquals(TaskConfigs(setOf("build"), mapOf("lint" to listOf(".moon/tasks/all.yml"))), configs["a"])
+        assertNull(configs["b"])
+    }
+
+    @Test
     fun recordedOutputHasTheTasksOfAProjectInOrder() {
         assertEquals(
             listOf("build", "dev", "format", "lint", "preview", "test", "typecheck"),

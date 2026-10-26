@@ -263,6 +263,26 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         assertNull(treeData(SELECTED_TASKS))
     }
 
+    fun testDataContextHasTheSelectedProjectAndTheShownTasks() {
+        assertNull(treeData(SHOWN_TASKS))
+        panel.loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        assertEquals("web", treeData(SELECTED_PROJECT)?.id)
+        assertEquals(TestData.recordedState(), treeData(SHOWN_TASKS))
+        panel.tree.selectionPath = taskPath("web:build")
+        assertNull(treeData(SELECTED_PROJECT))
+        panel.tree.selectionPaths = arrayOf(projectPath("web"), projectPath("api"))
+        assertNull(treeData(SELECTED_PROJECT))
+    }
+
+    fun testShownTasksAreTheOldTasksDuringALoad() {
+        panel.loadRecorded()
+        panel.render(TasksState.Loading)
+        assertEquals(TestData.recordedState(), treeData(SHOWN_TASKS))
+        panel.render(TasksState.NoWorkspace)
+        assertNull(treeData(SHOWN_TASKS))
+    }
+
     fun testCategoryAndProjectNodesHaveNoTaskLists() {
         panel.loadRecorded()
         panel.tree.selectionPath = projectPath("web")
