@@ -193,7 +193,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
         panel.changeMainGroup(TaskGrouping.TASK_NAME)
         assertFalse("The tree has no project nodes", update().isEnabled)
         panel.changeMainGroup(TaskGrouping.PROJECT)
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(TestData.recordedState()))
         assertFalse("The tree shows the old tasks during a load", update().isEnabled)
         panel.render(TasksState.NoWorkspace)
         assertFalse("The panel shows a message", update().isEnabled)
@@ -201,7 +201,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
 
     fun testCannotSelectDuringALoad() {
         panel.loadRecorded()
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(TestData.recordedState()))
         assertFalse("The tree shows the old tasks", panel.canSelectProject())
         panel.selectProjectOf(root.resolve("apps/web/moon.yml"))
         assertNull(panel.tree.selectionPath)

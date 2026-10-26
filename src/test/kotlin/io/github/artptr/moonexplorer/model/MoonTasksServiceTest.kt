@@ -105,9 +105,34 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.queryProjects = { CliResult.Failed("first") }
         service.refresh()
         service.awaitState(TasksState.MoonFailed(MoonFailure.Error("first")))
-        service.queryProjects = { awaitCancellation() }
+        assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
+    }
+
+    fun testRefreshAfterALoadKeepsTheLastLoad() {
+        service.loadRecorded()
+        val state = service.startEndlessRefresh()
+        assertEquals(TasksState.Loading(TestData.recordedState()), state)
+        assertEquals(TestData.recordedTasks(), state.loadedTasks)
+    }
+
+    fun testRefreshAfterAFailedRefreshKeepsTheLastLoad() {
+        val stale = service.loadStale()
+        assertEquals(TasksState.Loading(stale.last), service.startEndlessRefresh())
+    }
+
+    fun testRefreshAfterNoWorkspaceDoesNotKeepTheOldTasks() {
+        service.loadRecorded()
+        service.loadNoWorkspace()
+        assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
+    }
+
+    fun testFailureAfterARefreshAfterNoWorkspaceIsNotStale() {
+        service.loadRecorded()
+        service.loadNoWorkspace()
+        service.projectDir = { TestData.workspace.toPath() }
+        service.queryProjects = { CliResult.Failed("bad config") }
         service.refresh()
-        assertEquals(TasksState.Loading, service.state.value)
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
     }
 
     fun testRefreshUsesTheInputsOfTheCall() {
@@ -205,6 +230,23 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.refresh()
         service.awaitState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad config"))))
         assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
+    }
+
+    fun testConfigWatchKeepsTheSourcesDuringARefresh() {
+        service.loadRecorded()
+        val started = CompletableDeferred<Unit>()
+        service.queryProjects = { started.complete(Unit); awaitCancellation() }
+        service.refresh()
+        runBlocking { withTimeout(10_000) { started.await() } }
+        assertEquals(TestData.workspaceRoot, service.configWatch.root)
+        assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
+    }
+
+    fun testNoWorkspaceRemovesTheSourcesFromTheConfigWatch() {
+        service.loadRecorded()
+        service.loadNoWorkspace()
+        assertNull(service.configWatch.root)
+        assertEmpty(service.configWatch.sources)
     }
 
     fun testConfigWatchHasTheRootDuringTheFirstLoad() {

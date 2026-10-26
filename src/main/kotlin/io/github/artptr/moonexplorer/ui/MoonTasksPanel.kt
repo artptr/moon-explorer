@@ -41,6 +41,7 @@ import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.findProjectForFile
+import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.sortedById
 import io.github.artptr.moonexplorer.model.targetProjectId
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
@@ -138,8 +139,15 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      */
     internal var updateToolbar: () -> Unit = { actionToolbar.updateActionsAsync() }
 
-    /** The loaded state that the tree shows now. The value is null if the panel shows a message. */
-    private var shown: TasksState.Loaded? = null
+    /** The state that the panel shows now. */
+    private var state: TasksState = TasksState.Loading(null)
+
+    /**
+     * The loaded state that the tree shows now. During a load, the tree shows the last successful load.
+     * The value is null if the panel shows a message.
+     */
+    private val shown: TasksState.Loaded?
+        get() = state.lastLoaded?.takeIf { it.tasks.projects.isNotEmpty() }
 
     init {
         val group = ActionManager.getInstance().getAction(TOOLBAR_GROUP_ID) as? ActionGroup
@@ -250,30 +258,33 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     internal fun render(state: TasksState) {
         // The action ShowRefreshFailureAction is visible only in the Stale state. This call updates the toolbar for all states, also for the Loading state.
         updateToolbar()
+        val previous = shown
+        this.state = state
         if (state is TasksState.Loading) {
             loadingPanel.startLoading()
+            // Usually the tree already shows the last successful load. If the panel opens during a load, this code shows the last successful load.
+            state.last?.let { showLoaded(it, previous) }
             return
         }
         // Stop the loading indicator first. Thus an error in the code below does not keep the indicator visible.
         loadingPanel.stopLoading()
         when (state) {
-            is TasksState.Loaded -> showLoaded(state)
-            is TasksState.Stale -> showLoaded(state.last)
+            is TasksState.Loaded -> showLoaded(state, previous)
+            is TasksState.Stale -> showLoaded(state.last, previous)
             TasksState.NoWorkspace -> showMessage(MoonExplorerBundle.message("tasks.message.noWorkspace"))
             is TasksState.Failure -> showMessage(failureText(state), showSettingsLink = hasSettingsLink(state))
-            TasksState.Loading -> Unit
+            is TasksState.Loading -> Unit
         }
     }
 
-    private fun showLoaded(state: TasksState.Loaded) {
+    /** Shows the tasks of [state]. [previous] is the loaded state that the tree showed before this call, or null. */
+    private fun showLoaded(state: TasksState.Loaded, previous: TasksState.Loaded?) {
         if (state.tasks.projects.isEmpty()) {
             showMessage(MoonExplorerBundle.message("tasks.message.noTasks"))
             return
         }
-        // A failed refresh and a refresh without changes give the tasks that the tree shows now. Then the tree stays the same.
-        val sameTasks = state.tasks == shown?.tasks
-        shown = state
-        if (sameTasks) cardLayout.show(cards, TREE_CARD) else showTree(state.tasks)
+        // A load, a failed refresh, and a refresh without changes give the tasks that the tree shows now. Then the tree stays the same.
+        if (state.tasks == previous?.tasks) cardLayout.show(cards, TREE_CARD) else showTree(state.tasks)
     }
 
     /** The main group of the tree. The plugin keeps the value in the settings of the IDE project. */
@@ -389,7 +400,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
      * [TaskGrouping.PROJECT]. If the main group is [TaskGrouping.TASK_NAME], the tree has no project nodes.
      * During a load, the tree shows the old tasks. Thus the function gives false.
      */
-    internal fun canSelectProject(): Boolean = shown != null && !loadingPanel.isLoading && mainGroup == TaskGrouping.PROJECT
+    internal fun canSelectProject(): Boolean = state !is TasksState.Loading && shown != null && mainGroup == TaskGrouping.PROJECT
 
     /**
      * Selects the node of the project that contains [file]. The function expands the node and its parent nodes, and scrolls to the node.
@@ -424,7 +435,6 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     }
 
     private fun showMessage(text: String, showSettingsLink: Boolean = false) {
-        shown = null
         messageArea.text = text
         settingsLink.isVisible = showSettingsLink
         messageArea.caretPosition = 0

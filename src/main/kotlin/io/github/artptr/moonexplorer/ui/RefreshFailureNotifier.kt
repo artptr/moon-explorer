@@ -41,7 +41,7 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
     internal fun onState(state: TasksState) {
         when (state) {
             is TasksState.Stale -> show(state.failure)
-            TasksState.Loading -> Unit
+            is TasksState.Loading -> Unit
             else -> expire()
         }
     }

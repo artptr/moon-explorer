@@ -85,7 +85,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testTimedOutShowsMessage() {
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(null))
         panel.render(TasksState.MoonFailed(MoonFailure.TimedOut))
         assertMessage(MoonExplorerBundle.message("tasks.message.moonTimeout"))
         // The user can change the time limit in the settings.
@@ -146,8 +146,35 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     }
 
     fun testLoadingShowsIndicator() {
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(null))
         assertTrue(panel.loadingPanel.isLoading)
+    }
+
+    fun testRefreshKeepsTheTreeAndTheExpandedNodes() {
+        panel.loadRecorded()
+        panel.tree.expandPath(projectPath("web"))
+        panel.render(TasksState.Loading(TestData.recordedState()))
+        assertTrue(panel.loadingPanel.isLoading)
+        assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
+        assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
+        assertTrue(panel.tree.isExpanded(projectPath("web")))
+    }
+
+    fun testPanelThatOpensDuringARefreshShowsTheLastTasks() {
+        panel.render(TasksState.Loading(TestData.recordedState()))
+        assertTrue(panel.loadingPanel.isLoading)
+        assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
+        assertEquals(9, panel.tree.model.getChildCount(panel.tree.model.root))
+        assertEquals(TestData.recordedState(), treeData(SHOWN_TASKS))
+    }
+
+    fun testRefreshAfterAnEmptyWorkspaceKeepsTheMessage() {
+        val empty = TestData.loadedState(WorkspaceTasks(emptyList()))
+        panel.render(empty)
+        panel.render(TasksState.Loading(empty))
+        assertEquals(MoonTasksPanel.MESSAGE_CARD, panel.visibleCard)
+        assertEquals(MoonExplorerBundle.message("tasks.message.noTasks"), panel.messageArea.text)
+        assertNull(treeData(SHOWN_TASKS))
     }
 
     fun testLoadedShowsTree() {
@@ -313,7 +340,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
 
     fun testShownTasksAreTheOldTasksDuringALoad() {
         panel.loadRecorded()
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(TestData.recordedState()))
         assertEquals(TestData.recordedState(), treeData(SHOWN_TASKS))
         panel.render(TasksState.NoWorkspace)
         assertNull(treeData(SHOWN_TASKS))
@@ -562,7 +589,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
     fun testStaleKeepsTheTreeAndTheExpandedNodes() {
         panel.loadRecorded()
         panel.tree.expandPath(projectPath("web"))
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(TestData.recordedState()))
         val last = TestData.recordedState()
         panel.render(TasksState.Stale(last, TasksState.MoonFailed(MoonFailure.Error("bad config"))))
         assertEquals(MoonTasksPanel.TREE_CARD, panel.visibleCard)
@@ -591,7 +618,7 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         val states = listOf(
             TestData.recordedState(),
             TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error("bad config"))),
-            TasksState.Loading,
+            TasksState.Loading(TestData.recordedState()),
             TasksState.NoWorkspace,
             TasksState.MoonFailed(MoonFailure.TimedOut),
         )

@@ -2,6 +2,7 @@ package io.github.artptr.moonexplorer.model
 
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.testData.TestData
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -40,6 +41,16 @@ fun MoonTasksService.loadStale(message: String = "refresh failed"): TasksState.S
     val stale = TasksState.Stale(TestData.recordedState(), TasksState.MoonFailed(MoonFailure.Error(message)))
     awaitState(stale)
     return stale
+}
+
+/**
+ * Starts a refresh that does not complete. `moon query projects` waits until [MoonTasksService.resetForTests] cancels it.
+ * Gives the state during the refresh.
+ */
+fun MoonTasksService.startEndlessRefresh(): TasksState {
+    queryProjects = { awaitCancellation() }
+    refresh()
+    return state.value
 }
 
 /** Loads with no IDE project directory and waits for the [TasksState.NoWorkspace] state. */

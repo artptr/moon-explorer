@@ -46,7 +46,7 @@ class RefreshFailureNotifierTest : BasePlatformTestCase() {
 
     fun testNewFailureReplacesTheNotification() {
         notifier.onState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("first"))))
-        notifier.onState(TasksState.Loading)
+        notifier.onState(TasksState.Loading(loaded))
         notifier.onState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("second"))))
         assertEquals(2, shown.size)
         assertTrue(shown[0].isExpired)
@@ -56,7 +56,7 @@ class RefreshFailureNotifierTest : BasePlatformTestCase() {
 
     fun testSuccessfulLoadClosesTheNotification() {
         notifier.onState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad"))))
-        notifier.onState(TasksState.Loading)
+        notifier.onState(TasksState.Loading(loaded))
         assertFalse("A load must not close the notification", shown.single().isExpired)
         notifier.onState(loaded)
         assertTrue(shown.single().isExpired)

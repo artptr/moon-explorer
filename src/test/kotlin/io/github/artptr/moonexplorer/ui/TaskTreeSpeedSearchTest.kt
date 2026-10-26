@@ -78,7 +78,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     }
 
     fun testSearchOperatesAfterARefresh() {
-        panel.render(TasksState.Loading)
+        panel.render(TasksState.Loading(TestData.loadedState(tasks)))
         panel.render(TestData.loadedState(tasks))
         panel.speedSearch.findAndSelectElement("audit")
         assertEquals("api:audit", selectedTask.task.target)

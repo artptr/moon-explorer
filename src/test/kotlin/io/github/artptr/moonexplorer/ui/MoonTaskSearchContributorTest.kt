@@ -16,6 +16,7 @@ import io.github.artptr.moonexplorer.model.loadNoWorkspace
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.loadStale
 import io.github.artptr.moonexplorer.model.prepareForTests
+import io.github.artptr.moonexplorer.model.startEndlessRefresh
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 
@@ -80,10 +81,22 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
         assertEmpty(search("  "))
     }
 
-    fun testSearchFindsNothingWhileTheTasksLoad() {
+    fun testSearchFindsNothingDuringTheFirstLoad() {
         runBlocking { service.resetForTests() }
-        assertEquals(TasksState.Loading, service.state.value)
+        assertEquals(TasksState.Loading(null), service.state.value)
         assertEmpty(search("build"))
+    }
+
+    fun testSearchUsesTheLastTasksDuringARefresh() {
+        // When you save a configuration file, the plugin starts a refresh. The search must show the results during the refresh.
+        assertEquals(TasksState.Loading(TestData.recordedState()), service.startEndlessRefresh())
+        assertSameElements(targets("storybook"), "ui:storybook")
+    }
+
+    fun testSearchUsesTheLastTasksDuringARefreshAfterAFailedRefresh() {
+        service.loadStale()
+        service.startEndlessRefresh()
+        assertSameElements(targets("storybook"), "ui:storybook")
     }
 
     fun testSearchFindsNothingWithoutAWorkspace() {

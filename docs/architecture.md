@@ -144,6 +144,8 @@ A change in an IDE editor applies when the IDE saves the document. moon reads on
 
 **NOTE:** If `git checkout` makes a new project directory, the VFS can send an event only for the directory. Then the plugin does not see the new `moon.yml` file. A later change or a manual refresh corrects the tree.
 
+During a load, the service gives the state `TasksState.Loading`. This state contains the last successful load, or null if no load was successful. Thus the tree, **Search Everywhere**, and **Run Anything** use the old tasks until the load completes.
+
 If a load fails after a successful load, the service gives the state `TasksState.Stale`. This state contains the last successful load and the error. This rule applies to all loads: at startup, after **Refresh**, and after a change.
 
 - The tree shows the tasks of the last successful load. The expanded nodes and the selected nodes do not change.

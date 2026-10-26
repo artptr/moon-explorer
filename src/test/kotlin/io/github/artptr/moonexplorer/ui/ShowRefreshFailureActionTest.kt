@@ -26,7 +26,7 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            project.service<RefreshFailureNotifier>().onState(TasksState.Loading)
+            project.service<RefreshFailureNotifier>().onState(TasksState.Loading(null))
             project.service<RefreshFailureNotifier>().onState(TasksState.NoWorkspace)
             runBlocking { service.resetForTests() }
         } finally {

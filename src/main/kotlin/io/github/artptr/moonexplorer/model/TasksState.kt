@@ -28,8 +28,11 @@ sealed interface TasksState {
     /** A load that failed. The tool window or the notification shows a message for the failure. */
     sealed interface Failure : TasksState
 
-    /** The plugin runs `moon query projects`. */
-    data object Loading : TasksState
+    /**
+     * The plugin runs `moon query projects`. [last] is the result of the last successful load, or null if no load was successful.
+     * During the load, the tree, **Search Everywhere**, and **Run Anything** use [last].
+     */
+    data class Loading(val last: Loaded?) : TasksState
 
     /**
      * The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`.
@@ -58,12 +61,18 @@ sealed interface TasksState {
 }
 
 /**
- * Gives the tasks of the last successful load, or null if the plugin did not load the tasks.
- * For [TasksState.Stale], the value is the tasks of [TasksState.Stale.last], the same as the tree.
+ * Gives the result of the last successful load, or null if the plugin did not load the tasks.
+ * For [TasksState.Stale] and [TasksState.Loading], the value is their `last` value, the same as the tree.
+ * After [TasksState.NoWorkspace] or a failure without an earlier successful load, the value is null.
  */
-val TasksState.loadedTasks: WorkspaceTasks?
+val TasksState.lastLoaded: TasksState.Loaded?
     get() = when (this) {
-        is TasksState.Loaded -> tasks
-        is TasksState.Stale -> last.tasks
+        is TasksState.Loaded -> this
+        is TasksState.Stale -> last
+        is TasksState.Loading -> last
         else -> null
     }
+
+/** Gives the tasks of [lastLoaded], or null if the plugin did not load the tasks. */
+val TasksState.loadedTasks: WorkspaceTasks?
+    get() = lastLoaded?.tasks
