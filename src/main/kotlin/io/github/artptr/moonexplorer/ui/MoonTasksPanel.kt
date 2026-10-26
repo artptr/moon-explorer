@@ -32,6 +32,7 @@ import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.tree.TreeUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonFailure
+import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.OutputProblem
@@ -202,6 +203,9 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         return (paths.singleOrNull()?.lastPathComponent as? TaskNode)?.task
     }
 
+    /** Gives the selected project. The value is null if the selection is not one project node. */
+    internal fun selectedProject(): MoonProject? = (tree.selectionPaths?.singleOrNull()?.lastPathComponent as? ProjectNode)?.project
+
     /** Gives the selected tasks. The value is null if the selection has less than two nodes, or if a selected node is not a task node. */
     internal fun selectedTasks(): List<MoonTask>? {
         val nodes = tree.selectionPaths?.map { it.lastPathComponent }?.takeIf { it.size > 1 } ?: return null
@@ -222,6 +226,8 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
         sink[SELECTED_TASK] = selectedTask()
         sink[SELECTED_TASKS] = selectedTasks()
         sink[SELECTED_TASK_NAME_TASKS] = selectedTaskNameTasks()
+        sink[SELECTED_PROJECT] = selectedProject()
+        sink[SHOWN_TASKS] = shown
         sink[TASKS_PANEL] = this
     }
 

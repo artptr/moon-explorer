@@ -6,7 +6,9 @@ import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
+import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
 
 /** The task that the user selected in the tree of the Moon tool window. The value is null if the selection is not one task. */
@@ -24,6 +26,15 @@ val SELECTED_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.Selec
  * The value is null if the selection is not one task name node.
  */
 val SELECTED_TASK_NAME_TASKS: DataKey<List<MoonTask>> = DataKey.create("MoonExplorer.SelectedTaskNameTasks")
+
+/** The project that the user selected in the tree of the Moon tool window. The value is null if the selection is not one project node. */
+val SELECTED_PROJECT: DataKey<MoonProject> = DataKey.create("MoonExplorer.SelectedProject")
+
+/**
+ * The loaded state that the tree of the Moon tool window shows. The value is null if the tool window shows a message.
+ * During a load, the tree shows the old tasks. Thus the value is the state of the old tasks.
+ */
+val SHOWN_TASKS: DataKey<TasksState.Loaded> = DataKey.create("MoonExplorer.ShownTasks")
 
 /** The base of the actions for the selection in the tree. The action is visible only if [key] has a value. */
 abstract class SelectedDataAction<T : Any>(private val key: DataKey<T>) : DumbAwareAction() {

@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.CustomizedDataContext
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.TestActionEvent
@@ -261,6 +262,44 @@ class MoonTasksPanelTest : BasePlatformTestCase() {
         panel.tree.selectionPath = namePath(null, "audit")
         assertEquals(listOf("api:audit", "db:audit", "worker:audit"), treeData(SELECTED_TASK_NAME_TASKS)?.map { it.target })
         assertNull(treeData(SELECTED_TASKS))
+    }
+
+    fun testDataContextHasTheSelectedProjectAndTheShownTasks() {
+        assertNull(treeData(SHOWN_TASKS))
+        panel.loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        assertEquals("web", treeData(SELECTED_PROJECT)?.id)
+        assertEquals(TestData.recordedState(), treeData(SHOWN_TASKS))
+        panel.tree.selectionPath = taskPath("web:build")
+        assertNull(treeData(SELECTED_PROJECT))
+        panel.tree.selectionPaths = arrayOf(projectPath("web"), projectPath("api"))
+        assertNull(treeData(SELECTED_PROJECT))
+    }
+
+    /** Gives true if the registered action [id] is visible in the context menu of the selected nodes. The action gets the data of the panel. */
+    private fun isInContextMenu(id: String): Boolean {
+        val action = ActionManager.getInstance().getAction(id)
+        val context = CustomizedDataContext.withSnapshot(SimpleDataContext.getProjectContext(project)) { panel.uiDataSnapshot(it) }
+        return TestActionEvent.createTestEvent(action, context).also(action::update).presentation.isEnabledAndVisible
+    }
+
+    fun testContextMenuOfAProjectNodeAndATaskNodeHasJumpToSource() {
+        panel.loadRecorded()
+        panel.tree.selectionPath = projectPath("web")
+        assertTrue(isInContextMenu("MoonExplorer.JumpToSource"))
+        panel.tree.selectionPath = taskPath("web:lint")
+        assertTrue(isInContextMenu("MoonExplorer.JumpToSource"))
+        panel.changeCategory(TaskCategory.LAYER)
+        panel.tree.selectionPath = panel.allPaths().first { it.lastPathComponent is CategoryNode }
+        assertFalse(isInContextMenu("MoonExplorer.JumpToSource"))
+    }
+
+    fun testShownTasksAreTheOldTasksDuringALoad() {
+        panel.loadRecorded()
+        panel.render(TasksState.Loading)
+        assertEquals(TestData.recordedState(), treeData(SHOWN_TASKS))
+        panel.render(TasksState.NoWorkspace)
+        assertNull(treeData(SHOWN_TASKS))
     }
 
     fun testCategoryAndProjectNodesHaveNoTaskLists() {

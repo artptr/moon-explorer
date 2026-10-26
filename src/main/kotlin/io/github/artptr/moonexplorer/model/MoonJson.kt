@@ -27,7 +27,7 @@ internal fun parseMoonJson(json: String): JsonElement = try {
 internal fun JsonElement.objectOrNull(): JsonObject? = if (isJsonObject) asJsonObject else null
 
 /** Gives the value of the field [name] if the value is a JSON string. If not, gives null. */
-internal fun JsonObject.string(name: String): String? {
-    val value = get(name) ?: return null
-    return if (value.isJsonPrimitive && value.asJsonPrimitive.isString) value.asString else null
-}
+internal fun JsonObject.string(name: String): String? = get(name)?.stringOrNull()
+
+/** Gives the value if it is a JSON string. If not, gives null. */
+internal fun JsonElement.stringOrNull(): String? = if (isJsonPrimitive && asJsonPrimitive.isString) asString else null
