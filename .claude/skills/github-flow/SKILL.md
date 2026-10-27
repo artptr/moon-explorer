@@ -28,7 +28,7 @@ To add a label, change `.github/labels.yml`. Do not create labels in the GitHub 
 | Prefix | Meaning |
 |--------|---------|
 | `type/*` | Kind of work: `feature`, `bug`, `docs`, `chore`, `refactor` |
-| `area/*` | Part of the product: `ui`, `cli`, `run`, `settings`, `build`, `ai-harness` |
+| `area/*` | Part of the product: `ui`, `cli`, `run`, `settings`, `build`, `ai-harness`, `diagnostics` |
 | `status/*` | State outside the board: `blocked`, `needs-info`, `needs-design` |
 | `priority/*` | `high`, `medium`, `low` |
 

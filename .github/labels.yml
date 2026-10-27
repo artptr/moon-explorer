@@ -10,6 +10,7 @@
 - { name: "area/settings",      color: "FBCA04", description: "Plugin settings" }
 - { name: "area/build",         color: "FBCA04", description: "Gradle build and CI" }
 - { name: "area/ai-harness",    color: "FBCA04", description: "AGENTS.md, CLAUDE.md, skills, subagents" }
+- { name: "area/diagnostics",  color: "FBCA04", description: "Error reports, freeze reports, logs" }
 - { name: "status/blocked",     color: "000000", description: "Work cannot continue" }
 - { name: "status/needs-info",  color: "D876E3", description: "More information is necessary" }
 - { name: "status/needs-design",color: "D876E3", description: "A design decision is necessary" }
