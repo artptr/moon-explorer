@@ -151,6 +151,11 @@ jobs:
         with:
           cache-read-only: true
 
+      # If the Gradle cache does not contain the Gradle distribution, the wrapper downloads it and writes the progress to the standard output.
+      # This step downloads the distribution. Then the 'Get IDE Versions' step gets only the output of the Gradle task.
+      - name: Download Gradle Distribution
+        run: ./gradlew --version --quiet
+
       # Get the versions of the two IDEs for the quick check: the IDE of the build and the newest released IDE.
       # The 'printProductsReleases' task does not download the IDEs.
       - name: Get IDE Versions
