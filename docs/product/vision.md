@@ -107,6 +107,7 @@ The other functions do not operate without the `moon` executable.
 
 1. The moon CLI is the only source of data about the workspace. The plugin does not calculate task inheritance itself.
 2. The plugin operates without a network connection. It does not send telemetry.
+   The IDE sends exception reports and freeze reports of the plugin to JetBrains Marketplace only if the user agrees.
 3. The plugin operates with moon v2. The minimum version that the team tests is moon 2.2.3.
 4. The plugin uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are not necessary.
 5. The plugin uses the standard functions of the IDE, for example tool windows and run configurations.

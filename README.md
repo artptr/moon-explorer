@@ -21,10 +21,16 @@ The first release (an MVP) focuses on that:
 - Find and run tasks from **Search Everywhere** (double Shift), or type `moon` in **Run Anything** (double Ctrl) to get target completion and run any moon command — the tool window doesn't even need to be open
 - Works out of the box when moon is an npm dev dependency — no need to install it globally
 
-It targets moon v2, works fully offline, and sends no telemetry.
+It targets moon v2, works fully offline, and sends no telemetry. Error reports are opt-in (see below).
 It's especially handy when you're new to a workspace and don't know the task names yet.
 
 See [docs/product/vision.md](docs/product/vision.md) for more.
+
+### Error reports
+
+If the plugin crashes or freezes the IDE, you can send a report to the maintainer: in the **IDE Internal Errors** dialog, click **Report to third-party plugin**.
+Reports go to JetBrains Marketplace, and only with your consent — either you send each one yourself, or you've turned on **Send error reports to JetBrains automatically** in the IDE.
+A report holds the stack trace or thread dumps, plus the IDE and plugin versions. It helps a lot with freezes that only happen on your machine.
 
 ## Coming from the moon VS Code extension?
 
