@@ -23,7 +23,7 @@ The model layer does not use Swing. The CLI layer does not use the IntelliJ PSI.
 The parser of the moon JSON output is in the model layer. Thus the CLI layer does not use the model classes.
 
 The `settings` package contains the settings state and the settings page.
-The `run` package contains the run configuration for moon tasks. It runs `moon run <targets>` in the workspace root. One configuration can contain one or more targets. If the configuration has the option for affected tasks, the command also has `--affected` after the targets.
+The `run` package contains the run configuration for moon tasks. The configuration runs this command in the workspace root: `moon run <targets> [--affected] [--force] [-- <arguments>]`. moon gives the arguments after `--` to the task command. Thus the options of moon are before `--`. The configuration also sets the environment variables of the moon process.
 
 | Component | Class | Registration |
 |-----------|-------|--------------|
