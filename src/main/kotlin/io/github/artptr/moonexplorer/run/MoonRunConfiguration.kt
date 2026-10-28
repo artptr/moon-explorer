@@ -68,7 +68,7 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
             options.arguments = value.trim().ifEmpty { null }
         }
 
-    /** If true, moon does not use the cache and runs the tasks again. */
+    /** If true, moon does not use the cache. Thus moon runs a task again also if its inputs did not change. */
     var force: Boolean
         get() = options.force
         set(value) {

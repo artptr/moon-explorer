@@ -34,6 +34,8 @@ object MoonTaskRunner {
     /**
      * Gives the run configuration for [targets] and [affected], or makes a new one. The function also selects it.
      * The function uses a configuration only if it has the same targets in the same sequence and the same [affected] value.
+     * The function does not compare the arguments, the force option, or the environment variables.
+     * Thus a run from the tree uses these values of a saved configuration.
      */
     internal fun findOrCreate(
         project: Project,

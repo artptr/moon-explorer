@@ -104,8 +104,9 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         }
         val commandLine = configuration.createCommandLine(workspace) { moon }
         assertEquals(GeneralCommandLine.ParentEnvironmentType.NONE, commandLine.parentEnvironmentType)
-        // GeneralCommandLine adds PWD for the working directory. The process does not get other variables, for example PATH.
-        assertEquals(mapOf("DEBUG" to "*", "PWD" to workspace.toString()), commandLine.effectiveEnvironment)
+        // On Unix, GeneralCommandLine adds PWD for the working directory. On Windows, it does not add PWD.
+        // The process does not get other variables, for example PATH.
+        assertEquals(mapOf("DEBUG" to "*"), commandLine.effectiveEnvironment - "PWD")
     }
 
     fun testCommandLineKeepsTheColors() {
@@ -247,7 +248,7 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
             assertTrue("Comments: $texts", texts.any { "moon run with these targets in the workspace root" in it })
             assertTrue("Comments: $texts", texts.any { "adds them after -- at the end of the command" in it })
             assertTrue("Comments: $texts", texts.any { "Adds the option --force." in it })
-            assertTrue("Comments: $texts", texts.any { "Then add PATH, because moon can need PATH to find Node.js." in it })
+            assertTrue("Comments: $texts", texts.any { "Then add PATH. The npm package of moon uses PATH to find Node.js." in it })
         } finally {
             Disposer.dispose(editor)
         }
