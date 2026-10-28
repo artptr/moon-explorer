@@ -1,5 +1,7 @@
 package io.github.artptr.moonexplorer.testData
 
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.TasksLoader
 import io.github.artptr.moonexplorer.model.TasksState
@@ -20,6 +22,16 @@ object TestData {
 
     /** Reads the file [path] from [workspace]. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
     fun workspaceText(path: String): String = File(workspace, path).readText()
+
+    /** Gives the file [path] of [workspace] in the VFS. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
+    fun workspaceVirtualFile(path: String): VirtualFile =
+        LocalFileSystem.getInstance().refreshAndFindFileByNioFile(workspaceRoot.resolve(path)) ?: error("No file $path in the test workspace")
+
+    /**
+     * A small workspace for the tests of the run icons in the editor. It has a project file `moon.yaml` with a quoted key,
+     * and a file in `.moon/tasks/` that only one project inherits. The tests copy it to a temporary directory, because they change the files.
+     */
+    val gutterWorkspace = File(root, "gutter-workspace")
 
     /** The recorded moon CLI output for the test workspace. */
     val moon = File(root, "moon")

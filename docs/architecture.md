@@ -10,6 +10,7 @@
 | Target platform | IntelliJ Platform 2025.3 and later |
 | JDK | 21 |
 | Platform dependencies | `com.intellij.modules.platform` and `com.intellij.modules.lang` (all IntelliJ-based IDEs). **Search Everywhere** and **Run Anything** are in the `lang` module. |
+| Optional dependency | `org.jetbrains.plugins.yaml` (the YAML plugin) for the run icons in the gutter. Refer to [ADR 0004](adr/0004-yaml-plugin-optional-dependency.md). |
 
 ## 2. Current structure
 
@@ -23,6 +24,8 @@ The model layer does not use Swing. The CLI layer does not use the IntelliJ PSI.
 The parser of the moon JSON output is in the model layer. Thus the CLI layer does not use the model classes.
 
 The `settings` package contains the settings state and the settings page.
+The `yaml` package contains the classes that use the YAML plugin. Only this package can use the classes of `org.jetbrains.yaml`. The file `META-INF/moon-explorer-yaml.xml` registers the extensions of this package. The IDE loads this file only when the YAML plugin is active. The test `YamlImportBoundaryTest` finds a use of a YAML class in a different package.
+
 The `run` package contains the run configuration for moon tasks. The configuration runs this command in the workspace root: `moon run <targets> [--affected] [--force] [-- <arguments>]`. moon gives the arguments after `--` to the task command. Thus the options of moon are before `--`. The configuration also sets the environment variables of the moon process.
 
 | Component | Class | Registration |
@@ -49,6 +52,8 @@ The `run` package contains the run configuration for moon tasks. The configurati
 | Actions **Run** and **Create Run Configuration** in the group `MoonExplorer.TaskPopup` | `ui.RunTaskAction`, `ui.CreateRunConfigurationAction` | `plugin.xml` |
 | Actions **Run in N Projects** and **Run Affected in N Projects** for a task name node in the group `MoonExplorer.TaskPopup`. The same group has **Run N Tasks** for two or more task nodes. The panel gives the tasks with the data keys `SELECTED_TASK_NAME_TASKS` and `SELECTED_TASKS` | `ui.RunInProjectsAction`, `ui.RunAffectedInProjectsAction`, `ui.RunSelectedTasksAction` | `plugin.xml` |
 | Action **Jump to Source** in the group `MoonExplorer.TaskPopup`, with the shortcuts of the IDE action **Jump to Source**. The action opens the configuration file of a task or a project. The panel gives the selection and the tasks with the data keys `SELECTED_TASK`, `SELECTED_PROJECT`, and `SHOWN_TASKS`. The action uses the configuration files of the last successful load. Thus the action does not read the disk to find the files. In a YAML file, a text search finds the line of the task key. In a file of a different format, the IDE opens the first line | `ui.JumpToSourceAction`, `model.TaskSources.kt` | `plugin.xml` |
+| Run icons in the gutter of the YAML configuration files: `moon.yml`, `moon.yaml`, and the files in `.moon/tasks/`. In the file of a project, the icon runs `<project>:<task>` with a run configuration. In a file in `.moon/tasks/`, the icon is different. Its tooltip shows the number of projects. Its popup has **Run in N Projects**, **Run Affected in N Projects**, and one item for each project. The projects come from `inherited.layers` of `moon query projects`. The icons use only the data of the last successful load. Thus they do not start moon. | `yaml.MoonTaskRunLineMarkerContributor`, `yaml.MoonTaskRunConfigurationProducer`, `model.taskKeyTargets`, `ui.taskGutterInfo`, `ui.RunTargetsAction` | `moon-explorer-yaml.xml` |
+| Update of the run icons in the open configuration files after a load | `ui.RunMarkersRefresher`, `ui.RunMarkersRefresherStartupActivity` | `plugin.xml` for the startup activity. `RunMarkersRefresher` is a light service. |
 | Find and run a task in the **All** tab of **Search Everywhere** | `ui.MoonTaskSearchContributor` | `plugin.xml` (`searchEverywhereContributor`) |
 | Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner`. If the IDE project has no moon workspace, the provider does not complete or run moon commands | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner`, notification group `Moon Explorer commands` | `plugin.xml` (`runAnything.executionProvider`, `notificationGroup`) |
 | Start of the `moon` executable | `cli.MoonCli` | None |

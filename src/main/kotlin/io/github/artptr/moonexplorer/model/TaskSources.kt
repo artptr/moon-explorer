@@ -1,6 +1,8 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.toNioPathOrNull
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import java.nio.file.Files
 import java.nio.file.Path
@@ -70,6 +72,67 @@ fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> 
  */
 fun projectSourceFile(state: TasksState.Loaded, projectId: String): SourceFile? =
     state.configFiles.projects[projectId]?.let { SourceFile(it, null) }
+
+/** The targets that a task key in a configuration file runs. Refer to [taskKeyTargets]. */
+sealed interface TaskKeyTargets {
+    /** A task key in the configuration file of a project, for example `moon.yml`. The key runs [target]. */
+    data class Single(val target: String) : TaskKeyTargets
+
+    /**
+     * A task key in an inherited file in `.moon/tasks/`. [targets] contains the target of each project that has the task in the loaded data
+     * and has the file in `inherited.layers` for the task. The targets are in [ID_ORDER] of the projects. The list is not empty.
+     *
+     * **NOTE:** moon can write a file in `inherited.layers` of a project without tasks. This project has no target. Thus the number of targets
+     * can be less than the number of projects with the file in `inherited.layers`. The tooltip shows the number of targets.
+     */
+    data class Shared(val targets: List<String>) : TaskKeyTargets
+}
+
+/**
+ * Gives the targets of the task key [taskId] in the configuration file [file]. [file] must be absolute and normalized.
+ * Gives null if [file] is not a configuration file of the last load, or if the loaded data does not contain the task.
+ * The projects of an inherited file come from `inherited.layers` of moon. The plugin does not calculate the inheritance itself.
+ * The function uses only [TasksState.Loaded]. Thus it does not start moon and does not read the disk.
+ */
+fun taskKeyTargets(state: TasksState.Loaded, file: Path, taskId: String): TaskKeyTargets? = state.taskKeyIndex.targets(file, taskId)
+
+/**
+ * The targets of the task keys in the configuration files of one load. The keys of the maps are the absolute and normalized paths of the files.
+ * [projectFiles] gives the project of each configuration file of a project. [shared] gives the targets of each task ID in each inherited file.
+ * The plugin calls [targets] for each task key during the analysis of a file. Thus the index makes the maps only one time for each load.
+ */
+internal class TaskKeyIndex private constructor(
+    private val projectFiles: Map<Path, MoonProject>,
+    private val shared: Map<Path, Map<String, List<String>>>,
+) {
+    fun targets(file: Path, taskId: String): TaskKeyTargets? {
+        val project = projectFiles[file]
+        if (project != null) return project.tasks.firstOrNull { it.id == taskId }?.let { TaskKeyTargets.Single(it.target) }
+        return shared[file]?.get(taskId)?.let(TaskKeyTargets::Shared)
+    }
+
+    companion object {
+        fun of(state: TasksState.Loaded): TaskKeyIndex {
+            val projectsById = state.tasks.projects.associateBy { it.id }
+            val projectFiles = state.configFiles.projects.entries.mapNotNull { (id, file) -> projectsById[id]?.let { file to it } }.toMap()
+            // The key of the map is the path, not the layer string of moon. Thus two spellings of a layer, for example
+            // `./.moon/tasks/all.yml` and `.moon/tasks/all.yml`, give the same file. The projects are in ID_ORDER. Thus the targets are too.
+            val shared = HashMap<Path, MutableMap<String, LinkedHashSet<String>>>()
+            for (project in state.tasks.projects) {
+                val layers = state.tasks.taskConfigs[project.id]?.layers ?: continue
+                for (task in project.tasks) {
+                    layers[task.id].orEmpty().mapNotNullTo(HashSet(), state.configFiles.inherited::get).forEach { file ->
+                        shared.getOrPut(file, ::HashMap).getOrPut(task.id, ::LinkedHashSet) += task.target
+                    }
+                }
+            }
+            return TaskKeyIndex(projectFiles, shared.mapValues { (_, tasks) -> tasks.mapValues { it.value.toList() } })
+        }
+    }
+}
+
+/** Gives the path of this file in the form of the paths of [ExistingConfigFiles]: absolute and normalized. Gives null if the file is not on the disk. */
+internal fun VirtualFile.configFilePath(): Path? = toNioPathOrNull()?.toAbsolutePath()?.normalize()
 
 private val TASKS_LINE = Regex("""^(?:tasks|'tasks'|"tasks")\s*:\s*(?:#.*)?$""")
 private val KEY = Regex("""^(?:'((?:[^']|'')*)'|"([^"]*)"|([^\s#'"][^:#]*?))\s*:(?:\s|$)""")

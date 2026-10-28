@@ -1,0 +1,4 @@
+# Only one project inherits this file.
+tasks:
+  check:
+    command: 'echo check'

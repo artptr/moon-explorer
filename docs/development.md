@@ -63,6 +63,7 @@ The test data contains only sample data. Do not copy data from other workspaces.
 | `workspace/` | A moon v2 workspace with sample projects and tasks |
 | `moon/` | The recorded output of the moon CLI for the test workspace |
 | `moon/moon-version.txt` | The version of moon that the script used to record the output |
+| `gutter-workspace/` | A small workspace for `MoonTaskGutterIntegrationTest`. The test copies it to a temporary directory and gives its own output of `moon query projects`. The script does not record output for this workspace. |
 
 The unit tests read the recorded output. They do not start the moon CLI.
 

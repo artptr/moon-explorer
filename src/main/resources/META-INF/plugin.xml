@@ -11,6 +11,8 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
+    <!-- This dependency gives the run icons in the YAML configuration files. Refer to docs/adr/0004-yaml-plugin-optional-dependency.md. -->
+    <depends optional="true" config-file="moon-explorer-yaml.xml">org.jetbrains.plugins.yaml</depends>
 
     <resource-bundle>messages.MoonExplorerBundle</resource-bundle>
 
@@ -21,6 +23,7 @@
                     factoryClass="io.github.artptr.moonexplorer.ui.MoonToolWindowFactory"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RefreshFailureNotifierStartupActivity"/>
+        <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RunMarkersRefresherStartupActivity"/>
         <notificationGroup id="Moon Explorer" displayType="STICKY_BALLOON" key="notification.group.name"/>
         <notificationGroup id="Moon Explorer commands" displayType="BALLOON" key="notification.commands.group.name"/>
         <projectConfigurable parentId="tools"
