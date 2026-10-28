@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- You can send a report of a plugin error to the maintainer. In the **IDE Internal Errors** dialog, click **Report to third-party plugin**. The IDE can also send reports of UI freezes that the plugin causes. The IDE sends the reports to JetBrains Marketplace only if you agree.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
