@@ -9,11 +9,15 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.model.ExistingConfigFiles
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Path
 import java.util.Collections
 
 class RunMarkersRefresherTest : BasePlatformTestCase() {
@@ -52,12 +56,26 @@ class RunMarkersRefresherTest : BasePlatformTestCase() {
         FileEditorManager.getInstance(project).openFile(file, false)
     }
 
-    fun testStartupActivityIsRegisteredAndStartsTheRefresher() {
+    fun testStartupActivityIsRegistered() {
         // findExtension makes only the extension of this class. Some bundled plugins register extensions with an other interface.
+        // setUp already makes the service. Thus the test can only make sure that the activity is registered and that it operates without an error.
         val activity = ExtensionPointName<ProjectActivity>("com.intellij.postStartupActivity")
             .findExtension(RunMarkersRefresherStartupActivity::class.java) ?: error("plugin.xml does not register the startup activity")
         runBlocking { activity.execute(project) }
-        assertNotNull(project.getServiceIfCreated(RunMarkersRefresher::class.java))
+    }
+
+    fun testOnlyYamlConfigFilesHaveRunMarkers() {
+        val root = TestData.workspaceRoot
+        val state = TasksState.Loaded(
+            WorkspaceTasks(emptyList()),
+            root,
+            ExistingConfigFiles(
+                projects = mapOf("web" to root.resolve("apps/web/moon.yml"), "api" to root.resolve("apps/api/moon.json")),
+                inherited = mapOf(".moon/tasks/all.yaml" to root.resolve(".moon/tasks/all.yaml"), ".moon/tasks/node.pkl" to root.resolve(".moon/tasks/node.pkl")),
+            ),
+        )
+        assertEquals(setOf(root.resolve("apps/web/moon.yml"), root.resolve(".moon/tasks/all.yaml")), runMarkerPaths(state))
+        assertEquals(emptySet<Path>(), runMarkerPaths(null))
     }
 
     fun testLoadRestartsTheOpenConfigFilesOnly() {

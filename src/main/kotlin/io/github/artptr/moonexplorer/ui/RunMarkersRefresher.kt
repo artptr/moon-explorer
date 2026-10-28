@@ -30,7 +30,7 @@ import java.nio.file.Path
  *
  * The refresher examines the configuration files of the old data and of the new data. Thus the refresher also removes the icon of a removed task.
  * Only YAML files have run icons. Thus the refresher examines only the YAML files. The refresher does not use YAML classes.
- * If a later contributor adds run icons for a different file format, add this format to [configPaths].
+ * If a later contributor adds run icons for a different file format, add this format to [runMarkerPaths].
  */
 @Service(Service.Level.PROJECT)
 class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
@@ -47,7 +47,7 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
         scope.launch {
             var previous: TasksState.Loaded? = null
             service.state.map { it.lastLoaded }.distinctUntilChanged().collect { loaded ->
-                val paths = configPaths(previous) + configPaths(loaded)
+                val paths = runMarkerPaths(previous) + runMarkerPaths(loaded)
                 previous = loaded
                 if (paths.isNotEmpty()) restartOpenFiles(paths)
             }
@@ -65,11 +65,11 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
             files.filter { it.isValid }.forEach { restart(it) }
         }
     }
-
-    /** Gives the YAML configuration files of the projects and the inherited YAML files of [state]. */
-    private fun configPaths(state: TasksState.Loaded?): Set<Path> =
-        state?.configFiles?.let { it.projects.values + it.inherited.values }?.filterTo(HashSet(), ::isYamlFile).orEmpty()
 }
+
+/** Gives the YAML configuration files of the projects and the inherited YAML files of [state]. Only these files have run icons. */
+internal fun runMarkerPaths(state: TasksState.Loaded?): Set<Path> =
+    state?.configFiles?.let { it.projects.values + it.inherited.values }?.filterTo(HashSet(), ::isYamlFile).orEmpty()
 
 /** Starts [RunMarkersRefresher] when the user opens the IDE project. The service starts to monitor the state when the IDE makes the service. */
 class RunMarkersRefresherStartupActivity : ProjectActivity {
