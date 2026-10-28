@@ -115,14 +115,18 @@ The hints and the gutter icons use the YAML PSI and the JSON PSI. A second optio
 
 ### Option C: One model for all formats
 
-A layer converts the YAML PSI and the JSON PSI to one model of the tasks. The hints use only this model.
+A converter for each format reads the PSI of a configuration file. It gives one model of the file that does not depend on the format.
+The hints and the gutter icons use only this model. Issue #100 adds the converter for YAML only.
 
-- Good: For a later format, only a new converter is necessary.
+- Good: To support one more format later, only a new converter and a small descriptor file are necessary.
+- Good: The logic of the hints does not use YAML classes. The YAML PSI is not necessary for its tests.
 - Bad: This is the largest change. No issue asks for more than YAML now.
+- Bad: The model must contain all the data that the hints use. A change of the hints can also change the model and each converter.
 
 ## Decision
 
 The rules of ADR 0004 apply to issues #99 and #100. Keep the YAML plugin as an optional dependency.
+For question 5, use option C. With this option, the plugin can support one more format with only a new converter. The logic of the hints does not change.
 
 Obey these rules:
 
@@ -135,9 +139,11 @@ Obey these rules:
 7. Put the description of the file type in `MoonExplorerBundle.properties`.
 8. Give the file type the file names `moon.yml` and `moon.yaml` only. Do not add masks for the files in `.moon/` or in `.config/moon/`.
 9. Add a test for the file type. The test makes sure that `YAMLLanguage.INSTANCE.associatedFileType` is `YAMLFileType.YML`. It also makes sure that the file type of `moon.yml` is the moon file type.
-10. Register the Code Vision providers and the line marker providers of issue #100 in `moon-explorer-yaml.xml`. Put their classes in the package `io.github.artptr.moonexplorer.yaml`.
-11. Use the absolute path to identify a moon configuration file. The run icons use the same method with `configFilePath` and the loaded data. Do not use the file type. The file type does not contain the files in `.moon/`.
-12. Use option A for issue #100. The hints and the gutter icons support YAML files only.
+10. Use option C for issue #100. Add the converter for YAML only.
+11. Put the model of a configuration file and the logic of the hints in the package `io.github.artptr.moonexplorer.config`. This package must not import the classes of a language plugin.
+12. Define an extension point for the converters in `plugin.xml`. Register the YAML converter in `moon-explorer-yaml.xml`. Put its class in the package `io.github.artptr.moonexplorer.yaml`.
+13. Register the Code Vision providers in `plugin.xml`. They get the PSI elements for the hints from the model. Register each line marker provider in the descriptor file of its format. The IDE uses a line marker provider for one language only.
+14. Use the absolute path to identify a moon configuration file. The run icons use the same method with `configFilePath` and the loaded data. Do not use the file type to identify a moon configuration file. The file type does not contain the files in `.moon/`.
 
 This is an example of the registration:
 
@@ -155,7 +161,9 @@ This is an example of the registration:
 - JetBrains Marketplace gets the masks `moon.yml` and `moon.yaml`. It does not get masks for the files in `.moon/`. Thus a file in `.moon/` does not cause a plugin suggestion.
 - The files in `.moon/` keep the usual YAML file type. The hints, the gutter icons, and the run icons operate in these files, because the plugin identifies these files from the path.
 - This decision changes acceptance criterion 2 of issue #99. Only `moon.yml` and `moon.yaml` get the new file type. The files in `.moon/` keep the YAML file type.
-- The IDE shows no hints in configuration files in JSON, JSONC, TOML, HCL, or Pkl. A later ADR can select option B or option C.
+- The IDE shows no hints in configuration files in JSON, JSONC, TOML, HCL, or Pkl. A later issue can add a converter for each format. Each format with a converter gets an optional descriptor file, as in ADR 0004.
+- Option C makes more work for issue #100 than option A, because issue #100 adds the model and the extension point.
+- The run icons of ADR 0004 continue to read the YAML PSI. A later issue can change them to use the model.
 - These items of issue #99 remain open. A test in the IDE or a check after the release must answer them:
   - Does the IDE suggest a plugin for a file name mask when the file already has the YAML file type?
   - Does JetBrains Marketplace show `moon.yml` and `moon.yaml` in its index of plugin features after the release?
