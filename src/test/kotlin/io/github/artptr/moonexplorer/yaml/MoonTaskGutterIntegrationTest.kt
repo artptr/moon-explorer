@@ -23,12 +23,11 @@ import io.github.artptr.moonexplorer.testData.TestData
 import io.github.artptr.moonexplorer.ui.RunMarkersRefresher
 import io.github.artptr.moonexplorer.ui.recordRestarts
 import kotlinx.coroutines.runBlocking
-import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * Tests the run icons in the editor with the real daemon. The workspace is in a temporary directory.
- * It has a project configuration file `moon.yaml` with a quoted key, and a file in `.moon/tasks/` that only one project inherits.
+ * Tests the run icons in the editor with the real daemon. The workspace is a copy of [TestData.gutterWorkspace] in a temporary directory.
+ * The output of `moon query projects` comes from [queryJson]. Thus each test can change the tasks.
  */
 class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
 
@@ -44,9 +43,7 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         // Use the real path. Thus the paths of the VFS and of the service are the same also if the temp directory is a symbolic link.
         root = FileUtil.createTempDirectory("moon-gutter", null, true).toPath().toRealPath()
         VfsRootAccess.allowRootAccess(testRootDisposable, root.toString())
-        write(".moon/workspace.yml", "projects:\n  app: 'app'\n")
-        write(".moon/tasks/one.yml", "tasks:\n  check:\n    command: 'echo check'\n")
-        write("app/moon.yaml", "tasks:\n  'build':\n    command: 'echo build'\n  lint:\n    command: 'echo lint'\n")
+        FileUtil.copyDir(TestData.gutterWorkspace, root.toFile())
         service.prepareForTests()
         service.projectDir = { root }
         restarted = project.service<RunMarkersRefresher>().recordRestarts(testRootDisposable, callReal = true)
@@ -60,12 +57,6 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         } finally {
             super.tearDown()
         }
-    }
-
-    private fun write(path: String, text: String) {
-        val file = root.resolve(path)
-        Files.createDirectories(file.parent)
-        Files.writeString(file, text)
     }
 
     /** Gives the output of `moon query projects` for the project `app` with the tasks [own] in `moon.yaml` and the inherited task `check`. */

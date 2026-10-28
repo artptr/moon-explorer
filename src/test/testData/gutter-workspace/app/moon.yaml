@@ -1,0 +1,6 @@
+# The file has the extension .yaml. The key build has quotes.
+tasks:
+  'build':
+    command: 'echo build'
+  lint:
+    command: 'echo lint'

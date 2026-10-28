@@ -27,6 +27,12 @@ object TestData {
     fun workspaceVirtualFile(path: String): VirtualFile =
         LocalFileSystem.getInstance().refreshAndFindFileByNioFile(workspaceRoot.resolve(path)) ?: error("No file $path in the test workspace")
 
+    /**
+     * A small workspace for the tests of the run icons in the editor. It has a project file `moon.yaml` with a quoted key,
+     * and a file in `.moon/tasks/` that only one project inherits. The tests copy it to a temporary directory, because they change the files.
+     */
+    val gutterWorkspace = File(root, "gutter-workspace")
+
     /** The recorded moon CLI output for the test workspace. */
     val moon = File(root, "moon")
 

@@ -47,6 +47,9 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
         scope.launch {
             var previous: TasksState.Loaded? = null
             service.state.map { it.lastLoaded }.distinctUntilChanged().collect { loaded ->
+                // Make the index on this background thread. Thus the first use is not on the EDT,
+                // for example in the producer of the context menu.
+                loaded?.taskKeyIndex
                 val paths = runMarkerPaths(previous) + runMarkerPaths(loaded)
                 previous = loaded
                 if (paths.isNotEmpty()) restartOpenFiles(paths)

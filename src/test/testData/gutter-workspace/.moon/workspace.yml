@@ -1,0 +1,3 @@
+# The workspace for MoonTaskGutterIntegrationTest. The test copies it to a temporary directory.
+projects:
+  app: 'app'
