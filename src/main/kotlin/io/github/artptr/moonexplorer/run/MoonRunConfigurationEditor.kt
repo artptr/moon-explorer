@@ -53,6 +53,7 @@ class MoonRunConfigurationEditor : SettingsEditor<MoonRunConfiguration>() {
         row(MoonExplorerBundle.message("run.configuration.environment.label")) {
             cell(environmentField)
                 .align(AlignX.FILL)
+                .comment(MoonExplorerBundle.message("run.configuration.environment.comment"))
         }
         row {
             cell(affectedCheckBox)

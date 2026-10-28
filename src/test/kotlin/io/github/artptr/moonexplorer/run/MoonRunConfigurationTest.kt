@@ -247,6 +247,7 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
             assertTrue("Comments: $texts", texts.any { "moon run with these targets in the workspace root" in it })
             assertTrue("Comments: $texts", texts.any { "adds them after -- at the end of the command" in it })
             assertTrue("Comments: $texts", texts.any { "Adds the option --force." in it })
+            assertTrue("Comments: $texts", texts.any { "Then add PATH, because moon can need PATH to find Node.js." in it })
         } finally {
             Disposer.dispose(editor)
         }
