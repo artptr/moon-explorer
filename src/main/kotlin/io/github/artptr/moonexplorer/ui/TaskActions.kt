@@ -1,5 +1,6 @@
 package io.github.artptr.moonexplorer.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
@@ -130,3 +131,24 @@ class RunAffectedInProjectsAction :
 /** Runs the selected tasks with one moon command. */
 class RunSelectedTasksAction :
     SelectedTasksRunAction(SELECTED_TASKS, affected = false, "action.MoonExplorer.RunSelectedTasks.textWithCount")
+
+/**
+ * Runs [targets] with one moon command, the same as [SelectedTasksRunAction]. If [affected] is true, moon runs only the affected tasks.
+ * The gutter of a configuration file uses this action. [text] is the text of the action. The action does not find a mnemonic in [text].
+ */
+class RunTargetsAction(text: String, internal val targets: List<String>, internal val affected: Boolean) : DumbAwareAction() {
+
+    /** Runs the targets. Tests replace this value with a test function, because [MoonTaskRunner.run] starts moon. */
+    internal var run: (Project, List<String>, Boolean) -> Unit = MoonTaskRunner::run
+
+    init {
+        // A task ID can contain '_'. Thus the text has no mnemonic.
+        templatePresentation.setText(text, false)
+        templatePresentation.icon = AllIcons.Actions.Execute
+    }
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        run(project, targets, affected)
+    }
+}

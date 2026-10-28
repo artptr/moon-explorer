@@ -25,6 +25,8 @@ dependencies {
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))
+        // This dependency is optional. Refer to docs/adr/0004-yaml-plugin-optional-dependency.md.
+        bundledPlugin("org.jetbrains.plugins.yaml")
         testFramework(TestFrameworkType.Platform)
     }
 }
@@ -116,6 +118,10 @@ val testDataFiles = providers.exec {
 tasks.test {
     // The tests read the test data with this path. Refer to TestData.kt.
     systemProperty("moonExplorer.testData", layout.projectDirectory.dir("src/test/testData").asFile.absolutePath)
+    // YamlImportBoundaryTest reads the main Kotlin sources. An unused import does not change the classes. Thus the sources are an input.
+    val mainSources = layout.projectDirectory.dir("src/main/kotlin")
+    systemProperty("moonExplorer.mainSources", mainSources.asFile.absolutePath)
+    inputs.dir(mainSources).withPropertyName("moonExplorerMainSources").withPathSensitivity(PathSensitivity.RELATIVE)
     // The test data is an input of the task. Thus Gradle runs the tests again when the test data changes.
     inputs.files(testDataFiles).withPropertyName("moonExplorerTestData").withPathSensitivity(PathSensitivity.RELATIVE)
 }

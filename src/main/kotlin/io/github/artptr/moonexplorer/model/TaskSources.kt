@@ -71,6 +71,38 @@ fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> 
 fun projectSourceFile(state: TasksState.Loaded, projectId: String): SourceFile? =
     state.configFiles.projects[projectId]?.let { SourceFile(it, null) }
 
+/** The targets that a task key in a configuration file runs. Refer to [taskKeyTargets]. */
+sealed interface TaskKeyTargets {
+    /** A task key in the configuration file of a project, for example `moon.yml`. The key runs [target]. */
+    data class Single(val target: String) : TaskKeyTargets
+
+    /**
+     * A task key in an inherited file in `.moon/tasks/`. [targets] contains the target of each project that inherits the task from the file,
+     * in [ID_ORDER] of the projects. The list is not empty.
+     */
+    data class Shared(val targets: List<String>) : TaskKeyTargets
+}
+
+/**
+ * Gives the targets of the task key [taskId] in the configuration file [file]. [file] must be absolute and normalized.
+ * Gives null if [file] is not a configuration file of the last load, or if the loaded data does not contain the task.
+ * The projects of an inherited file come from `inherited.layers` of moon. The plugin does not calculate the inheritance itself.
+ * The function uses only [TasksState.Loaded]. Thus it does not start moon and does not read the disk.
+ */
+fun taskKeyTargets(state: TasksState.Loaded, file: Path, taskId: String): TaskKeyTargets? {
+    val projectId = state.configFiles.projects.entries.firstOrNull { it.value == file }?.key
+    if (projectId != null) {
+        val project = state.tasks.projects.firstOrNull { it.id == projectId } ?: return null
+        return project.tasks.firstOrNull { it.id == taskId }?.let { TaskKeyTargets.Single(it.target) }
+    }
+    val layer = state.configFiles.inherited.entries.firstOrNull { it.value == file }?.key ?: return null
+    val targets = state.tasks.projects.mapNotNull { project ->
+        val inherits = state.tasks.taskConfigs[project.id]?.layers?.get(taskId)?.contains(layer) == true
+        if (inherits) project.tasks.firstOrNull { it.id == taskId }?.target else null
+    }
+    return targets.takeIf { it.isNotEmpty() }?.let(TaskKeyTargets::Shared)
+}
+
 private val TASKS_LINE = Regex("""^(?:tasks|'tasks'|"tasks")\s*:\s*(?:#.*)?$""")
 private val KEY = Regex("""^(?:'((?:[^']|'')*)'|"([^"]*)"|([^\s#'"][^:#]*?))\s*:(?:\s|$)""")
 

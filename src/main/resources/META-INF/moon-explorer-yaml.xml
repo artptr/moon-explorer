@@ -1,0 +1,9 @@
+<!-- This file registers the extensions that use the YAML PSI. The IDE loads this file only when the YAML plugin is active. -->
+<!-- Refer to docs/adr/0004-yaml-plugin-optional-dependency.md. -->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <runLineMarkerContributor language="yaml"
+                                  implementationClass="io.github.artptr.moonexplorer.yaml.MoonTaskRunLineMarkerContributor"/>
+        <runConfigurationProducer implementation="io.github.artptr.moonexplorer.yaml.MoonTaskRunConfigurationProducer"/>
+    </extensions>
+</idea-plugin>
