@@ -3,26 +3,25 @@ package io.github.artptr.moonexplorer.yaml
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.lang.LanguageExtension
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
-import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
+import io.github.artptr.moonexplorer.ui.RunInEachProjectGroup
 import io.github.artptr.moonexplorer.ui.RunTargetsAction
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.yaml.YAMLLanguage
 import java.nio.file.Files
-import java.nio.file.Path
 
 class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
 
@@ -43,21 +42,25 @@ class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
         }
     }
 
-    /** Gives the PSI of the file [path] on the disk. */
-    private fun psiFile(path: Path): PsiFile {
-        val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path) ?: error("No file $path")
-        return PsiManager.getInstance(project).findFile(file) ?: error("No PSI for $path")
-    }
-
     /** Gives the PSI of the file [path] in the test workspace. [path] is a path from the workspace root. */
-    private fun workspaceFile(path: String) = psiFile(TestData.workspaceRoot.resolve(path))
+    private fun workspaceFile(path: String) = project.psiFileAt(TestData.workspaceRoot.resolve(path))
 
     /** Gives the text of each leaf with an icon and the icon information, in the sequence of the file. */
     private fun markers(file: PsiFile): List<Pair<String, RunLineMarkerContributor.Info>> =
-        PsiTreeUtil.collectElements(file) { it.firstChild == null }
-            .mapNotNull { leaf -> contributor.getInfo(leaf)?.let { leaf.text to it } }
+        file.leaves().mapNotNull { leaf -> contributor.getInfo(leaf)?.let { leaf.text to it } }
 
     private fun tooltip(info: RunLineMarkerContributor.Info, element: PsiElement): String? = info.tooltipProvider?.apply(element)
+
+    /** Gives the actions of the popup. The popup shows the actions of [RunInEachProjectGroup] without a submenu. */
+    private fun popupActions(info: RunLineMarkerContributor.Info): List<AnAction> =
+        info.actions.flatMap { if (it is RunInEachProjectGroup) it.getChildren(null).toList() else listOf(it) }
+
+    /** Writes [text] to a `moon.yml` file in a temporary directory and gives the task keys of the file. */
+    private fun taskKeysIn(text: String): List<TaskKey> {
+        val path = FileUtil.createTempDirectory("moon-keys", null, true).toPath().resolve("moon.yml")
+        Files.writeString(path, text)
+        return project.psiFileAt(path).leaves().mapNotNull(::taskKeyAt)
+    }
 
     fun testContributorIsRegisteredForYaml() {
         val contributors = LanguageExtension<RunLineMarkerContributor>("com.intellij.runLineMarkerContributor").allForLanguage(YAMLLanguage.INSTANCE)
@@ -88,8 +91,8 @@ class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
         assertEquals("Inherited by 5 projects", tooltip(info, file))
 
         val targets = listOf("admin:test", "icons:test", "ui:test", "utils:test", "web:test")
-        val actions = info.actions.toList()
-        assertTrue(actions[2] is Separator)
+        assertTrue(info.actions[2] is Separator)
+        val actions = popupActions(info)
         val runs = actions.filterIsInstance<RunTargetsAction>()
         assertEquals(
             listOf("Run in 5 Projects", "Run Affected in 5 Projects") + targets.map { "Run '$it'" },
@@ -126,28 +129,12 @@ class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
     }
 
     fun testQuotedTaskKeyGivesTheKeyTextWithoutQuotes() {
-        val dir = Files.createTempDirectory("moon-explorer-keys")
-        try {
-            val path = dir.resolve("moon.yml")
-            Files.writeString(path, "tasks:\n  'build':\n    command: a\n  \"lint\":\n    command: b\n  test:\n    deps: ['build']\n")
-            val file = psiFile(path)
-            val keys = PsiTreeUtil.collectElements(file) { it.firstChild == null }.mapNotNull(::taskKeyAt)
-            val expected = path.toAbsolutePath().normalize()
-            assertEquals(listOf("build", "lint", "test").map { TaskKey(expected, it) }, keys)
-        } finally {
-            dir.toFile().deleteRecursively()
-        }
+        val keys = taskKeysIn("tasks:\n  'build':\n    command: a\n  \"lint\":\n    command: b\n  test:\n    deps: ['build']\n")
+        assertEquals(listOf("build", "lint", "test"), keys.map { it.taskId })
+        assertEquals(1, keys.map { it.file }.distinct().size)
     }
 
     fun testNestedTasksKeyIsNotTheTopLevelKey() {
-        val dir = Files.createTempDirectory("moon-explorer-keys")
-        try {
-            val path = dir.resolve("moon.yml")
-            Files.writeString(path, "workspace:\n  tasks:\n    build:\n      command: a\n")
-            val keys = PsiTreeUtil.collectElements(psiFile(path)) { it.firstChild == null }.mapNotNull(::taskKeyAt)
-            assertEquals(emptyList<TaskKey>(), keys)
-        } finally {
-            dir.toFile().deleteRecursively()
-        }
+        assertEquals(emptyList<TaskKey>(), taskKeysIn("workspace:\n  tasks:\n    build:\n      command: a\n"))
     }
 }

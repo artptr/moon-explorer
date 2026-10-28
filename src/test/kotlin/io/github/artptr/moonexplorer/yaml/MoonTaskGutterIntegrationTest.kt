@@ -7,20 +7,24 @@ import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.QueryProjectsParser
+import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.run.MoonRunConfiguration
+import io.github.artptr.moonexplorer.testData.TestData
 import io.github.artptr.moonexplorer.ui.RunMarkersRefresher
+import io.github.artptr.moonexplorer.ui.recordRestarts
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.Collections
 
 /**
  * Tests the run icons in the editor with the real daemon. The workspace is in a temporary directory.
@@ -32,37 +36,27 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
 
     private lateinit var root: Path
 
-    private val refresher get() = project.service<RunMarkersRefresher>()
-
-    private lateinit var defaultRestart: (PsiFile) -> Unit
-
-    /** The files that the refresher analyzed again. The refresher adds a file before the real restart. */
-    private val restarted: MutableList<PsiFile> = Collections.synchronizedList(mutableListOf())
+    /** The files that the refresher analyzed again. The refresher also does the real restart. */
+    private lateinit var restarted: MutableList<PsiFile>
 
     override fun setUp() {
         super.setUp()
-        // The tests can read the build directory. On macOS, the VFS gives the system temporary directory as /private/var, which the tests cannot read.
-        val tmp = Files.createDirectories(Path.of("build", "tmp", "gutterTest").toAbsolutePath().normalize())
-        root = Files.createTempDirectory(tmp, "workspace")
+        // Use the real path. Thus the paths of the VFS and of the service are the same also if the temp directory is a symbolic link.
+        root = FileUtil.createTempDirectory("moon-gutter", null, true).toPath().toRealPath()
+        VfsRootAccess.allowRootAccess(testRootDisposable, root.toString())
         write(".moon/workspace.yml", "projects:\n  app: 'app'\n")
         write(".moon/tasks/one.yml", "tasks:\n  check:\n    command: 'echo check'\n")
         write("app/moon.yaml", "tasks:\n  'build':\n    command: 'echo build'\n  lint:\n    command: 'echo lint'\n")
         service.prepareForTests()
         service.projectDir = { root }
-        defaultRestart = refresher.restart
-        refresher.restart = { file ->
-            restarted += file
-            defaultRestart(file)
-        }
+        restarted = project.service<RunMarkersRefresher>().recordRestarts(testRootDisposable, callReal = true)
     }
 
     override fun tearDown() {
         try {
             // Close the files before the reset. Thus the refresher does not analyze them again after the deletion of the workspace.
             FileEditorManagerEx.getInstanceEx(project).closeAllFiles()
-            refresher.restart = defaultRestart
             runBlocking { service.resetForTests() }
-            root.toFile().deleteRecursively()
         } finally {
             super.tearDown()
         }
@@ -82,16 +76,12 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
             """"inherited":{"layers":{"check":[".moon/tasks/one.yml"]}},"tasks":{$tasks}}]}"""
     }
 
-    /** Loads the tasks with the output of [queryJson] and waits for the [TasksState.Loaded] state. */
+    /** Loads the tasks with the output of [queryJson] and waits for the [TasksState.Loaded] state of this output. */
     private fun load(own: List<String>) {
         val json = queryJson(own)
         service.queryProjects = { CliResult.Success(json) }
-        val before = service.state.value
         service.refresh()
-        PlatformTestUtil.waitWithEventsDispatching("The load did not complete", {
-            val state = service.state.value
-            state is TasksState.Loaded && state != before
-        }, 10)
+        service.awaitState(TestData.loadedState(QueryProjectsParser.parse(json), root))
     }
 
     private fun open(path: String) {

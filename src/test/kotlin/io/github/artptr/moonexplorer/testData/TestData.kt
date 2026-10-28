@@ -1,5 +1,7 @@
 package io.github.artptr.moonexplorer.testData
 
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.TasksLoader
 import io.github.artptr.moonexplorer.model.TasksState
@@ -20,6 +22,10 @@ object TestData {
 
     /** Reads the file [path] from [workspace]. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
     fun workspaceText(path: String): String = File(workspace, path).readText()
+
+    /** Gives the file [path] of [workspace] in the VFS. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
+    fun workspaceVirtualFile(path: String): VirtualFile =
+        LocalFileSystem.getInstance().refreshAndFindFileByNioFile(workspaceRoot.resolve(path)) ?: error("No file $path in the test workspace")
 
     /** The recorded moon CLI output for the test workspace. */
     val moon = File(root, "moon")

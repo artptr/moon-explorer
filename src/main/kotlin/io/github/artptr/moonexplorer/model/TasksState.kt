@@ -40,7 +40,13 @@ sealed interface TasksState {
      * [root] is absolute and normalized. Use [TasksLoader.loadedState] to make this state.
      * [configFiles] contains the configuration files that existed at the time of the load. Refer to [findExistingConfigFiles].
      */
-    data class Loaded(val tasks: WorkspaceTasks, val root: Path, val configFiles: ExistingConfigFiles) : TasksState
+    data class Loaded(val tasks: WorkspaceTasks, val root: Path, val configFiles: ExistingConfigFiles) : TasksState {
+        /**
+         * The targets of the task keys in the configuration files. The plugin makes the index at the first use, one time for each load.
+         * The index is not a part of [equals]. Refer to [taskKeyTargets].
+         */
+        internal val taskKeyIndex: TaskKeyIndex by lazy { TaskKeyIndex.of(this) }
+    }
 
     /**
      * The last load failed after an earlier successful load. [last] is the result of the last successful load.

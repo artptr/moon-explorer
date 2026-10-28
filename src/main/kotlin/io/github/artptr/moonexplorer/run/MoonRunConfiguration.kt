@@ -139,6 +139,21 @@ class MoonRunConfiguration(project: Project, factory: ConfigurationFactory, name
 }
 
 /**
+ * Gives true if this configuration runs [targets] in the same sequence with the same [affected] value.
+ * The tool window and the gutter of a configuration file use a saved configuration only if this function gives true.
+ * The function does not compare the arguments, the force option, or the environment variables.
+ */
+internal fun MoonRunConfiguration.runs(targets: List<String>, affected: Boolean): Boolean =
+    this.targets == targets && this.affected == affected
+
+/** Sets [targets], [affected], and the name from [configurationName] for a new configuration. */
+internal fun MoonRunConfiguration.setUp(targets: List<String>, affected: Boolean) {
+    this.targets = targets
+    this.affected = affected
+    name = configurationName(targets, affected)
+}
+
+/**
  * Gives the name of a run configuration for [targets]. For one target, the name is the target, for example `web:build`.
  * If all targets have a project ID and the same task ID, the name contains the task ID and the project IDs, for example `build (web, api)`.
  * If not, the name contains all targets. Thus two configurations with different targets have different names.

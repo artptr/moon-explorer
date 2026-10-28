@@ -8,10 +8,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.loadRecorded
@@ -41,11 +38,8 @@ class MoonTaskRunConfigurationProducerTest : BasePlatformTestCase() {
     }
 
     /** Gives the leaf of the task key [taskId] in the file [path] of the test workspace. */
-    private fun taskKey(path: String, taskId: String): PsiElement {
-        val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(TestData.workspaceRoot.resolve(path)) ?: error("No file $path")
-        val psi = PsiManager.getInstance(project).findFile(file) ?: error("No PSI for $path")
-        return PsiTreeUtil.collectElements(psi) { it.firstChild == null }.single { taskKeyAt(it)?.taskId == taskId }
-    }
+    private fun taskKey(path: String, taskId: String): PsiElement =
+        project.psiFileAt(TestData.workspaceRoot.resolve(path)).leaves().single { taskKeyAt(it)?.taskId == taskId }
 
     private fun context(element: PsiElement): ConfigurationContext = ConfigurationContext.getFromContext(
         SimpleDataContext.builder()

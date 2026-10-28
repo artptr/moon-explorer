@@ -1,10 +1,10 @@
 package io.github.artptr.moonexplorer.yaml
 
 import com.intellij.openapi.components.service
-import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiElement
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TaskKeyTargets
+import io.github.artptr.moonexplorer.model.configFilePath
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.taskKeyTargets
 import org.jetbrains.yaml.psi.YAMLDocument
@@ -27,9 +27,10 @@ internal fun taskKeyAt(element: PsiElement): TaskKey? {
     val key = keyValue.key ?: return null
     if (key !== element && key.firstChild !== element) return null
     val tasks = keyValue.parentMapping?.parent as? YAMLKeyValue ?: return null
-    if (tasks.keyText != TASKS_KEY || tasks.parentMapping?.parent !is YAMLDocument) return null
-    val file = element.containingFile?.originalFile?.virtualFile?.toNioPathOrNull() ?: return null
-    return TaskKey(file.toAbsolutePath().normalize(), keyValue.keyText)
+    // The check of the document is cheaper than keyText, which makes a string. Most nested keys in other YAML files stop here.
+    if (tasks.parentMapping?.parent !is YAMLDocument || tasks.keyText != TASKS_KEY) return null
+    val file = element.containingFile?.originalFile?.virtualFile?.configFilePath() ?: return null
+    return TaskKey(file, keyValue.keyText)
 }
 
 /** Gives the targets of the task key of [element] from the loaded data. The function does not start moon. Refer to [taskKeyTargets]. */

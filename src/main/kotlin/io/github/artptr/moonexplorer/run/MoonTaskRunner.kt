@@ -48,12 +48,10 @@ object MoonTaskRunner {
         val settings = runManager.getConfigurationSettingsList(type)
             .firstOrNull {
                 val configuration = it.configuration
-                configuration is MoonRunConfiguration && configuration.targets == targets && configuration.affected == affected
+                configuration is MoonRunConfiguration && configuration.runs(targets, affected)
             }
             ?: runManager.createConfiguration(configurationName(targets, affected), type.factory).also { created ->
-                val configuration = created.configuration as MoonRunConfiguration
-                configuration.targets = targets
-                configuration.affected = affected
+                (created.configuration as MoonRunConfiguration).setUp(targets, affected)
                 if (temporary) runManager.setTemporaryConfiguration(created) else runManager.addConfiguration(created)
             }
         runManager.selectedConfiguration = settings

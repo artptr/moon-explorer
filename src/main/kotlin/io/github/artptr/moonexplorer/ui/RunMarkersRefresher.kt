@@ -8,11 +8,11 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.configFilePath
 import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +57,7 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
     private suspend fun restartOpenFiles(paths: Set<Path>) {
         val files = readAction {
             FileEditorManager.getInstance(project).openFiles
-                .filter { it.isValid && it.toNioPathOrNull()?.toAbsolutePath()?.normalize() in paths }
+                .filter { it.isValid && it.configFilePath() in paths }
                 .mapNotNull { PsiManager.getInstance(project).findFile(it) }
         }
         if (files.isEmpty()) return
