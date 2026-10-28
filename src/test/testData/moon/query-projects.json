@@ -3838,6 +3838,14 @@
               "runInSyncPhase": null
             }
           },
+          "format": {
+            "command": "echo format web",
+            "args": null,
+            "globalInputs": [],
+            "options": {
+              "runInSyncPhase": null
+            }
+          },
           "lint": {
             "command": null,
             "args": [
@@ -3865,7 +3873,14 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {},
+          "inheritedTasks": {
+            "exclude": [
+              "format"
+            ],
+            "rename": {
+              "typecheck": "tsc"
+            }
+          },
           "mergeStrategies": {}
         }
       },
@@ -4142,30 +4157,25 @@
         "format": {
           "command": "echo",
           "args": [
-            "format"
+            "format",
+            "web"
           ],
           "id": "format",
           "inputs": [
             {
-              "glob": "src/**/*",
+              "glob": "**/*",
               "cache": true
             },
             {
               "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
               "cache": true
-            },
-            {
-              "file": "/.moon/tasks/all.yml"
             }
           ],
-          "inputFiles": {
-            ".moon/tasks/all.yml": {}
-          },
           "inputGlobs": {
-            "apps/web/src/**/*": {
+            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
               "cache": true
             },
-            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
+            "apps/web/**/*": {
               "cache": true
             }
           },
@@ -4197,6 +4207,7 @@
             "windowsShell": "pwsh"
           },
           "state": {
+            "defaultInputs": true,
             "expanded": true
           },
           "target": "web:format",
@@ -4413,12 +4424,12 @@
           ],
           "type": "test"
         },
-        "typecheck": {
+        "tsc": {
           "command": "echo",
           "args": [
             "typecheck"
           ],
-          "id": "typecheck",
+          "id": "tsc",
           "inputs": [
             {
               "glob": "**/*",
@@ -4474,7 +4485,7 @@
             "defaultInputs": true,
             "expanded": true
           },
-          "target": "web:typecheck",
+          "target": "web:tsc",
           "toolchains": [
             "system"
           ],
@@ -4488,7 +4499,7 @@
         "web:lint",
         "web:preview",
         "web:test",
-        "web:typecheck"
+        "web:tsc"
       ],
       "toolchains": [
         "system"

@@ -74,6 +74,7 @@ The test workspace contains these items:
 - Tags. Some tags are on more than one project. Some projects have two tags. The projects `icons` and `scripts` have no tags.
 - Three files in `.moon/tasks/`. All projects inherit `all.yml`. Frontend projects inherit `frontend.yml`. Backend projects inherit `backend.yml`.
 - The project `web` changes the inherited task `lint`.
+- The project `web` excludes the inherited task `format` and has a local task `format`. It renames the inherited task `typecheck` to `tsc`. moon writes `format` and `typecheck` in `inherited.layers` of `web`, but the plugin must use the `workspace.inheritedTasks` settings of `web` with these entries.
 - Tasks with a description and tasks without a description
 - The project `ui` has the internal task `generate-icons`. moon does not write internal tasks in the key `tasks` in the output of `moon query projects`.
 - The project `config` has no tasks.

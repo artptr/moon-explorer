@@ -33,7 +33,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     fun testProjectNodesContainTasksInOrder() {
         val web = root.childNodes().single { (it.userObject as MoonProject).id == "web" }
         val ids = web.childNodes().map { (it.userObject as MoonTask).id }
-        assertEquals(listOf("build", "dev", "format", "lint", "preview", "test", "typecheck"), ids)
+        assertEquals(listOf("build", "dev", "format", "lint", "preview", "test", "tsc"), ids)
         assertTrue(web.childNodes().all { it.isLeaf })
     }
 

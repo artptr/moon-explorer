@@ -62,9 +62,10 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
     /** Gives the output of `moon query projects` for the project `app` with the tasks [own] in `moon.yaml` and the inherited task `check`. */
     private fun queryJson(own: List<String>): String {
         val tasks = (own + "check").joinToString(",") { """"$it":{"id":"$it","target":"app:$it"}""" }
+        val targets = (own + "check").joinToString(",") { """"app:$it"""" }
         val config = own.joinToString(",") { """"$it":{}""" }
         return """{"projects":[{"id":"app","source":"app","config":{"tasks":{$config}},""" +
-            """"inherited":{"layers":{"check":[".moon/tasks/one.yml"]}},"tasks":{$tasks}}]}"""
+            """"inherited":{"layers":{"check":[".moon/tasks/one.yml"]}},"tasks":{$tasks},"taskTargets":[$targets]}]}"""
     }
 
     /** Loads the tasks with the output of [queryJson] and waits for the [TasksState.Loaded] state of this output. */

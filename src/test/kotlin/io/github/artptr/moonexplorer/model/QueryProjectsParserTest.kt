@@ -55,10 +55,72 @@ class QueryProjectsParserTest {
     fun recordedOutputHasTheTaskConfigsOfAProject() {
         // The project web changes the inherited task lint in its moon.yml. Thus lint is in the two lists.
         val configs = recorded.taskConfigs.getValue("web")
-        assertEquals(setOf("build", "dev", "lint", "preview"), configs.ownTasks)
+        assertEquals(setOf("build", "dev", "format", "lint", "preview"), configs.ownTasks)
         assertEquals(listOf(".moon/tasks/all.yml"), configs.layers["lint"])
         assertEquals(listOf(".moon/tasks/frontend.yml"), configs.layers["test"])
         assertNull(configs.layers["build"])
+    }
+
+    @Test
+    fun recordedLayersContainTheGlobalTasksBeforeTheFilter() {
+        // moon writes the excluded task format and the global ID typecheck of the renamed task tsc in inherited.layers.
+        val configs = recorded.taskConfigs.getValue("web")
+        assertEquals(setOf("format", "lint", "test", "typecheck"), configs.layers.keys)
+        assertEquals(InheritedTasksFilter(exclude = setOf("format"), rename = mapOf("typecheck" to "tsc")), configs.filter)
+        assertEquals(setOf("build", "dev", "format", "lint", "preview", "test", "tsc"), configs.taskIds)
+    }
+
+    @Test
+    fun recordedInheritedLayersUseTheFilterOfTheProject() {
+        val configs = recorded.taskConfigs.getValue("web")
+        assertEquals(
+            mapOf(
+                "lint" to listOf(InheritedLayer("lint", ".moon/tasks/all.yml")),
+                "test" to listOf(InheritedLayer("test", ".moon/tasks/frontend.yml")),
+                "tsc" to listOf(InheritedLayer("typecheck", ".moon/tasks/frontend.yml")),
+            ),
+            configs.inheritedLayers,
+        )
+    }
+
+    @Test
+    fun recordedTaskIdsContainTheInternalTasks() {
+        assertTrue("generate-icons" in recorded.taskConfigs.getValue("ui").taskIds)
+        // The project config has no tasks, and moon does not write its taskTargets. Its layers contain format and lint, but it inherits no task.
+        assertEquals(emptySet<String>(), recorded.taskConfigs.getValue("config").taskIds)
+        assertEquals(emptyMap<String, List<InheritedLayer>>(), recorded.taskConfigs.getValue("config").inheritedLayers)
+    }
+
+    @Test
+    fun inheritedTasksFilterIsParsed() {
+        val json = """
+            {"projects": [
+              {"id": "a", "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": ["lint", 5], "exclude": ["test"], "rename": {"lint": "l", "x": 5}}}}},
+              {"id": "b", "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": null, "exclude": null, "rename": null}}}},
+              {"id": "c", "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": []}}}},
+              {"id": "d", "config": {"tasks": {"b": {}}}}
+            ]}
+        """
+        val configs = QueryProjectsParser.parse(json).taskConfigs
+        assertEquals(InheritedTasksFilter(setOf("lint"), setOf("test"), mapOf("lint" to "l")), configs.getValue("a").filter)
+        assertEquals(InheritedTasksFilter(), configs.getValue("b").filter)
+        assertEquals(InheritedTasksFilter(include = emptySet()), configs.getValue("c").filter)
+        assertEquals(InheritedTasksFilter(), configs.getValue("d").filter)
+    }
+
+    @Test
+    fun taskIdsAreEmptyWithoutTaskTargets() {
+        val json = """
+            {"projects": [
+              {"id": "a", "config": {"tasks": {"b": {}}}, "taskTargets": ["a:b", "a:c", 5]},
+              {"id": "b", "config": {"tasks": {"b": {}}}},
+              {"id": "c", "config": {"tasks": {"b": {}}}, "taskTargets": "c:b"}
+            ]}
+        """
+        val configs = QueryProjectsParser.parse(json).taskConfigs
+        assertEquals(setOf("b", "c"), configs.getValue("a").taskIds)
+        assertEquals(emptySet<String>(), configs.getValue("b").taskIds)
+        assertEquals(emptySet<String>(), configs.getValue("c").taskIds)
     }
 
     @Test
@@ -84,7 +146,7 @@ class QueryProjectsParserTest {
     @Test
     fun recordedOutputHasTheTasksOfAProjectInOrder() {
         assertEquals(
-            listOf("build", "dev", "format", "lint", "preview", "test", "typecheck"),
+            listOf("build", "dev", "format", "lint", "preview", "test", "tsc"),
             project("web").tasks.map { it.id },
         )
     }

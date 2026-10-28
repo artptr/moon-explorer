@@ -13,6 +13,11 @@
 - A moon run configuration has the option **Run again without the cache**. This option adds `--force`. The configuration puts `--affected` and `--force` before `--`.
 - A moon run configuration has the field **Environment variables**. The environment variables dialog has an option that adds the system environment variables. If you clear this option, the moon process gets only the variables of the configuration. Then add `PATH`. The npm package of moon uses `PATH` to find Node.js.
 
+### Fixed
+
+- The run icons in the files in `.moon/tasks/` use the `include`, `exclude`, and `rename` settings in `workspace.inheritedTasks` of each project. If a project renames a global task, the icon of the global task key also runs the renamed task, for example `web:tsc`. If a project does not inherit a global task, the icon does not run the local task with the same ID.
+- **Jump to Source** for a renamed inherited task opens the file in `.moon/tasks/` at the line of the global task key.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added

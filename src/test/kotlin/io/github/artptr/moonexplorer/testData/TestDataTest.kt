@@ -50,8 +50,17 @@ class TestDataTest {
     }
 
     @Test
+    fun projectRenamesAndExcludesInheritedTasks() {
+        // The project web renames typecheck to tsc. It excludes the global task format and has a local task format.
+        assertTrue("tsc" in taskIds("web"))
+        assertFalse("typecheck" in taskIds("web"))
+        assertEquals("echo", tasks.getValue("web").getAsJsonObject("format").get("command").asString)
+        assertEquals(listOf("format", "web"), tasks.getValue("web").getAsJsonObject("format").getAsJsonArray("args").map { it.asString })
+    }
+
+    @Test
     fun stacksInheritDifferentTasks() {
-        assertTrue("typecheck" in taskIds("web"))
+        assertTrue("typecheck" in taskIds("admin"))
         assertFalse("audit" in taskIds("web"))
         assertTrue("audit" in taskIds("api"))
         assertFalse("typecheck" in taskIds("api"))

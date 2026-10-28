@@ -71,7 +71,7 @@ class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
         service.loadRecorded()
         val file = workspaceFile("apps/web/moon.yml")
         val markers = markers(file)
-        assertEquals(listOf("dev", "build", "preview", "lint"), markers.map { it.first })
+        assertEquals(listOf("dev", "build", "preview", "lint", "format"), markers.map { it.first })
         markers.forEach { (_, info) ->
             assertSame(AllIcons.RunConfigurations.TestState.Run, info.icon)
             // The actions of the executors use MoonTaskRunConfigurationProducer.

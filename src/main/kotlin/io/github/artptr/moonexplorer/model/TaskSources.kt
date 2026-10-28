@@ -10,7 +10,8 @@ import kotlin.io.path.extension
 
 /**
  * A configuration file of a task or a project. [path] is absolute.
- * [taskId] is the task to find in the file. If [taskId] is null, the IDE opens the file at the first line.
+ * [taskId] is the task key to find in the file. In an inherited file, it is the global task ID.
+ * If [taskId] is null, the IDE opens the file at the first line.
  * The plugin finds the line of a task only in YAML files. Thus [taskId] is null for a file that is not a YAML file.
  */
 data class SourceFile(val path: Path, val taskId: String?)
@@ -61,9 +62,12 @@ fun TasksState.Loaded.workspacePath(path: Path): String =
 fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> {
     val projectId = targetProjectId(task.target)
     val configs = state.tasks.taskConfigs[projectId] ?: return emptyList()
-    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId] else null
-    val layers = configs.layers[task.id].orEmpty().mapNotNull(state.configFiles.inherited::get)
-    return (listOfNotNull(own) + layers).distinct().map { path -> SourceFile(path, task.id.takeIf { isYamlFile(path) }) }
+    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId]?.let { it to task.id } else null
+    // The task key in an inherited file is the global task ID. It is different from the task ID if the project renames the task.
+    val layers = configs.inheritedLayers[task.id].orEmpty().mapNotNull { layer ->
+        state.configFiles.inherited[layer.file]?.let { it to layer.globalId }
+    }
+    return (listOfNotNull(own) + layers).distinctBy { it.first }.map { (path, id) -> SourceFile(path, id.takeIf { isYamlFile(path) }) }
 }
 
 /**
@@ -80,7 +84,8 @@ sealed interface TaskKeyTargets {
 
     /**
      * A task key in an inherited file in `.moon/tasks/`. [targets] contains the target of each project that has the task in the loaded data
-     * and has the file in `inherited.layers` for the task. The targets are in [ID_ORDER] of the projects. The list is not empty.
+     * and has the file in [TaskConfigs.inheritedLayers] for the task. The targets are in [ID_ORDER] of the projects. The list is not empty.
+     * If a project renames the global task, the target has the task ID of the project, for example `web:tsc` for the key `typecheck`.
      *
      * **NOTE:** moon can write a file in `inherited.layers` of a project without tasks. This project has no target. Thus the number of targets
      * can be less than the number of projects with the file in `inherited.layers`. The tooltip shows the number of targets.
@@ -91,7 +96,8 @@ sealed interface TaskKeyTargets {
 /**
  * Gives the targets of the task key [taskId] in the configuration file [file]. [file] must be absolute and normalized.
  * Gives null if [file] is not a configuration file of the last load, or if the loaded data does not contain the task.
- * The projects of an inherited file come from `inherited.layers` of moon. The plugin does not calculate the inheritance itself.
+ * The projects of an inherited file come from `inherited.layers` of moon. The plugin does not calculate the inheritance.
+ * It only uses the `workspace.inheritedTasks` settings of each project. Refer to [TaskConfigs.inheritedLayers].
  * The function uses only [TasksState.Loaded]. Thus it does not start moon and does not read the disk.
  */
 fun taskKeyTargets(state: TasksState.Loaded, file: Path, taskId: String): TaskKeyTargets? = state.taskKeyIndex.targets(file, taskId)
@@ -119,10 +125,12 @@ internal class TaskKeyIndex private constructor(
             // `./.moon/tasks/all.yml` and `.moon/tasks/all.yml`, give the same file. The projects are in ID_ORDER. Thus the targets are too.
             val shared = HashMap<Path, MutableMap<String, LinkedHashSet<String>>>()
             for (project in state.tasks.projects) {
-                val layers = state.tasks.taskConfigs[project.id]?.layers ?: continue
+                val layers = state.tasks.taskConfigs[project.id]?.inheritedLayers ?: continue
                 for (task in project.tasks) {
-                    layers[task.id].orEmpty().mapNotNullTo(HashSet(), state.configFiles.inherited::get).forEach { file ->
-                        shared.getOrPut(file, ::HashMap).getOrPut(task.id, ::LinkedHashSet) += task.target
+                    // The task key in the file is the global task ID. If web renames typecheck to tsc, the key typecheck gives web:tsc.
+                    layers[task.id].orEmpty().forEach { layer ->
+                        val file = state.configFiles.inherited[layer.file] ?: return@forEach
+                        shared.getOrPut(file, ::HashMap).getOrPut(layer.globalId, ::LinkedHashSet) += task.target
                     }
                 }
             }

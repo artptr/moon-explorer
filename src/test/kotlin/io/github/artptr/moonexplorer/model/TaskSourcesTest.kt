@@ -84,6 +84,66 @@ class TaskSourcesTest {
     }
 
     @Test
+    fun renamedTaskKeyInAnInheritedFileRunsTheTaskWithTheNewId() {
+        // The project web renames the global task typecheck to tsc.
+        assertEquals(
+            TaskKeyTargets.Shared(listOf("admin:typecheck", "icons:typecheck", "ui:typecheck", "utils:typecheck", "web:tsc")),
+            keyTargets(".moon/tasks/frontend.yml", "typecheck"),
+        )
+        assertNull(keyTargets(".moon/tasks/frontend.yml", "tsc"))
+    }
+
+    @Test
+    fun excludedTaskKeyInAnInheritedFileDoesNotRunTheLocalTaskWithTheSameId() {
+        // The project web excludes the global task format and has a local task format.
+        val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
+        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "web:format", format.targets)
+        assertEquals(TaskKeyTargets.Single("web:format"), keyTargets("apps/web/moon.yml", "format"))
+    }
+
+    @Test
+    fun renamedInheritedTaskIsInTheFileOfMoonTasksWithTheGlobalId() {
+        val path = state.root.resolve(".moon/tasks/frontend.yml")
+        assertEquals(listOf(SourceFile(path, "typecheck")), taskSourceFiles(state, task("web:tsc")))
+    }
+
+    @Test
+    fun localTaskWithTheIdOfAnExcludedTaskIsOnlyInTheProjectConfigFile() {
+        assertEquals(listOf("apps/web/moon.yml"), files("web:format"))
+    }
+
+    @Test
+    fun inheritedLayersApplyIncludeExcludeAndRename() {
+        val layers = mapOf("lint" to listOf("all.yml"), "test" to listOf("all.yml"), "build" to listOf("all.yml"), "e2e" to listOf("all.yml"))
+        val taskIds = setOf("lint", "test", "build", "spec")
+        val filter = InheritedTasksFilter(include = setOf("lint", "test", "e2e"), exclude = setOf("test"), rename = mapOf("e2e" to "spec"))
+        assertEquals(
+            mapOf("lint" to listOf(InheritedLayer("lint", "all.yml")), "spec" to listOf(InheritedLayer("e2e", "all.yml"))),
+            TaskConfigs(layers = layers, filter = filter, taskIds = taskIds).inheritedLayers,
+        )
+        // An empty include list gives no inherited tasks.
+        val none = TaskConfigs(layers = layers, filter = InheritedTasksFilter(include = emptySet()), taskIds = taskIds)
+        assertEquals(emptyMap<String, List<InheritedLayer>>(), none.inheritedLayers)
+    }
+
+    @Test
+    fun inheritedLayersContainOnlyTheTasksOfTheProject() {
+        val layers = mapOf("lint" to listOf("all.yml"), "test" to listOf("all.yml"))
+        assertEquals(setOf("lint"), TaskConfigs(layers = layers, taskIds = setOf("lint", "build")).inheritedLayers.keys)
+        assertEquals(emptySet<String>(), TaskConfigs(layers = layers).inheritedLayers.keys)
+    }
+
+    @Test
+    fun twoGlobalTasksWithTheSameIdAfterRenameGiveOneTaskWithTheFilesOfTheTwoTasks() {
+        val layers = mapOf("lint" to listOf("all.yml"), "eslint" to listOf("frontend.yml"))
+        val configs = TaskConfigs(layers = layers, filter = InheritedTasksFilter(rename = mapOf("eslint" to "lint")), taskIds = setOf("lint"))
+        assertEquals(
+            mapOf("lint" to listOf(InheritedLayer("lint", "all.yml"), InheritedLayer("eslint", "frontend.yml"))),
+            configs.inheritedLayers,
+        )
+    }
+
+    @Test
     fun taskOfTheProjectIsInTheProjectConfigFile() {
         assertEquals(listOf("apps/web/moon.yml"), files("web:build"))
     }
@@ -102,7 +162,9 @@ class TaskSourcesTest {
     @Test
     fun layerFileThatDoesNotExistIsNotInTheList() {
         val tasks = state.tasks.copy(
-            taskConfigs = mapOf("web" to TaskConfigs(layers = mapOf("build" to listOf(".moon/tasks/missing.yml", ".moon/tasks/all.yml")))),
+            taskConfigs = mapOf(
+                "web" to TaskConfigs(layers = mapOf("build" to listOf(".moon/tasks/missing.yml", ".moon/tasks/all.yml")), taskIds = setOf("build")),
+            ),
         )
         val result = taskSourceFiles(TestData.loadedState(tasks, state.root), task("web:build"))
         assertEquals(listOf(state.root.resolve(".moon/tasks/all.yml")), result.map { it.path })

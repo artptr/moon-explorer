@@ -38,11 +38,59 @@ data class MoonProject(
 data class ProjectSource(val id: String, val source: String)
 
 /**
+ * The settings in `workspace.inheritedTasks` of the configuration file of a project. The keys of the settings are global task IDs.
+ * [include] contains the global tasks that the project can inherit. If [include] is null, the project can inherit all global tasks.
+ * [exclude] contains the global tasks that the project does not inherit. [rename] gives the task ID in the project for a global task ID.
+ */
+data class InheritedTasksFilter(
+    val include: Set<String>? = null,
+    val exclude: Set<String> = emptySet(),
+    val rename: Map<String, String> = emptyMap(),
+) {
+    /** Gives the task ID in the project for the global task [globalId], or null if the project does not inherit the task. */
+    fun localId(globalId: String): String? {
+        if (include?.contains(globalId) == false || globalId in exclude) return null
+        return rename[globalId] ?: globalId
+    }
+}
+
+/**
+ * An inherited file of a task of a project. [file] is a path from the workspace root, for example `.moon/tasks/frontend.yml`.
+ * [globalId] is the task key in [file]. It is different from the task ID in the project if the project renames the task.
+ */
+data class InheritedLayer(val globalId: String, val file: String)
+
+/**
  * The configuration files of the tasks of a project.
  * [ownTasks] contains the IDs of the tasks in the configuration file of the project, for example `moon.yml`.
- * [layers] gives the inherited files of each task ID. Each file is a path from the workspace root, for example `.moon/tasks/all.yml`.
+ * [layers] gives the inherited files of each global task ID from `inherited.layers`. Each file is a path from the workspace root,
+ * for example `.moon/tasks/all.yml`.
+ * [taskIds] contains the IDs of all tasks of the project from `taskTargets`. It also contains the internal tasks.
+ *
+ * **NOTE:** moon 2.6.4 writes in [layers] all the global tasks that the project can inherit. moon does not use [filter] for [layers].
+ * Thus use [inheritedLayers] to find the inherited files of a task of the project.
  */
-data class TaskConfigs(val ownTasks: Set<String> = emptySet(), val layers: Map<String, List<String>> = emptyMap())
+data class TaskConfigs(
+    val ownTasks: Set<String> = emptySet(),
+    val layers: Map<String, List<String>> = emptyMap(),
+    val filter: InheritedTasksFilter = InheritedTasksFilter(),
+    val taskIds: Set<String> = emptySet(),
+) {
+    /**
+     * Gives the inherited files of each task ID of the project. The keys are the task IDs after [InheritedTasksFilter.rename].
+     * The project inherits a global task only if [InheritedTasksFilter.localId] gives a task ID and [taskIds] contains this task ID.
+     */
+    val inheritedLayers: Map<String, List<InheritedLayer>> by lazy {
+        val result = LinkedHashMap<String, MutableList<InheritedLayer>>()
+        for ((globalId, files) in layers) {
+            val localId = filter.localId(globalId) ?: continue
+            if (localId !in taskIds) continue
+            // Two global tasks can have the same task ID if the project renames a task. Then the project task inherits the files of the two global tasks.
+            files.mapTo(result.getOrPut(localId, ::ArrayList)) { InheritedLayer(globalId, it) }
+        }
+        result
+    }
+}
 
 /**
  * All projects of a workspace that have tasks, sorted by ID.
