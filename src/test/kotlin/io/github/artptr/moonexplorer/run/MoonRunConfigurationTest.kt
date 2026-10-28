@@ -28,6 +28,13 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         return (factory.createTemplateConfiguration(project) as MoonRunConfiguration).also { it.target = target }
     }
 
+    /** Saves this configuration to XML and loads the XML into a new configuration. */
+    private fun MoonRunConfiguration.savedAndLoaded(): MoonRunConfiguration {
+        val element = Element("configuration")
+        writeExternal(element)
+        return configuration("").also { it.readExternal(element) }
+    }
+
     fun testTypeIsRegistered() {
         assertTrue(ConfigurationType.CONFIGURATION_TYPE_EP.extensionList.any { it is MoonRunConfigurationType })
     }
@@ -149,23 +156,17 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
     }
 
     fun testAffectedIsSavedAndLoaded() {
-        val element = Element("configuration")
-        configuration("web:build api:build").also { it.affected = true }.writeExternal(element)
-        val loaded = configuration("")
-        loaded.readExternal(element)
+        val loaded = configuration("web:build api:build").also { it.affected = true }.savedAndLoaded()
         assertEquals(listOf("web:build", "api:build"), loaded.targets)
         assertTrue(loaded.affected)
     }
 
     fun testArgumentsForceAndEnvironmentAreSavedAndLoaded() {
-        val element = Element("configuration")
-        configuration("web:test").also {
+        val loaded = configuration("web:test").also {
             it.arguments = "src/app.test.ts --watch"
             it.force = true
             it.environmentVariables = EnvironmentVariablesData.create(mapOf("NODE_OPTIONS" to "--inspect=0", "DEBUG" to "*"), false)
-        }.writeExternal(element)
-        val loaded = configuration("")
-        loaded.readExternal(element)
+        }.savedAndLoaded()
         assertEquals("src/app.test.ts --watch", loaded.arguments)
         assertTrue(loaded.force)
         assertEquals(mapOf("NODE_OPTIONS" to "--inspect=0", "DEBUG" to "*"), loaded.environmentVariables.envs)
@@ -173,10 +174,7 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
     }
 
     fun testDefaultConfigurationIncludesTheSystemEnvironment() {
-        val element = Element("configuration")
-        configuration().writeExternal(element)
-        val loaded = configuration("")
-        loaded.readExternal(element)
+        val loaded = configuration().savedAndLoaded()
         assertEquals("", loaded.arguments)
         assertFalse(loaded.force)
         assertTrue(loaded.environmentVariables.envs.isEmpty())
@@ -184,11 +182,7 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
     }
 
     fun testTargetIsSavedAndLoaded() {
-        val element = Element("configuration")
-        configuration("api:audit").writeExternal(element)
-        val loaded = configuration("")
-        loaded.readExternal(element)
-        assertEquals("api:audit", loaded.target)
+        assertEquals("api:audit", configuration("api:audit").savedAndLoaded().target)
     }
 
     fun testEditorChangesTheTarget() {
