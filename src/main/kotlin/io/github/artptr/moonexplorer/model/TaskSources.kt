@@ -77,8 +77,11 @@ sealed interface TaskKeyTargets {
     data class Single(val target: String) : TaskKeyTargets
 
     /**
-     * A task key in an inherited file in `.moon/tasks/`. [targets] contains the target of each project that inherits the task from the file,
-     * in [ID_ORDER] of the projects. The list is not empty.
+     * A task key in an inherited file in `.moon/tasks/`. [targets] contains the target of each project that has the task in the loaded data
+     * and has the file in `inherited.layers` for the task. The targets are in [ID_ORDER] of the projects. The list is not empty.
+     *
+     * **NOTE:** moon can write a file in `inherited.layers` of a project without tasks. This project has no target. Thus the number of targets
+     * can be less than the number of projects with the file in `inherited.layers`. The tooltip shows the number of targets.
      */
     data class Shared(val targets: List<String>) : TaskKeyTargets
 }
@@ -95,9 +98,11 @@ fun taskKeyTargets(state: TasksState.Loaded, file: Path, taskId: String): TaskKe
         val project = state.tasks.projects.firstOrNull { it.id == projectId } ?: return null
         return project.tasks.firstOrNull { it.id == taskId }?.let { TaskKeyTargets.Single(it.target) }
     }
-    val layer = state.configFiles.inherited.entries.firstOrNull { it.value == file }?.key ?: return null
+    // Two spellings of a layer, for example `./.moon/tasks/all.yml` and `.moon/tasks/all.yml`, can give the same file.
+    val layers = state.configFiles.inherited.filterValues { it == file }.keys
+    if (layers.isEmpty()) return null
     val targets = state.tasks.projects.mapNotNull { project ->
-        val inherits = state.tasks.taskConfigs[project.id]?.layers?.get(taskId)?.contains(layer) == true
+        val inherits = state.tasks.taskConfigs[project.id]?.layers?.get(taskId)?.any { it in layers } == true
         if (inherits) project.tasks.firstOrNull { it.id == taskId }?.target else null
     }
     return targets.takeIf { it.isNotEmpty() }?.let(TaskKeyTargets::Shared)

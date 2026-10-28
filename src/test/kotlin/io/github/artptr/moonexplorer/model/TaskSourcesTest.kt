@@ -61,6 +61,19 @@ class TaskSourcesTest {
     }
 
     @Test
+    fun twoSpellingsOfTheSameLayerGiveTheTargetsOfAllProjects() {
+        // moon writes "./.moon/tasks/frontend.yml" for web and ".moon/tasks/frontend.yml" for the other projects.
+        val configs = state.tasks.taskConfigs.mapValues { (id, configs) ->
+            if (id != "web") configs else configs.copy(layers = configs.layers + ("test" to listOf("./.moon/tasks/frontend.yml")))
+        }
+        val loaded = TestData.loadedState(state.tasks.copy(taskConfigs = configs), state.root)
+        assertEquals(
+            TaskKeyTargets.Shared(listOf("admin:test", "icons:test", "ui:test", "utils:test", "web:test")),
+            keyTargets(".moon/tasks/frontend.yml", "test", loaded),
+        )
+    }
+
+    @Test
     fun inheritedTaskWithoutTheTaskInTheProjectHasNoTarget() {
         // The layers say that web inherits "test", but the loaded tasks of web do not contain it.
         val projects = state.tasks.projects.map { p -> if (p.id == "web") p.copy(tasks = p.tasks.filter { it.id != "test" }) else p }

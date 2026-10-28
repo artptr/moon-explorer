@@ -25,11 +25,15 @@ class YamlImportBoundaryTest {
             .filterNot { it.startsWith(yamlPackage) }
             .filter { file -> file.readLines().any { YAML_REFERENCE.containsMatchIn(it) } }
             .map { it.relativeTo(sources).invariantSeparatorsPath }
-        assertEquals("These files use org.jetbrains.yaml outside the package yaml", emptyList<String>(), violations)
+        assertEquals("These files use org.jetbrains.yaml or the package yaml outside the package yaml", emptyList<String>(), violations)
     }
 
 
     private companion object {
-        val YAML_REFERENCE = Regex("""\borg\.jetbrains\.yaml\b""")
+        /**
+         * A reference to a YAML class, or to a class of the package `yaml`. A class of the package `yaml` can load YAML classes.
+         * Thus a class in a different package must not use it either.
+         */
+        val YAML_REFERENCE = Regex("""\b(?:org\.jetbrains\.yaml|io\.github\.artptr\.moonexplorer\.yaml)\b""")
     }
 }

@@ -13,6 +13,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,8 @@ import java.nio.file.Path
  * these files again.
  *
  * The refresher examines the configuration files of the old data and of the new data. Thus the refresher also removes the icon of a removed task.
- * The refresher does not use YAML classes. Thus it also operates for a different file format.
+ * Only YAML files have run icons. Thus the refresher examines only the YAML files. The refresher does not use YAML classes.
+ * If a later contributor adds run icons for a different file format, add this format to [configPaths].
  */
 @Service(Service.Level.PROJECT)
 class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
@@ -64,9 +66,9 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
         }
     }
 
-    /** Gives the configuration files of the projects and the inherited files of [state]. */
+    /** Gives the YAML configuration files of the projects and the inherited YAML files of [state]. */
     private fun configPaths(state: TasksState.Loaded?): Set<Path> =
-        state?.configFiles?.let { it.projects.values + it.inherited.values }?.toSet().orEmpty()
+        state?.configFiles?.let { it.projects.values + it.inherited.values }?.filterTo(HashSet(), ::isYamlFile).orEmpty()
 }
 
 /** Starts [RunMarkersRefresher] when the user opens the IDE project. The service starts to monitor the state when the IDE makes the service. */
