@@ -10,8 +10,8 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.MoonIcons
 
 /**
- * The run configuration type "moon". A configuration runs `moon run <targets>`.
- * If the configuration has the option for affected tasks, the command also has `--affected`.
+ * The run configuration type "moon". A configuration runs `moon run <targets> [--affected] [--force] [-- <arguments>]`.
+ * A configuration can also set the environment variables of the moon process.
  */
 class MoonRunConfigurationType : ConfigurationTypeBase(
     ID,

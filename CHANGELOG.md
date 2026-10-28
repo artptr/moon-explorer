@@ -7,6 +7,9 @@
 ### Added
 
 - You can send a report of a plugin error to the maintainer. In the **IDE Internal Errors** dialog, click **Report to third-party plugin**. The IDE can also send reports of UI freezes that the plugin causes. The IDE sends the reports to JetBrains Marketplace only if you agree.
+- A moon run configuration has the field **Arguments**. The configuration adds the arguments after `--`. moon gives these arguments to the task command, for example `moon run web:test -- src/app.test.ts`.
+- A moon run configuration has the option **Run again without the cache**. This option adds `--force`. The configuration puts `--affected` and `--force` before `--`.
+- A moon run configuration has the field **Environment variables**. The environment variables dialog has an option that adds the system environment variables. If you clear this option, the moon process gets only the variables of the configuration. Then add `PATH`. The npm package of moon uses `PATH` to find Node.js.
 
 ## [0.3.0] - 2026-10-26
 
