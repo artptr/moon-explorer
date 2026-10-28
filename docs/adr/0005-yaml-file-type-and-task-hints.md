@@ -1,6 +1,6 @@
 # 0005. Apply the YAML dependency to the file type and the task hints
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-28
 
 ## Context
