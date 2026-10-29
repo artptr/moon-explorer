@@ -30,6 +30,25 @@ class MoonToolWindowTest : BasePlatformTestCase() {
         assertTrue(group.childActionsOrStubs.any { actionManager.getId(it) == "MoonExplorer.RefreshTasks" })
     }
 
+    fun testToolbarLayout() {
+        val actionManager = ActionManager.getInstance()
+        val group = actionManager.getAction("MoonExplorer.TasksToolbar") as DefaultActionGroup
+        val ids = group.childActionsOrStubs.map { actionManager.getId(it) }
+        assertEquals(
+            listOf(
+                "MoonExplorer.RefreshTasks",
+                "MoonExplorer.ExecuteMoonTask",
+                "MoonExplorer.ShowRefreshFailure",
+                "MoonExplorer.SelectOpenedFile",
+                "MoonExplorer.GroupBy",
+                // The separator has no ID.
+                null,
+                "MoonExplorer.OpenSettings",
+            ),
+            ids,
+        )
+    }
+
     fun testTaskActionsAreInTheContextMenu() {
         val actionManager = ActionManager.getInstance()
         val group = actionManager.getAction("MoonExplorer.TaskPopup") as DefaultActionGroup

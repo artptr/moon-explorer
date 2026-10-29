@@ -3,7 +3,6 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Presentation
-import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -72,10 +71,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     fun testToolbarHasTheAction() {
         val actionManager = ActionManager.getInstance()
         val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
-        assertEquals(
-            listOf("MoonExplorer.RefreshTasks", "MoonExplorer.ExecuteMoonTask", "MoonExplorer.ShowRefreshFailure", "MoonExplorer.SelectOpenedFile", "MoonExplorer.GroupBy", "separator", "MoonExplorer.OpenSettings"),
-            toolbar.childActionsOrStubs.map { if (it is Separator) "separator" else actionManager.getId(it) },
-        )
+        assertTrue(toolbar.childActionsOrStubs.any { actionManager.getId(it) == "MoonExplorer.SelectOpenedFile" })
     }
 
     fun testSelectsAndExpandsTheProjectOfTheFile() {

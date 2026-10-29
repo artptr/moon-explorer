@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -17,44 +18,32 @@ import kotlinx.coroutines.runBlocking
 
 class OpenMoonSettingsActionTest : BasePlatformTestCase() {
 
-    private lateinit var service: MoonTasksService
-
-    override fun setUp() {
-        super.setUp()
-        service = project.service<MoonTasksService>()
-        service.prepareForTests()
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
+    private fun isEnabled(context: DataContext = SimpleDataContext.getProjectContext(project)): Boolean {
+        val action = OpenMoonSettingsAction()
+        val event = TestActionEvent.createTestEvent(action, context)
+        action.update(event)
+        return event.presentation.isEnabled
     }
 
     fun testActionIsEnabledWithProject() {
-        val action = OpenMoonSettingsAction()
-        val event = TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
-        action.update(event)
-        assertTrue(event.presentation.isEnabled)
+        assertTrue(isEnabled())
     }
 
     fun testActionIsDisabledWithoutProject() {
-        val action = OpenMoonSettingsAction()
-        val event = TestActionEvent.createTestEvent(action, SimpleDataContext.EMPTY_CONTEXT)
-        action.update(event)
-        assertFalse(event.presentation.isEnabled)
+        assertFalse(isEnabled(SimpleDataContext.EMPTY_CONTEXT))
     }
 
     fun testActionIsEnabledWhenTheTreeShowsAnError() {
-        service.queryProjects = { CliResult.Failed("moon failed") }
-        service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("moon failed")))
-        val action = OpenMoonSettingsAction()
-        val event = TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
-        action.update(event)
-        assertTrue(event.presentation.isEnabled)
+        val service = project.service<MoonTasksService>()
+        service.prepareForTests()
+        try {
+            service.queryProjects = { CliResult.Failed("moon failed") }
+            service.refresh()
+            service.awaitState(TasksState.MoonFailed(MoonFailure.Error("moon failed")))
+            assertTrue(isEnabled())
+        } finally {
+            runBlocking { service.resetForTests() }
+        }
     }
 
     fun testActionShowsTheSettingsOfTheProject() {
