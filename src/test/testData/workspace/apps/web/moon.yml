@@ -5,6 +5,13 @@ tags: ['react', 'public']
 project:
   title: 'Web shop'
   description: 'The public web shop.'
+# This project does not inherit the global task format. It has a local task format.
+# It inherits the global task typecheck with the ID tsc.
+workspace:
+  inheritedTasks:
+    exclude: ['format']
+    rename:
+      typecheck: 'tsc'
 tasks:
   dev:
     command: 'echo dev web'
@@ -26,3 +33,6 @@ tasks:
   # This project changes the inherited task lint. It adds the option --max-warnings 0.
   lint:
     args: ['--max-warnings', '0']
+  # This local task has the same ID as the global task format that this project does not inherit.
+  format:
+    command: 'echo format web'

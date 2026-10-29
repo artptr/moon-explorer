@@ -64,7 +64,8 @@ class TaskSourcesTest {
     fun twoSpellingsOfTheSameLayerGiveTheTargetsOfAllProjects() {
         // moon writes "./.moon/tasks/frontend.yml" for web and ".moon/tasks/frontend.yml" for the other projects.
         val configs = state.tasks.taskConfigs.mapValues { (id, configs) ->
-            if (id != "web") configs else configs.copy(layers = configs.layers + ("test" to listOf("./.moon/tasks/frontend.yml")))
+            val layer = InheritedLayer("test", "./.moon/tasks/frontend.yml")
+            if (id != "web") configs else configs.copy(inheritedLayers = configs.inheritedLayers + ("test" to listOf(layer)))
         }
         val loaded = TestData.loadedState(state.tasks.copy(taskConfigs = configs), state.root)
         assertEquals(
@@ -81,6 +82,72 @@ class TaskSourcesTest {
         val shared = keyTargets(".moon/tasks/frontend.yml", "test", loaded) as TaskKeyTargets.Shared
         assertFalse("web:test" in shared.targets)
         assertEquals(4, shared.targets.size)
+    }
+
+    @Test
+    fun renamedTaskKeyInAnInheritedFileRunsTheTaskWithTheNewId() {
+        // The project web renames the global task typecheck to tsc.
+        assertEquals(
+            TaskKeyTargets.Shared(listOf("admin:typecheck", "icons:typecheck", "ui:typecheck", "utils:typecheck", "web:tsc")),
+            keyTargets(".moon/tasks/frontend.yml", "typecheck"),
+        )
+        assertNull(keyTargets(".moon/tasks/frontend.yml", "tsc"))
+    }
+
+    @Test
+    fun excludedTaskKeyInAnInheritedFileDoesNotRunTheLocalTaskWithTheSameId() {
+        // The project web excludes the global task format and has a local task format.
+        val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
+        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "scripts:format" - "web:format", format.targets)
+        assertEquals(TaskKeyTargets.Single("web:format"), keyTargets("apps/web/moon.yml", "format"))
+    }
+
+    @Test
+    fun taskKeyInAnInheritedFileDoesNotRunInAProjectThatDoesNotIncludeIt() {
+        // The project scripts includes only the global task lint. Its inherited.layers also contain format.
+        val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
+        assertFalse("scripts:format" in format.targets)
+        assertTrue("scripts:lint" in (keyTargets(".moon/tasks/all.yml", "lint") as TaskKeyTargets.Shared).targets)
+    }
+
+    @Test
+    fun renamedInheritedTaskIsInTheFileOfMoonTasksWithTheGlobalId() {
+        val path = state.root.resolve(".moon/tasks/frontend.yml")
+        assertEquals(listOf(SourceFile(path, "typecheck")), taskSourceFiles(state, task("web:tsc")))
+    }
+
+    @Test
+    fun localTaskWithTheIdOfAnExcludedTaskIsOnlyInTheProjectConfigFile() {
+        assertEquals(listOf("apps/web/moon.yml"), files("web:format"))
+    }
+
+    @Test
+    fun inheritedLayersApplyIncludeExcludeAndRename() {
+        val layers = mapOf("lint" to listOf("all.yml"), "test" to listOf("all.yml"), "build" to listOf("all.yml"), "e2e" to listOf("all.yml"))
+        val taskIds = setOf("lint", "test", "build", "spec")
+        val filter = InheritedTasksFilter(include = setOf("lint", "test", "e2e"), exclude = setOf("test"), rename = mapOf("e2e" to "spec"))
+        assertEquals(
+            mapOf("lint" to listOf(InheritedLayer("lint", "all.yml")), "spec" to listOf(InheritedLayer("e2e", "all.yml"))),
+            filter.inheritedLayers(layers, taskIds),
+        )
+        // An empty include list gives no inherited tasks.
+        assertEquals(emptyMap<String, List<InheritedLayer>>(), InheritedTasksFilter(include = emptySet()).inheritedLayers(layers, taskIds))
+    }
+
+    @Test
+    fun inheritedLayersContainOnlyTheTasksOfTheProject() {
+        val layers = mapOf("lint" to listOf("all.yml"), "test" to listOf("all.yml"))
+        assertEquals(setOf("lint"), InheritedTasksFilter().inheritedLayers(layers, setOf("lint", "build")).keys)
+        assertEquals(emptySet<String>(), InheritedTasksFilter().inheritedLayers(layers, emptySet()).keys)
+    }
+
+    @Test
+    fun twoGlobalTasksWithTheSameIdAfterRenameGiveOneTaskWithTheFilesOfTheTwoTasks() {
+        val layers = mapOf("lint" to listOf("all.yml"), "eslint" to listOf("frontend.yml"))
+        assertEquals(
+            mapOf("lint" to listOf(InheritedLayer("lint", "all.yml"), InheritedLayer("eslint", "frontend.yml"))),
+            InheritedTasksFilter(rename = mapOf("eslint" to "lint")).inheritedLayers(layers, setOf("lint")),
+        )
     }
 
     @Test
@@ -102,7 +169,11 @@ class TaskSourcesTest {
     @Test
     fun layerFileThatDoesNotExistIsNotInTheList() {
         val tasks = state.tasks.copy(
-            taskConfigs = mapOf("web" to TaskConfigs(layers = mapOf("build" to listOf(".moon/tasks/missing.yml", ".moon/tasks/all.yml")))),
+            taskConfigs = mapOf(
+                "web" to TaskConfigs(
+                    inheritedLayers = mapOf("build" to listOf(".moon/tasks/missing.yml", ".moon/tasks/all.yml").map { InheritedLayer("build", it) }),
+                ),
+            ),
         )
         val result = taskSourceFiles(TestData.loadedState(tasks, state.root), task("web:build"))
         assertEquals(listOf(state.root.resolve(".moon/tasks/all.yml")), result.map { it.path })
@@ -123,6 +194,18 @@ class TaskSourcesTest {
             listOf("all.yml", "backend.yml", "frontend.yml").map { ".moon/tasks/$it" }.associateWith { state.root.resolve(it) },
             files.inherited,
         )
+    }
+
+    @Test
+    fun fileOfOnlyTasksThatTheProjectDoesNotInheritIsNotFound() {
+        val tasksDir = Files.createDirectories(temp.root.toPath().resolve(".moon/tasks"))
+        Files.writeString(tasksDir.resolve("all.yml"), "")
+        Files.writeString(tasksDir.resolve("other.yml"), "")
+        val layers = mapOf("lint" to listOf(".moon/tasks/all.yml"), "format" to listOf(".moon/tasks/other.yml"))
+        val configs = TaskConfigs(inheritedLayers = InheritedTasksFilter(exclude = setOf("format")).inheritedLayers(layers, setOf("lint")))
+        val tasks = WorkspaceTasks(projects = listOf(MoonProject("p", listOf(MoonTask("lint", "p:lint", null)))), taskConfigs = mapOf("p" to configs))
+        val loaded = TestData.loadedState(tasks, temp.root.toPath())
+        assertEquals(setOf(".moon/tasks/all.yml"), loaded.configFiles.inherited.keys)
     }
 
     @Test

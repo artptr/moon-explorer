@@ -25,7 +25,7 @@ object QueryProjectsParser {
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
             val projectId = project.string("id") ?: return@mapNotNull null
             project.string("source")?.let { sources += ProjectSource(projectId, it) }
-            taskConfigs(project).takeUnless { it.ownTasks.isEmpty() && it.layers.isEmpty() }?.let { configsByProject[projectId] = it }
+            taskConfigs(project).takeUnless { it.ownTasks.isEmpty() && it.inheritedLayers.isEmpty() }?.let { configsByProject[projectId] = it }
             // moon does not write the key "tasks" if the project has no tasks.
             val tasks = project.obj("tasks")?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null
@@ -54,7 +54,8 @@ object QueryProjectsParser {
 
     /**
      * Gives the configuration files of the tasks of [project]. `config.tasks` contains the tasks of the configuration file of the project.
-     * `inherited.layers` gives the inherited files of each task. The function ignores values that are not strings.
+     * `inherited.layers` gives the inherited files of each global task. `config.workspace.inheritedTasks` gives the filter of the global tasks.
+     * `taskTargets` contains the targets of all tasks of the project. The function ignores values that are not strings.
      */
     private fun taskConfigs(project: JsonObject): TaskConfigs {
         val ownTasks = project.obj("config")?.obj("tasks")?.keySet().orEmpty()
@@ -64,8 +65,24 @@ object QueryProjectsParser {
                 if (paths.isNotEmpty()) put(taskId, paths)
             }
         }
+        // moon does not write the key "taskTargets" if the project has no tasks.
+        val taskIds = project.get("taskTargets")?.strings().orEmpty().mapTo(HashSet(), ::targetTaskId)
         // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
-        return TaskConfigs(ownTasks.toSet(), layers)
+        return TaskConfigs(ownTasks.toSet(), layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds))
+    }
+
+    /**
+     * Gives the filter in `config.workspace.inheritedTasks` of [project]. If `include` is not a list, the project can inherit all global tasks.
+     * The function ignores values that are not strings.
+     */
+    private fun inheritedTasksFilter(project: JsonObject): InheritedTasksFilter {
+        val settings = project.obj("config")?.obj("workspace")?.obj("inheritedTasks") ?: return InheritedTasksFilter()
+        val include = settings.get("include")?.arrayOrNull()?.strings()?.toSet()
+        val exclude = settings.get("exclude")?.strings().orEmpty().toSet()
+        val rename = settings.obj("rename")?.entrySet().orEmpty()
+            .mapNotNull { (id, value) -> value.stringOrNull()?.let { id to it } }
+            .toMap()
+        return InheritedTasksFilter(include, exclude, rename)
     }
 
     /**

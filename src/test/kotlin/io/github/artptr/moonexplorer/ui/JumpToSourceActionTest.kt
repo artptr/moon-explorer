@@ -141,7 +141,13 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     }
 
     fun testInheritedTaskOpensTheFileOfMoonTasksAtTheTaskLine() {
-        perform(task("web:typecheck"))
+        perform(task("admin:typecheck"))
+        assertEquals(".moon/tasks/frontend.yml" to lineOf(".moon/tasks/frontend.yml", "  typecheck:"), openedFileAndLine())
+    }
+
+    fun testRenamedInheritedTaskOpensTheFileOfMoonTasksAtTheGlobalTaskLine() {
+        // The project web renames the inherited task typecheck to tsc. The key in frontend.yml is typecheck.
+        perform(task("web:tsc"))
         assertEquals(".moon/tasks/frontend.yml" to lineOf(".moon/tasks/frontend.yml", "  typecheck:"), openedFileAndLine())
     }
 

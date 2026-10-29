@@ -33,7 +33,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     fun testProjectNodesContainTasksInOrder() {
         val web = root.childNodes().single { (it.userObject as MoonProject).id == "web" }
         val ids = web.childNodes().map { (it.userObject as MoonTask).id }
-        assertEquals(listOf("build", "dev", "format", "lint", "preview", "test", "typecheck"), ids)
+        assertEquals(listOf("build", "dev", "format", "lint", "preview", "test", "tsc"), ids)
         assertTrue(web.childNodes().all { it.isLeaf })
     }
 
@@ -86,7 +86,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         assertEquals(listOf("backend", "frontend", none), tree.childNames())
         assertEquals(listOf("api", "db", "worker"), tree.child("backend").childNames())
         assertTrue(tree.child("backend").childNodes().all { it is ProjectNode })
-        assertEquals(listOf("changelog", "format", "lint"), tree.child(none, "scripts").childNames())
+        assertEquals(listOf("changelog", "lint"), tree.child(none, "scripts").childNames())
         assertTrue(tree.child(none, "scripts").childNodes().all { it is TaskNode && it.isLeaf })
     }
 
@@ -96,7 +96,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         assertEquals(listOf("audit", "build", "format", "lint", "migrate", "start", "test"), tree.child("backend").childNames())
         assertEquals(listOf("api", "db", "worker"), tree.child("backend", "audit").childNames())
         assertTrue(tree.child("backend", "audit").childNodes().all { it is TaskNode && it.showProject && it.isLeaf })
-        assertEquals(listOf("changelog", "format", "lint"), tree.child(none).childNames())
+        assertEquals(listOf("changelog", "lint"), tree.child(none).childNames())
     }
 
     fun testLayerAndProjectHasLayerNodesWithProjectsAndTasks() {
@@ -122,7 +122,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         assertEquals(listOf("admin", "ui", "web"), tree.child("react").childNames())
         assertEquals(listOf("api", "web"), tree.child("public").childNames())
         assertEquals(listOf("icons", "scripts"), tree.child(none).childNames())
-        assertEquals(listOf("changelog", "format", "lint"), tree.child(none, "scripts").childNames())
+        assertEquals(listOf("changelog", "lint"), tree.child(none, "scripts").childNames())
     }
 
     fun testProjectWithTwoTagsIsInTheTwoTagNodes() {
