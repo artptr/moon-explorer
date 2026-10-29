@@ -38,7 +38,8 @@ internal fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): Existin
     }.toMap()
     // Many projects inherit the same files. Thus the function examines each file only one time.
     val inherited = tasks.taskConfigs.values.asSequence()
-        .flatMap { configs -> configs.inheritedLayers.values.flatten().map { it.file } }
+        .flatMap { configs -> configs.inheritedLayers.values.asSequence().flatten() }
+        .map { it.file }
         .distinct()
         .mapNotNull { layer -> resolveInRoot(root, layer)?.takeIf(Files::isRegularFile)?.let { layer to it } }
         .toMap()
@@ -62,12 +63,13 @@ fun TasksState.Loaded.workspacePath(path: Path): String =
 fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> {
     val projectId = targetProjectId(task.target)
     val configs = state.tasks.taskConfigs[projectId] ?: return emptyList()
-    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId]?.let { it to task.id } else null
+    fun source(path: Path, taskId: String) = SourceFile(path, taskId.takeIf { isYamlFile(path) })
+    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId]?.let { source(it, task.id) } else null
     // The task key in an inherited file is the global task ID. It is different from the task ID if the project renames the task.
     val layers = configs.inheritedLayers[task.id].orEmpty().mapNotNull { layer ->
-        state.configFiles.inherited[layer.file]?.let { it to layer.globalId }
+        state.configFiles.inherited[layer.file]?.let { source(it, layer.globalId) }
     }
-    return (listOfNotNull(own) + layers).distinctBy { it.first }.map { (path, id) -> SourceFile(path, id.takeIf { isYamlFile(path) }) }
+    return (listOfNotNull(own) + layers).distinctBy { it.path }
 }
 
 /**
@@ -86,9 +88,7 @@ sealed interface TaskKeyTargets {
      * A task key in an inherited file in `.moon/tasks/`. [targets] contains the target of each project that has the task in the loaded data
      * and has the file in [TaskConfigs.inheritedLayers] for the task. The targets are in [ID_ORDER] of the projects. The list is not empty.
      * If a project renames the global task, the target has the task ID of the project, for example `web:tsc` for the key `typecheck`.
-     *
-     * **NOTE:** moon can write a file in `inherited.layers` of a project without tasks. This project has no target. Thus the number of targets
-     * can be less than the number of projects with the file in `inherited.layers`. The tooltip shows the number of targets.
+     * The tooltip shows the number of targets.
      */
     data class Shared(val targets: List<String>) : TaskKeyTargets
 }

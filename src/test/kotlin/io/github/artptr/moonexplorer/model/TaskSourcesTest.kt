@@ -64,7 +64,8 @@ class TaskSourcesTest {
     fun twoSpellingsOfTheSameLayerGiveTheTargetsOfAllProjects() {
         // moon writes "./.moon/tasks/frontend.yml" for web and ".moon/tasks/frontend.yml" for the other projects.
         val configs = state.tasks.taskConfigs.mapValues { (id, configs) ->
-            if (id != "web") configs else configs.copy(layers = configs.layers + ("test" to listOf("./.moon/tasks/frontend.yml")))
+            val layer = InheritedLayer("test", "./.moon/tasks/frontend.yml")
+            if (id != "web") configs else configs.copy(inheritedLayers = configs.inheritedLayers + ("test" to listOf(layer)))
         }
         val loaded = TestData.loadedState(state.tasks.copy(taskConfigs = configs), state.root)
         assertEquals(
@@ -104,7 +105,6 @@ class TaskSourcesTest {
     @Test
     fun taskKeyInAnInheritedFileDoesNotRunInAProjectThatDoesNotIncludeIt() {
         // The project scripts includes only the global task lint. Its inherited.layers also contain format.
-        assertEquals(setOf("format", "lint"), state.tasks.taskConfigs.getValue("scripts").layers.keys)
         val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
         assertFalse("scripts:format" in format.targets)
         assertTrue("scripts:lint" in (keyTargets(".moon/tasks/all.yml", "lint") as TaskKeyTargets.Shared).targets)
@@ -128,27 +128,25 @@ class TaskSourcesTest {
         val filter = InheritedTasksFilter(include = setOf("lint", "test", "e2e"), exclude = setOf("test"), rename = mapOf("e2e" to "spec"))
         assertEquals(
             mapOf("lint" to listOf(InheritedLayer("lint", "all.yml")), "spec" to listOf(InheritedLayer("e2e", "all.yml"))),
-            TaskConfigs(layers = layers, filter = filter, taskIds = taskIds).inheritedLayers,
+            filter.inheritedLayers(layers, taskIds),
         )
         // An empty include list gives no inherited tasks.
-        val none = TaskConfigs(layers = layers, filter = InheritedTasksFilter(include = emptySet()), taskIds = taskIds)
-        assertEquals(emptyMap<String, List<InheritedLayer>>(), none.inheritedLayers)
+        assertEquals(emptyMap<String, List<InheritedLayer>>(), InheritedTasksFilter(include = emptySet()).inheritedLayers(layers, taskIds))
     }
 
     @Test
     fun inheritedLayersContainOnlyTheTasksOfTheProject() {
         val layers = mapOf("lint" to listOf("all.yml"), "test" to listOf("all.yml"))
-        assertEquals(setOf("lint"), TaskConfigs(layers = layers, taskIds = setOf("lint", "build")).inheritedLayers.keys)
-        assertEquals(emptySet<String>(), TaskConfigs(layers = layers).inheritedLayers.keys)
+        assertEquals(setOf("lint"), InheritedTasksFilter().inheritedLayers(layers, setOf("lint", "build")).keys)
+        assertEquals(emptySet<String>(), InheritedTasksFilter().inheritedLayers(layers, emptySet()).keys)
     }
 
     @Test
     fun twoGlobalTasksWithTheSameIdAfterRenameGiveOneTaskWithTheFilesOfTheTwoTasks() {
         val layers = mapOf("lint" to listOf("all.yml"), "eslint" to listOf("frontend.yml"))
-        val configs = TaskConfigs(layers = layers, filter = InheritedTasksFilter(rename = mapOf("eslint" to "lint")), taskIds = setOf("lint"))
         assertEquals(
             mapOf("lint" to listOf(InheritedLayer("lint", "all.yml"), InheritedLayer("eslint", "frontend.yml"))),
-            configs.inheritedLayers,
+            InheritedTasksFilter(rename = mapOf("eslint" to "lint")).inheritedLayers(layers, setOf("lint")),
         )
     }
 
@@ -172,7 +170,9 @@ class TaskSourcesTest {
     fun layerFileThatDoesNotExistIsNotInTheList() {
         val tasks = state.tasks.copy(
             taskConfigs = mapOf(
-                "web" to TaskConfigs(layers = mapOf("build" to listOf(".moon/tasks/missing.yml", ".moon/tasks/all.yml")), taskIds = setOf("build")),
+                "web" to TaskConfigs(
+                    inheritedLayers = mapOf("build" to listOf(".moon/tasks/missing.yml", ".moon/tasks/all.yml").map { InheritedLayer("build", it) }),
+                ),
             ),
         )
         val result = taskSourceFiles(TestData.loadedState(tasks, state.root), task("web:build"))
@@ -202,7 +202,7 @@ class TaskSourcesTest {
         Files.writeString(tasksDir.resolve("all.yml"), "")
         Files.writeString(tasksDir.resolve("other.yml"), "")
         val layers = mapOf("lint" to listOf(".moon/tasks/all.yml"), "format" to listOf(".moon/tasks/other.yml"))
-        val configs = TaskConfigs(layers = layers, filter = InheritedTasksFilter(exclude = setOf("format")), taskIds = setOf("lint"))
+        val configs = TaskConfigs(inheritedLayers = InheritedTasksFilter(exclude = setOf("format")).inheritedLayers(layers, setOf("lint")))
         val tasks = WorkspaceTasks(projects = listOf(MoonProject("p", listOf(MoonTask("lint", "p:lint", null)))), taskConfigs = mapOf("p" to configs))
         val loaded = TestData.loadedState(tasks, temp.root.toPath())
         assertEquals(setOf(".moon/tasks/all.yml"), loaded.configFiles.inherited.keys)

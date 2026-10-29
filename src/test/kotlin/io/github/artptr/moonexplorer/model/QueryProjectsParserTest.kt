@@ -64,16 +64,12 @@ class QueryProjectsParserTest {
     @Test
     fun recordedLayersContainTheGlobalTasksBeforeTheFilter() {
         // moon writes the excluded task format and the global ID typecheck of the renamed task tsc in inherited.layers.
-        val configs = recorded.taskConfigs.getValue("web")
-        assertEquals(setOf("format", "lint", "test", "typecheck"), configs.layers.keys)
-        assertEquals(InheritedTasksFilter(exclude = setOf("format"), rename = mapOf("typecheck" to "tsc")), configs.filter)
-        assertEquals(setOf("build", "dev", "format", "lint", "preview", "test", "tsc"), configs.taskIds)
+        assertEquals(setOf("format", "lint", "test", "typecheck"), recorded.taskConfigs.getValue("web").layers.keys)
     }
 
     @Test
     fun recordedOutputHasTheIncludeListOfAProject() {
         val configs = recorded.taskConfigs.getValue("scripts")
-        assertEquals(InheritedTasksFilter(include = setOf("lint")), configs.filter)
         assertEquals(setOf("format", "lint"), configs.layers.keys)
         assertEquals(setOf("lint"), configs.inheritedLayers.keys)
     }
@@ -92,50 +88,44 @@ class QueryProjectsParserTest {
     }
 
     @Test
-    fun recordedTaskIdsContainTheInternalTasks() {
-        assertTrue("generate-icons" in recorded.taskConfigs.getValue("ui").taskIds)
-        // The project config has no tasks, and moon does not write its taskTargets. Its layers contain format and lint, but it inherits no task.
-        assertEquals(emptySet<String>(), recorded.taskConfigs.getValue("config").taskIds)
-        assertEquals(emptyMap<String, List<InheritedLayer>>(), recorded.taskConfigs.getValue("config").inheritedLayers)
+    fun recordedOutputHasNoTaskConfigsForAProjectWithoutTasks() {
+        // The layers of the project config contain format and lint. moon does not write its taskTargets. Thus it inherits no task.
+        assertNull(recorded.taskConfigs["config"])
     }
+
+    /** Gives the task IDs of [InheritedTasksFilter.inheritedLayers] of each project in [json]. */
+    private fun inheritedTaskIds(json: String) = QueryProjectsParser.parse(json).taskConfigs.mapValues { it.value.inheritedLayers.keys }
 
     @Test
     fun inheritedTasksFilterIsParsed() {
+        val layers = """"inherited": {"layers": {"lint": ["all.yml"], "test": ["all.yml"], "build": ["all.yml"]}}"""
+        val targets = """"taskTargets": ["p:l", "p:lint", "p:test", "p:build"]"""
         val json = """
             {"projects": [
-              {"id": "a", "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": ["lint", 5], "exclude": ["test"], "rename": {"lint": "l", "x": 5}}}}},
-              {"id": "b", "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": null, "exclude": null, "rename": null}}}},
-              {"id": "c", "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": []}}}},
-              {"id": "d", "config": {"tasks": {"b": {}}}}
+              {"id": "a", $layers, $targets, "config": {"workspace": {"inheritedTasks": {"include": ["lint", "test", 5], "exclude": ["test"], "rename": {"lint": "l", "x": 5}}}}},
+              {"id": "b", $layers, $targets, "config": {"workspace": {"inheritedTasks": {"include": null, "exclude": null, "rename": null}}}},
+              {"id": "c", $layers, $targets, "config": {"tasks": {"b": {}}, "workspace": {"inheritedTasks": {"include": []}}}},
+              {"id": "d", $layers, $targets}
             ]}
         """
-        val configs = QueryProjectsParser.parse(json).taskConfigs
-        assertEquals(InheritedTasksFilter(setOf("lint"), setOf("test"), mapOf("lint" to "l")), configs.getValue("a").filter)
-        assertEquals(InheritedTasksFilter(), configs.getValue("b").filter)
-        assertEquals(InheritedTasksFilter(include = emptySet()), configs.getValue("c").filter)
-        assertEquals(InheritedTasksFilter(), configs.getValue("d").filter)
+        assertEquals(
+            mapOf("a" to setOf("l"), "b" to setOf("lint", "test", "build"), "c" to emptySet(), "d" to setOf("lint", "test", "build")),
+            inheritedTaskIds(json),
+        )
     }
 
     @Test
-    fun taskIdsAreEmptyWithoutTaskTargets() {
+    fun projectInheritsOnlyTheTasksInTaskTargets() {
+        // taskTargets also contains the internal tasks, for example gen.
+        val layers = """"inherited": {"layers": {"lint": ["all.yml"], "gen": ["all.yml"]}}"""
         val json = """
             {"projects": [
-              {"id": "a", "config": {"tasks": {"b": {}}}, "taskTargets": ["a:b", "a:c", 5]},
-              {"id": "b", "config": {"tasks": {"b": {}}}},
-              {"id": "c", "config": {"tasks": {"b": {}}}, "taskTargets": "c:b"}
+              {"id": "a", $layers, "taskTargets": ["a:gen", 5]},
+              {"id": "b", $layers, "config": {"tasks": {"b": {}}}},
+              {"id": "c", $layers, "config": {"tasks": {"b": {}}}, "taskTargets": "c:lint"}
             ]}
         """
-        val configs = QueryProjectsParser.parse(json).taskConfigs
-        assertEquals(setOf("b", "c"), configs.getValue("a").taskIds)
-        assertEquals(emptySet<String>(), configs.getValue("b").taskIds)
-        assertEquals(emptySet<String>(), configs.getValue("c").taskIds)
-    }
-
-    @Test
-    fun recordedOutputHasTheTaskConfigsOfAProjectWithoutTasks() {
-        val configs = recorded.taskConfigs.getValue("config")
-        assertEquals(emptySet<String>(), configs.ownTasks)
-        assertEquals(setOf("format", "lint"), configs.layers.keys)
+        assertEquals(mapOf("a" to setOf("gen"), "b" to emptySet(), "c" to emptySet<String>()), inheritedTaskIds(json))
     }
 
     @Test
