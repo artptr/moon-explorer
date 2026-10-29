@@ -13,7 +13,7 @@ import io.github.artptr.moonexplorer.model.lastLoaded
  * Opens **Run Anything** with the text `moon `. Then **Run Anything** shows the completion of [MoonRunAnythingProvider].
  * The Gradle plugin uses the same method for its action **Execute Gradle Task**.
  * The action is available after the plugin loads the tasks, also if the workspace has no tasks. Then the user can type other moon commands.
- * If the IDE project has no moon workspace, or if the tree shows an error, the action is not available.
+ * If the IDE project has no moon workspace, or if the tree shows an error instead of tasks, the action is not available.
  */
 class ExecuteMoonTaskAction : DumbAwareAction() {
 
