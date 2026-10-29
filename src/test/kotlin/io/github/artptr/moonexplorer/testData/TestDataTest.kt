@@ -59,6 +59,12 @@ class TestDataTest {
     }
 
     @Test
+    fun projectIncludesOnlySomeInheritedTasks() {
+        // The project scripts includes only the global task lint.
+        assertEquals(setOf("changelog", "lint"), taskIds("scripts"))
+    }
+
+    @Test
     fun stacksInheritDifferentTasks() {
         assertTrue("typecheck" in taskIds("admin"))
         assertFalse("audit" in taskIds("web"))

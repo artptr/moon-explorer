@@ -97,8 +97,17 @@ class TaskSourcesTest {
     fun excludedTaskKeyInAnInheritedFileDoesNotRunTheLocalTaskWithTheSameId() {
         // The project web excludes the global task format and has a local task format.
         val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
-        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "web:format", format.targets)
+        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "scripts:format" - "web:format", format.targets)
         assertEquals(TaskKeyTargets.Single("web:format"), keyTargets("apps/web/moon.yml", "format"))
+    }
+
+    @Test
+    fun taskKeyInAnInheritedFileDoesNotRunInAProjectThatDoesNotIncludeIt() {
+        // The project scripts includes only the global task lint. Its inherited.layers also contain format.
+        assertEquals(setOf("format", "lint"), state.tasks.taskConfigs.getValue("scripts").layers.keys)
+        val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
+        assertFalse("scripts:format" in format.targets)
+        assertTrue("scripts:lint" in (keyTargets(".moon/tasks/all.yml", "lint") as TaskKeyTargets.Shared).targets)
     }
 
     @Test

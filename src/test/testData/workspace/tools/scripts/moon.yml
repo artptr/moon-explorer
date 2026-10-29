@@ -2,6 +2,10 @@
 project:
   title: 'Release scripts'
   description: 'Scripts for the release of the shop.'
+# This project inherits only the global task lint. It does not inherit the global task format.
+workspace:
+  inheritedTasks:
+    include: ['lint']
 tasks:
   changelog:
     command: 'echo changelog'

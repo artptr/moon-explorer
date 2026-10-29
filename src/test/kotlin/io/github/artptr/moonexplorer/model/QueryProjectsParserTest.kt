@@ -71,6 +71,14 @@ class QueryProjectsParserTest {
     }
 
     @Test
+    fun recordedOutputHasTheIncludeListOfAProject() {
+        val configs = recorded.taskConfigs.getValue("scripts")
+        assertEquals(InheritedTasksFilter(include = setOf("lint")), configs.filter)
+        assertEquals(setOf("format", "lint"), configs.layers.keys)
+        assertEquals(setOf("lint"), configs.inheritedLayers.keys)
+    }
+
+    @Test
     fun recordedInheritedLayersUseTheFilterOfTheProject() {
         val configs = recorded.taskConfigs.getValue("web")
         assertEquals(
