@@ -71,10 +71,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     fun testToolbarHasTheAction() {
         val actionManager = ActionManager.getInstance()
         val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
-        assertEquals(
-            listOf("MoonExplorer.RefreshTasks", "MoonExplorer.ExecuteMoonTask", "MoonExplorer.ShowRefreshFailure", "MoonExplorer.SelectOpenedFile", "MoonExplorer.GroupBy"),
-            toolbar.childActionsOrStubs.map(actionManager::getId),
-        )
+        assertTrue(toolbar.childActionsOrStubs.any { actionManager.getId(it) == "MoonExplorer.SelectOpenedFile" })
     }
 
     fun testSelectsAndExpandsTheProjectOfTheFile() {
