@@ -188,6 +188,18 @@ class TaskSourcesTest {
     }
 
     @Test
+    fun fileOfOnlyTasksThatTheProjectDoesNotInheritIsNotFound() {
+        val tasksDir = Files.createDirectories(temp.root.toPath().resolve(".moon/tasks"))
+        Files.writeString(tasksDir.resolve("all.yml"), "")
+        Files.writeString(tasksDir.resolve("other.yml"), "")
+        val layers = mapOf("lint" to listOf(".moon/tasks/all.yml"), "format" to listOf(".moon/tasks/other.yml"))
+        val configs = TaskConfigs(layers = layers, filter = InheritedTasksFilter(exclude = setOf("format")), taskIds = setOf("lint"))
+        val tasks = WorkspaceTasks(projects = listOf(MoonProject("p", listOf(MoonTask("lint", "p:lint", null)))), taskConfigs = mapOf("p" to configs))
+        val loaded = TestData.loadedState(tasks, temp.root.toPath())
+        assertEquals(setOf(".moon/tasks/all.yml"), loaded.configFiles.inherited.keys)
+    }
+
+    @Test
     fun projectFileIsTheProjectConfigFileAtTheFirstLine() {
         assertEquals(SourceFile(state.root.resolve("apps/web/moon.yml"), null), projectSourceFile(state, "web"))
         assertEquals(SourceFile(state.root.resolve("packages/ui/icons/moon.yml"), null), projectSourceFile(state, "icons"))

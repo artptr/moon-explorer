@@ -19,7 +19,7 @@ data class SourceFile(val path: Path, val taskId: String?)
 /**
  * The configuration files that existed on the disk at the time of a load. The paths are absolute and normalized.
  * [projects] gives the configuration file of each project ID with tasks, for example `moon.yml`. A project without this file is not in the map.
- * [inherited] gives the path of each file of [TaskConfigs.layers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
+ * [inherited] gives the path of each file of [TaskConfigs.inheritedLayers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
  * When a configuration file changes, the plugin loads the tasks again. After a successful load, the plugin finds the files again.
  */
 data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>)
@@ -38,7 +38,7 @@ internal fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): Existin
     }.toMap()
     // Many projects inherit the same files. Thus the function examines each file only one time.
     val inherited = tasks.taskConfigs.values.asSequence()
-        .flatMap { it.layers.values.flatten() }
+        .flatMap { configs -> configs.inheritedLayers.values.flatten().map { it.file } }
         .distinct()
         .mapNotNull { layer -> resolveInRoot(root, layer)?.takeIf(Files::isRegularFile)?.let { layer to it } }
         .toMap()
