@@ -47,6 +47,9 @@
             <action id="MoonExplorer.RefreshTasks"
                     class="io.github.artptr.moonexplorer.ui.RefreshTasksAction"
                     icon="AllIcons.Actions.Refresh"/>
+            <action id="MoonExplorer.ExecuteMoonTask"
+                    class="io.github.artptr.moonexplorer.ui.ExecuteMoonTaskAction"
+                    icon="AllIcons.Actions.Run_anything"/>
             <action id="MoonExplorer.ShowRefreshFailure"
                     class="io.github.artptr.moonexplorer.ui.ShowRefreshFailureAction"
                     icon="AllIcons.General.Warning"/>
