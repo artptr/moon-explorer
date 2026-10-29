@@ -6,7 +6,7 @@
 
 ### Added
 
-- The toolbar of the **Moon** tool window has the action **Execute Moon Task**. The action opens **Run Anything** with the text `moon `. Then select a target from the list, or type a moon command. The action is available only if the tree shows tasks.
+- The toolbar of the **Moon** tool window has the action **Execute Moon Task**. The action opens **Run Anything** with the text `moon `. Then select a target from the list, or type a moon command. The action is available after the plugin loads the tasks.
 - The task keys in moon configuration files have run icons in the gutter. In the `moon.yml` file of a project, the icon runs `<project>:<task>`. The context menu of the task key also has the item **Run**. In a file in `.moon/tasks/`, the icon is different, and the tooltip shows the number of projects that inherit the task. Click the icon. In the popup, select **Run in N Projects**, **Run Affected in N Projects**, or one project.
 - The run icons use the tasks that the plugin loaded. A new task gets an icon after the plugin loads the tasks again. The run icons are only in YAML files. The YAML plugin is necessary for the run icons. If you disable the YAML plugin, all other functions operate.
 - You can send a report of a plugin error to the maintainer. In the **IDE Internal Errors** dialog, click **Report to third-party plugin**. The IDE can also send reports of UI freezes that the plugin causes. The IDE sends the reports to JetBrains Marketplace only if you agree.
