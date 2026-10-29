@@ -28,7 +28,9 @@ object MoonTaskRunner {
 
     /**
      * Opens the run configuration of [target] in the configuration dialog with [edit]. Call this function on the EDT.
-     * If there is no configuration for [target], the dialog shows a new configuration.
+     * The function uses only a configuration without the option --affected, the same as [run] for one target.
+     * Thus the dialog shows the configuration that the next run of [target] uses.
+     * If there is no configuration for [target] without the option --affected, the dialog shows a new configuration.
      * If the user clicks OK, the function saves the configuration and selects it. A temporary configuration becomes a saved configuration.
      * If the user clicks Cancel, the function does not add a configuration. The function gives true if the user clicks OK.
      * Tests replace [edit] with a test function, because [RunDialog] shows a dialog.

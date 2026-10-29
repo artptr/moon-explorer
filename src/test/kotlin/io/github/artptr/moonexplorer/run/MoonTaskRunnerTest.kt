@@ -3,6 +3,7 @@ package io.github.artptr.moonexplorer.run
 import com.intellij.execution.RunManager
 import com.intellij.execution.RunnerAndConfigurationSettings
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.MoonExplorerBundle
 
 class MoonTaskRunnerTest : BasePlatformTestCase() {
 
@@ -63,10 +64,19 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
         assertSame(saved, MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true))
     }
 
+    fun testFirstSavedConfigurationIsUsed() {
+        val first = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = false)
+        val second = runManager.createConfiguration("web:build (second)", MoonRunConfigurationType.getInstance().factory)
+        (second.configuration as MoonRunConfiguration).targets = listOf("web:build")
+        runManager.addConfiguration(second)
+        assertSame(first, MoonTaskRunner.find(project, listOf("web:build"), affected = false))
+    }
+
     /** Opens the dialog for [target] with a test function that gives [ok]. Gives the configurations that the dialog got. */
     private fun edit(target: String, ok: Boolean): List<RunnerAndConfigurationSettings> {
         val edited = mutableListOf<RunnerAndConfigurationSettings>()
-        val result = MoonTaskRunner.editConfiguration(project, target) { _, settings, _ ->
+        val result = MoonTaskRunner.editConfiguration(project, target) { _, settings, title ->
+            assertEquals(MoonExplorerBundle.message("run.configuration.edit.title"), title)
             edited += settings
             ok
         }
@@ -79,6 +89,22 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
         assertEquals(listOf(saved), edit("api:audit", ok = true))
         assertEquals(listOf(saved), moonConfigurations())
         assertFalse(saved.isTemporary)
+        assertEquals(saved, runManager.selectedConfiguration)
+    }
+
+    fun testEditKeepsTheSavedConfigurationOnCancel() {
+        val saved = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = false)
+        assertEquals(listOf(saved), edit("api:audit", ok = false))
+        assertEquals(listOf(saved), moonConfigurations())
+        assertFalse(saved.isTemporary)
+    }
+
+    fun testEditDoesNotOpenAnAffectedConfiguration() {
+        val affected = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = true, temporary = false)
+        val edited = edit("web:build", ok = true).single()
+        assertNotSame(affected, edited)
+        assertFalse((edited.configuration as MoonRunConfiguration).affected)
+        assertEquals(setOf(affected, edited), moonConfigurations().toSet())
     }
 
     fun testEditSavesTheTemporaryConfigurationOnOk() {
@@ -86,11 +112,13 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
         assertEquals(listOf(temporary), edit("api:audit", ok = true))
         assertEquals(listOf(temporary), moonConfigurations())
         assertFalse(temporary.isTemporary)
+        assertEquals(temporary, runManager.selectedConfiguration)
     }
 
     fun testEditKeepsTheTemporaryConfigurationOnCancel() {
         val temporary = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = true)
-        edit("api:audit", ok = false)
+        assertEquals(listOf(temporary), edit("api:audit", ok = false))
+        assertEquals(listOf(temporary), moonConfigurations())
         assertTrue(temporary.isTemporary)
     }
 

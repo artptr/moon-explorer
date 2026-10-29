@@ -114,10 +114,19 @@ class TaskActionsTest : BasePlatformTestCase() {
         assertEquals("Edit 'web:build' Settings...", event.presentation.text)
     }
 
+    fun testActionTextsKeepUnderscoresInTheTarget() {
+        val task = MoonTask("build_test", "web:build_test", null)
+        val texts = listOf(RunTaskAction(), EditTaskSettingsAction()).map { action ->
+            TestActionEvent.createTestEvent(action, context(task)).also(action::update).presentation.text
+        }
+        assertEquals(listOf("Run 'web:build_test'", "Edit 'web:build_test' Settings..."), texts)
+    }
+
     fun testEditSettingsActionOpensTheConfigurationOfTheTask() {
         val action = EditTaskSettingsAction()
         val edited = mutableListOf<String>()
-        action.edit = { _, settings, _ ->
+        action.edit = { _, settings, title ->
+            assertEquals("Edit Configuration", title)
             edited += (settings.configuration as MoonRunConfiguration).target
             true
         }

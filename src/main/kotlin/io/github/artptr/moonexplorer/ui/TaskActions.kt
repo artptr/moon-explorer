@@ -80,7 +80,8 @@ abstract class SelectedTaskAction : SelectedDataAction<MoonTask>(SELECTED_TASK)
 class RunTaskAction : SelectedTaskAction() {
 
     override fun update(e: AnActionEvent, data: MoonTask) {
-        e.presentation.text = MoonExplorerBundle.message("action.MoonExplorer.RunTask.textWithTarget", data.target)
+        // A task ID can contain '_'. Thus the text has no mnemonic.
+        e.presentation.setText(MoonExplorerBundle.message("action.MoonExplorer.RunTask.textWithTarget", data.target), false)
     }
 
     override fun perform(project: Project, data: MoonTask) {
@@ -88,14 +89,19 @@ class RunTaskAction : SelectedTaskAction() {
     }
 }
 
-/** Opens the run configuration of the selected task in the configuration dialog. If there is no configuration, the dialog shows a new one. */
+/**
+ * Opens the run configuration of the selected task in the configuration dialog.
+ * The action uses the configuration that [RunTaskAction] uses.
+ * If there is no configuration without the option --affected, the dialog shows a new one. Refer to [MoonTaskRunner.editConfiguration].
+ */
 class EditTaskSettingsAction : SelectedTaskAction() {
 
     /** Opens the dialog. Tests replace this value with a test function, because the dialog cannot open in tests. */
     internal var edit: (Project, RunnerAndConfigurationSettings, String) -> Boolean = RunDialog::editConfiguration
 
     override fun update(e: AnActionEvent, data: MoonTask) {
-        e.presentation.text = MoonExplorerBundle.message("action.MoonExplorer.EditTaskSettings.textWithTarget", data.target)
+        // A task ID can contain '_'. Thus the text has no mnemonic.
+        e.presentation.setText(MoonExplorerBundle.message("action.MoonExplorer.EditTaskSettings.textWithTarget", data.target), false)
     }
 
     override fun perform(project: Project, data: MoonTask) {
