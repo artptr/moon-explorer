@@ -71,6 +71,10 @@
                 <action id="MoonExplorer.CategoryTag"
                         class="io.github.artptr.moonexplorer.ui.CategoryTagAction"/>
             </group>
+            <separator/>
+            <action id="MoonExplorer.OpenSettings"
+                    class="io.github.artptr.moonexplorer.ui.OpenMoonSettingsAction"
+                    icon="AllIcons.General.Settings"/>
         </group>
         <group id="MoonExplorer.TaskPopup">
             <action id="MoonExplorer.RunTask"
