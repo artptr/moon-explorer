@@ -1,7 +1,5 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.execution.RunnerAndConfigurationSettings
-import com.intellij.execution.impl.RunDialog
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -55,7 +53,8 @@ abstract class SelectedDataAction<T : Any>(private val key: DataKey<T>) : DumbAw
     override fun update(e: AnActionEvent) {
         val data = e.getData(key)?.takeIf(::isApplicable)
         e.presentation.isEnabledAndVisible = e.project != null && data != null
-        if (data != null) update(e, data)
+        // A task ID can contain '_'. Thus the text has no mnemonic.
+        if (data != null) text(data)?.let { e.presentation.setText(it, false) }
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -67,8 +66,8 @@ abstract class SelectedDataAction<T : Any>(private val key: DataKey<T>) : DumbAw
     /** Gives true if the action operates on [data]. If not, the action is not visible. */
     protected open fun isApplicable(data: T): Boolean = true
 
-    /** Changes the presentation for [data]. */
-    protected open fun update(e: AnActionEvent, data: T) = Unit
+    /** Gives the text of the action for [data], or null for the text from the bundle. */
+    protected open fun text(data: T): String? = null
 
     protected abstract fun perform(project: Project, data: T)
 }
@@ -79,10 +78,7 @@ abstract class SelectedTaskAction : SelectedDataAction<MoonTask>(SELECTED_TASK)
 /** Runs the selected task with a temporary run configuration. */
 class RunTaskAction : SelectedTaskAction() {
 
-    override fun update(e: AnActionEvent, data: MoonTask) {
-        // A task ID can contain '_'. Thus the text has no mnemonic.
-        e.presentation.setText(MoonExplorerBundle.message("action.MoonExplorer.RunTask.textWithTarget", data.target), false)
-    }
+    override fun text(data: MoonTask): String = MoonExplorerBundle.message("action.MoonExplorer.RunTask.textWithTarget", data.target)
 
     override fun perform(project: Project, data: MoonTask) {
         MoonTaskRunner.run(project, data.target)
@@ -96,16 +92,14 @@ class RunTaskAction : SelectedTaskAction() {
  */
 class EditTaskSettingsAction : SelectedTaskAction() {
 
-    /** Opens the dialog. Tests replace this value with a test function, because the dialog cannot open in tests. */
-    internal var edit: (Project, RunnerAndConfigurationSettings, String) -> Boolean = RunDialog::editConfiguration
+    /** Opens the dialog for the target. Tests replace this value with a test function, because the dialog cannot open in tests. */
+    internal var edit: (Project, String) -> Unit = { project, target -> MoonTaskRunner.editConfiguration(project, target) }
 
-    override fun update(e: AnActionEvent, data: MoonTask) {
-        // A task ID can contain '_'. Thus the text has no mnemonic.
-        e.presentation.setText(MoonExplorerBundle.message("action.MoonExplorer.EditTaskSettings.textWithTarget", data.target), false)
-    }
+    override fun text(data: MoonTask): String =
+        MoonExplorerBundle.message("action.MoonExplorer.EditTaskSettings.textWithTarget", data.target)
 
     override fun perform(project: Project, data: MoonTask) {
-        MoonTaskRunner.editConfiguration(project, data.target, edit)
+        edit(project, data.target)
     }
 }
 
@@ -126,9 +120,7 @@ abstract class SelectedTasksRunAction(
     /** An empty list has no targets. Then moon has nothing to run. */
     override fun isApplicable(data: List<MoonTask>): Boolean = data.isNotEmpty()
 
-    override fun update(e: AnActionEvent, data: List<MoonTask>) {
-        e.presentation.text = MoonExplorerBundle.message(textKey, data.size)
-    }
+    override fun text(data: List<MoonTask>): String = MoonExplorerBundle.message(textKey, data.size)
 
     override fun perform(project: Project, data: List<MoonTask>) {
         run(project, data.map { it.target }, affected)

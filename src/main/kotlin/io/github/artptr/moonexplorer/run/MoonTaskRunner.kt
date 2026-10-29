@@ -32,25 +32,24 @@ object MoonTaskRunner {
      * Thus the dialog shows the configuration that the next run of [target] uses.
      * If there is no configuration for [target] without the option --affected, the dialog shows a new configuration.
      * If the user clicks OK, the function saves the configuration and selects it. A temporary configuration becomes a saved configuration.
-     * If the user clicks Cancel, the function does not add a configuration. The function gives true if the user clicks OK.
+     * If the user clicks Cancel, the function does not add a configuration.
      * Tests replace [edit] with a test function, because [RunDialog] shows a dialog.
      */
     fun editConfiguration(
         project: Project,
         target: String,
         edit: (Project, RunnerAndConfigurationSettings, String) -> Boolean = RunDialog::editConfiguration,
-    ): Boolean {
+    ) {
         val runManager = RunManager.getInstance(project)
         val targets = listOf(target)
         val existing = find(project, targets, affected = false)
         val settings = existing ?: create(project, targets, affected = false)
-        if (!edit(project, settings, MoonExplorerBundle.message("run.configuration.edit.title"))) return false
+        if (!edit(project, settings, MoonExplorerBundle.message("run.configuration.edit.title"))) return
         when {
             existing == null -> runManager.addConfiguration(settings)
             settings.isTemporary -> runManager.makeStable(settings)
         }
         runManager.selectedConfiguration = settings
-        return true
     }
 
     /**
@@ -67,8 +66,7 @@ object MoonTaskRunner {
                 val configuration = it.configuration
                 configuration is MoonRunConfiguration && configuration.runs(targets, affected)
             }
-            .sortedBy { it.isTemporary }
-            .firstOrNull()
+            .let { found -> found.firstOrNull { !it.isTemporary } ?: found.firstOrNull() }
 
     /**
      * Gives the run configuration for [targets] and [affected] from [find], or makes a new one. The function also selects it.
