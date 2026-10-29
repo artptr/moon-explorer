@@ -116,10 +116,11 @@ class TaskActionsTest : BasePlatformTestCase() {
 
     fun testActionTextsKeepUnderscoresInTheTarget() {
         val task = MoonTask("build_test", "web:build_test", null)
-        val texts = listOf(RunTaskAction(), EditTaskSettingsAction()).map { action ->
-            TestActionEvent.createTestEvent(action, context(task)).also(action::update).presentation.text
+        val presentations = listOf(RunTaskAction(), EditTaskSettingsAction()).map { action ->
+            TestActionEvent.createTestEvent(action, context(task)).also(action::update).presentation
         }
-        assertEquals(listOf("Run 'web:build_test'", "Edit 'web:build_test' Settings..."), texts)
+        assertEquals(listOf("Run 'web:build_test'", "Edit 'web:build_test' Settings..."), presentations.map { it.text })
+        assertEquals(listOf(0, 0), presentations.map { it.mnemonic })
     }
 
     fun testEditSettingsActionOpensTheConfigurationOfTheTask() {

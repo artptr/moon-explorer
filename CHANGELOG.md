@@ -17,7 +17,7 @@
 ### Changed
 
 - The context menu of a task in the **Moon** tool window has **Edit '\<target\>' Settings...** in place of **Create Run Configuration**. The action opens the run configuration of the task in the configuration dialog. The action does not open a configuration with the option **Run only the affected tasks**. If the task has no applicable run configuration, the dialog shows a new configuration. Click **OK** to save the configuration. If you click **Cancel**, the IDE does not save a new configuration.
-- Two run configurations can have the same targets and the same option **Run only the affected tasks**. Then a run from the **Moon** tool window, **Search Everywhere**, or **Run Anything** uses the saved configuration. Before this change, the run used the first configuration in the list. This configuration was possibly a temporary configuration.
+- A saved run configuration and a temporary run configuration can have the same targets and the same option **Run only the affected tasks**. Then a run uses the saved configuration. This rule applies to a run from the **Moon** tool window, **Search Everywhere**, **Run Anything**, and the run icons in the files in `.moon/tasks/`. Before this change, the run used the first configuration in the list.
 
 ### Fixed
 

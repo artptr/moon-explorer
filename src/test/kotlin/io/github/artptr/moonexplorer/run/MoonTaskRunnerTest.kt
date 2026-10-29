@@ -94,8 +94,10 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
 
     fun testEditKeepsTheSavedConfigurationOnCancel() {
         val saved = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = false)
+        val other = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = false)
         assertEquals(listOf(saved), edit("api:audit", ok = false))
-        assertEquals(listOf(saved), moonConfigurations())
+        assertEquals(other, runManager.selectedConfiguration)
+        assertEquals(setOf(saved, other), moonConfigurations().toSet())
         assertFalse(saved.isTemporary)
     }
 
