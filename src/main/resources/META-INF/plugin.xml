@@ -85,8 +85,8 @@
             <action id="MoonExplorer.RunSelectedTasks"
                     class="io.github.artptr.moonexplorer.ui.RunSelectedTasksAction"
                     icon="AllIcons.Actions.Execute"/>
-            <action id="MoonExplorer.CreateRunConfiguration"
-                    class="io.github.artptr.moonexplorer.ui.CreateRunConfigurationAction"/>
+            <action id="MoonExplorer.EditTaskSettings"
+                    class="io.github.artptr.moonexplorer.ui.EditTaskSettingsAction"/>
             <separator/>
             <action id="MoonExplorer.JumpToSource"
                     class="io.github.artptr.moonexplorer.ui.JumpToSourceAction"

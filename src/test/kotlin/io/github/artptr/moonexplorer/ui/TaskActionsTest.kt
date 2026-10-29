@@ -1,14 +1,11 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.execution.RunManager
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.MoonTask
-import io.github.artptr.moonexplorer.run.MoonRunConfiguration
-import io.github.artptr.moonexplorer.run.MoonRunConfigurationType
 import io.github.artptr.moonexplorer.run.removeMoonConfigurations
 
 class TaskActionsTest : BasePlatformTestCase() {
@@ -99,18 +96,28 @@ class TaskActionsTest : BasePlatformTestCase() {
     }
 
     fun testActionsAreHiddenWithoutATask() {
-        for (action in listOf(RunTaskAction(), CreateRunConfigurationAction())) {
+        for (action in listOf(RunTaskAction(), EditTaskSettingsAction())) {
             val event = TestActionEvent.createTestEvent(action, context(null))
             action.update(event)
             assertFalse(event.presentation.isVisible)
         }
     }
 
-    fun testCreateRunConfigurationActionSavesAConfiguration() {
-        val action = CreateRunConfigurationAction()
+    fun testActionTextsKeepUnderscoresInTheTarget() {
+        val task = MoonTask("build_test", "web:build_test", null)
+        val presentations = listOf(RunTaskAction(), EditTaskSettingsAction()).map { action ->
+            TestActionEvent.createTestEvent(action, context(task)).also(action::update).presentation
+        }
+        assertEquals(listOf("Run 'web:build_test'", "Edit 'web:build_test' Settings..."), presentations.map { it.text })
+        assertEquals(listOf(0, 0), presentations.map { it.mnemonic })
+        assertTrue(presentations.all { it.isEnabledAndVisible })
+    }
+
+    fun testEditSettingsActionOpensTheConfigurationOfTheTask() {
+        val action = EditTaskSettingsAction()
+        val edited = mutableListOf<String>()
+        action.edit = { _, target -> edited += target }
         action.actionPerformed(TestActionEvent.createTestEvent(action, context(task)))
-        val saved = RunManager.getInstance(project).getConfigurationSettingsList(MoonRunConfigurationType.getInstance()).single()
-        assertFalse(saved.isTemporary)
-        assertEquals("web:build", (saved.configuration as MoonRunConfiguration).target)
+        assertEquals(listOf("web:build"), edited)
     }
 }
