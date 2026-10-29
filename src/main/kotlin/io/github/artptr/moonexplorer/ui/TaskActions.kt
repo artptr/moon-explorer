@@ -1,5 +1,7 @@
 package io.github.artptr.moonexplorer.ui
 
+import com.intellij.execution.RunnerAndConfigurationSettings
+import com.intellij.execution.impl.RunDialog
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -86,11 +88,18 @@ class RunTaskAction : SelectedTaskAction() {
     }
 }
 
-/** Saves a run configuration for the selected task. */
-class CreateRunConfigurationAction : SelectedTaskAction() {
+/** Opens the run configuration of the selected task in the configuration dialog. If there is no configuration, the dialog shows a new one. */
+class EditTaskSettingsAction : SelectedTaskAction() {
+
+    /** Opens the dialog. Tests replace this value with a test function, because the dialog cannot open in tests. */
+    internal var edit: (Project, RunnerAndConfigurationSettings, String) -> Boolean = RunDialog::editConfiguration
+
+    override fun update(e: AnActionEvent, data: MoonTask) {
+        e.presentation.text = MoonExplorerBundle.message("action.MoonExplorer.EditTaskSettings.textWithTarget", data.target)
+    }
 
     override fun perform(project: Project, data: MoonTask) {
-        MoonTaskRunner.createConfiguration(project, data.target)
+        MoonTaskRunner.editConfiguration(project, data.target, edit)
     }
 }
 

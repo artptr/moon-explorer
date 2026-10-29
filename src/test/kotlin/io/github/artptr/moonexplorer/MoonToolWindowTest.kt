@@ -40,7 +40,7 @@ class MoonToolWindowTest : BasePlatformTestCase() {
                 "MoonExplorer.RunInProjects",
                 "MoonExplorer.RunAffectedInProjects",
                 "MoonExplorer.RunSelectedTasks",
-                "MoonExplorer.CreateRunConfiguration",
+                "MoonExplorer.EditTaskSettings",
                 // The separator has no ID.
                 null,
                 "MoonExplorer.JumpToSource",

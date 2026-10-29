@@ -14,6 +14,11 @@
 - A moon run configuration has the option **Run again without the cache**. This option adds `--force`. The configuration puts `--affected` and `--force` before `--`.
 - A moon run configuration has the field **Environment variables**. The environment variables dialog has an option that adds the system environment variables. If you clear this option, the moon process gets only the variables of the configuration. Then add `PATH`. The npm package of moon uses `PATH` to find Node.js.
 
+### Changed
+
+- The context menu of a task in the **Moon** tool window has **Edit '\<target\>' Settings...** in place of **Create Run Configuration**. The action opens the run configuration of the task in the configuration dialog. If the task has no run configuration, the dialog shows a new configuration. Click **OK** to save the configuration. If you click **Cancel**, the IDE does not save a new configuration.
+- If two run configurations have the same targets, a run from the **Moon** tool window, **Search Everywhere**, or **Run Anything** uses the saved configuration. Before this change, the run used the first configuration in the list. This configuration was possibly a temporary configuration.
+
 ### Fixed
 
 - The run icons in the files in `.moon/tasks/` use the `include`, `exclude`, and `rename` settings in `workspace.inheritedTasks` of each project. If a project renames a global task, the icon of the global task key also runs the renamed task, for example `web:tsc`. If a project does not inherit a global task, the icon does not run the local task with the same ID.

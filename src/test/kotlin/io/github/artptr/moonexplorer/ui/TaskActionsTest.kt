@@ -99,18 +99,31 @@ class TaskActionsTest : BasePlatformTestCase() {
     }
 
     fun testActionsAreHiddenWithoutATask() {
-        for (action in listOf(RunTaskAction(), CreateRunConfigurationAction())) {
+        for (action in listOf(RunTaskAction(), EditTaskSettingsAction())) {
             val event = TestActionEvent.createTestEvent(action, context(null))
             action.update(event)
             assertFalse(event.presentation.isVisible)
         }
     }
 
-    fun testCreateRunConfigurationActionSavesAConfiguration() {
-        val action = CreateRunConfigurationAction()
+    fun testEditSettingsActionShowsTheTarget() {
+        val action = EditTaskSettingsAction()
+        val event = TestActionEvent.createTestEvent(action, context(task))
+        action.update(event)
+        assertTrue(event.presentation.isEnabledAndVisible)
+        assertEquals("Edit 'web:build' Settings...", event.presentation.text)
+    }
+
+    fun testEditSettingsActionOpensTheConfigurationOfTheTask() {
+        val action = EditTaskSettingsAction()
+        val edited = mutableListOf<String>()
+        action.edit = { _, settings, _ ->
+            edited += (settings.configuration as MoonRunConfiguration).target
+            true
+        }
         action.actionPerformed(TestActionEvent.createTestEvent(action, context(task)))
+        assertEquals(listOf("web:build"), edited)
         val saved = RunManager.getInstance(project).getConfigurationSettingsList(MoonRunConfigurationType.getInstance()).single()
         assertFalse(saved.isTemporary)
-        assertEquals("web:build", (saved.configuration as MoonRunConfiguration).target)
     }
 }
