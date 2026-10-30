@@ -22,7 +22,7 @@ object MoonTaskRunner {
      * If there is a run configuration with the same targets and the same [affected] value, the function uses it.
      */
     fun run(project: Project, targets: List<String>, affected: Boolean = false) {
-        val settings = findOrCreate(project, targets, affected, temporary = true)
+        val settings = findOrCreate(project, targets, affected)
         ProgramRunnerUtil.executeConfiguration(settings, DefaultRunExecutor.getRunExecutorInstance())
     }
 
@@ -69,20 +69,13 @@ object MoonTaskRunner {
             .let { found -> found.firstOrNull { !it.isTemporary } ?: found.firstOrNull() }
 
     /**
-     * Gives the run configuration for [targets] and [affected] from [find], or makes a new one. The function also selects it.
+     * Gives the run configuration for [targets] and [affected] from [find], or makes a new temporary one. The function also selects it.
      * Thus a run from the tree uses the arguments, the force option, and the environment variables of a saved configuration.
      */
-    internal fun findOrCreate(
-        project: Project,
-        targets: List<String>,
-        affected: Boolean,
-        temporary: Boolean,
-    ): RunnerAndConfigurationSettings {
+    internal fun findOrCreate(project: Project, targets: List<String>, affected: Boolean): RunnerAndConfigurationSettings {
         val runManager = RunManager.getInstance(project)
         val settings = find(project, targets, affected)
-            ?: create(project, targets, affected).also { created ->
-                if (temporary) runManager.setTemporaryConfiguration(created) else runManager.addConfiguration(created)
-            }
+            ?: create(project, targets, affected).also(runManager::setTemporaryConfiguration)
         runManager.selectedConfiguration = settings
         return settings
     }

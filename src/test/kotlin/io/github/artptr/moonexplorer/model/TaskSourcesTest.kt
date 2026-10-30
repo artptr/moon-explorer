@@ -28,7 +28,7 @@ class TaskSourcesTest {
 
     /** Gives the targets of the key [taskId] in the file [path]. [path] is a path from the workspace root. */
     private fun keyTargets(path: String, taskId: String, loaded: TasksState.Loaded = state) =
-        taskKeyTargets(loaded, loaded.root.resolve(path), taskId)
+        loaded.taskKeyIndex.targets(loaded.root.resolve(path), taskId)
 
     @Test
     fun taskKeyInTheProjectConfigFileRunsTheTaskOfTheProject() {

@@ -22,8 +22,7 @@
                     icon="io.github.artptr.moonexplorer.MoonIcons.ToolWindow"
                     factoryClass="io.github.artptr.moonexplorer.ui.MoonToolWindowFactory"/>
         <postStartupActivity implementation="io.github.artptr.moonexplorer.model.MoonTasksStartupActivity"/>
-        <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RefreshFailureNotifierStartupActivity"/>
-        <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.RunMarkersRefresherStartupActivity"/>
+        <postStartupActivity implementation="io.github.artptr.moonexplorer.ui.UiServicesStartupActivity"/>
         <notificationGroup id="Moon Explorer" displayType="STICKY_BALLOON" key="notification.group.name"/>
         <notificationGroup id="Moon Explorer commands" displayType="BALLOON" key="notification.commands.group.name"/>
         <projectConfigurable parentId="tools"

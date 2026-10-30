@@ -220,6 +220,15 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.awaitState(loaded)
     }
 
+    fun testRefreshWithTheSameResultKeepsTheLoadedInstance() {
+        service.loadRecorded()
+        val first = service.state.value
+        // refresh sets the Loading state before it returns. Thus awaitState waits for the result of the new load.
+        service.refresh()
+        service.awaitState(loaded)
+        assertSame(first, service.state.value)
+    }
+
     fun testNoWorkspaceRemovesTheLastSuccessfulLoad() {
         service.refresh()
         service.awaitState(loaded)

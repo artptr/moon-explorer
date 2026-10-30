@@ -45,7 +45,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     internal var configWatch: ConfigWatch = ConfigWatch(null, null)
         private set
 
-    private val defaultProjectDir: () -> Path? = { project.basePath?.let(Path::of) }
+    private val defaultProjectDir: () -> Path? = { project.service<MoonExecutableService>().projectDir() }
     private val defaultQueryProjects: suspend (Path) -> CliResult = ::queryProjects
 
     /**
@@ -119,7 +119,12 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
                 val result = TasksLoader.loadTasksIn(root, queryProjectsFn)
                 // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
                 // NoWorkspace does not keep the last load, because the old tasks are not correct.
-                val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
+                // A load with the same result keeps the last instance. Thus the users of the state do not repeat their work for it.
+                val state = when {
+                    result is TasksState.Failure && last != null -> TasksState.Stale(last, result)
+                    last != null && result == last -> last
+                    else -> result
+                }
                 // A failed load keeps the last successful load. Then the watch does not change.
                 if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
                 state

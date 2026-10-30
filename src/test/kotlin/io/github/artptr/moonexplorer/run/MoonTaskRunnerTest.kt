@@ -19,16 +19,16 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
 
     private fun moonConfigurations() = runManager.getConfigurationSettingsList(MoonRunConfigurationType.getInstance())
 
-    /** Adds a saved configuration with [name] that runs [targets]. */
-    private fun addSaved(name: String, targets: List<String>): RunnerAndConfigurationSettings =
+    /** Adds a saved configuration with [name] that runs [targets] with [affected]. */
+    private fun addSaved(name: String, targets: List<String>, affected: Boolean = false): RunnerAndConfigurationSettings =
         runManager.createConfiguration(name, MoonRunConfigurationType.getInstance().factory).also {
-            (it.configuration as MoonRunConfiguration).setUp(targets, affected = false)
+            (it.configuration as MoonRunConfiguration).setUp(targets, affected)
             it.name = name
             runManager.addConfiguration(it)
         }
 
     fun testTemporaryConfigurationForATask() {
-        val settings = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true)
+        val settings = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false)
         assertTrue(settings.isTemporary)
         assertEquals("web:build", settings.name)
         assertEquals("web:build", (settings.configuration as MoonRunConfiguration).target)
@@ -36,14 +36,14 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     }
 
     fun testExistingConfigurationIsUsedAgain() {
-        val first = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true)
-        val second = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true)
+        val first = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false)
+        val second = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false)
         assertSame(first, second)
         assertEquals(1, moonConfigurations().size)
     }
 
     fun testTemporaryConfigurationForSeveralTargets() {
-        val settings = MoonTaskRunner.findOrCreate(project, listOf("web:build", "api:build"), affected = true, temporary = true)
+        val settings = MoonTaskRunner.findOrCreate(project, listOf("web:build", "api:build"), affected = true)
         assertTrue(settings.isTemporary)
         assertEquals("build (web, api), affected", settings.name)
         val configuration = settings.configuration as MoonRunConfiguration
@@ -54,23 +54,23 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
 
     fun testConfigurationForSeveralTargetsIsUsedAgainOnlyWithTheSameAffectedValue() {
         val targets = listOf("web:build", "api:build")
-        val all = MoonTaskRunner.findOrCreate(project, targets, affected = false, temporary = true)
-        assertSame(all, MoonTaskRunner.findOrCreate(project, targets, affected = false, temporary = true))
-        val affected = MoonTaskRunner.findOrCreate(project, targets, affected = true, temporary = true)
+        val all = MoonTaskRunner.findOrCreate(project, targets, affected = false)
+        assertSame(all, MoonTaskRunner.findOrCreate(project, targets, affected = false))
+        val affected = MoonTaskRunner.findOrCreate(project, targets, affected = true)
         assertNotSame(all, affected)
-        assertNotSame(all, MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true))
+        assertNotSame(all, MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false))
         assertEquals(3, moonConfigurations().size)
     }
 
     fun testSavedConfigurationIsUsedBeforeATemporaryConfiguration() {
-        MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true)
+        MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false)
         val saved = addSaved("web:build (saved)", listOf("web:build"))
         assertSame(saved, MoonTaskRunner.find(project, listOf("web:build"), affected = false))
-        assertSame(saved, MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = true))
+        assertSame(saved, MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false))
     }
 
     fun testFirstSavedConfigurationIsUsed() {
-        val first = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = false)
+        val first = addSaved("web:build", listOf("web:build"))
         addSaved("web:build (second)", listOf("web:build"))
         assertSame(first, MoonTaskRunner.find(project, listOf("web:build"), affected = false))
     }
@@ -87,7 +87,7 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     }
 
     fun testEditOpensTheSavedConfiguration() {
-        val saved = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = false)
+        val saved = addSaved("api:audit", listOf("api:audit"))
         assertEquals(listOf(saved), edit("api:audit", ok = true))
         assertEquals(listOf(saved), moonConfigurations())
         assertFalse(saved.isTemporary)
@@ -95,8 +95,9 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     }
 
     fun testEditKeepsTheSavedConfigurationOnCancel() {
-        val saved = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = false)
-        val other = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = false, temporary = false)
+        val saved = addSaved("api:audit", listOf("api:audit"))
+        val other = addSaved("web:build", listOf("web:build"))
+        runManager.selectedConfiguration = other
         assertEquals(listOf(saved), edit("api:audit", ok = false))
         assertEquals(other, runManager.selectedConfiguration)
         assertEquals(setOf(saved, other), moonConfigurations().toSet())
@@ -104,7 +105,7 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     }
 
     fun testEditDoesNotOpenAnAffectedConfiguration() {
-        val affected = MoonTaskRunner.findOrCreate(project, listOf("web:build"), affected = true, temporary = false)
+        val affected = addSaved("web:build, affected", listOf("web:build"), affected = true)
         val edited = edit("web:build", ok = true).single()
         assertNotSame(affected, edited)
         assertFalse((edited.configuration as MoonRunConfiguration).affected)
@@ -112,7 +113,7 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     }
 
     fun testEditSavesTheTemporaryConfigurationOnOk() {
-        val temporary = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = true)
+        val temporary = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false)
         assertEquals(listOf(temporary), edit("api:audit", ok = true))
         assertEquals(listOf(temporary), moonConfigurations())
         assertFalse(temporary.isTemporary)
@@ -120,7 +121,7 @@ class MoonTaskRunnerTest : BasePlatformTestCase() {
     }
 
     fun testEditKeepsTheTemporaryConfigurationOnCancel() {
-        val temporary = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false, temporary = true)
+        val temporary = MoonTaskRunner.findOrCreate(project, listOf("api:audit"), affected = false)
         assertEquals(listOf(temporary), edit("api:audit", ok = false))
         assertEquals(listOf(temporary), moonConfigurations())
         assertTrue(temporary.isTemporary)
