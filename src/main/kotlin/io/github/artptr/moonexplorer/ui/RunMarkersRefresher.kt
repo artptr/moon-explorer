@@ -7,7 +7,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import io.github.artptr.moonexplorer.model.MoonTasksService
@@ -47,9 +46,6 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
         scope.launch {
             var previous: TasksState.Loaded? = null
             service.state.map { it.lastLoaded }.distinctUntilChanged().collect { loaded ->
-                // Make the index on this background thread. Thus the first use is not on the EDT,
-                // for example in the producer of the context menu.
-                loaded?.taskKeyIndex
                 val paths = runMarkerPaths(previous) + runMarkerPaths(loaded)
                 previous = loaded
                 if (paths.isNotEmpty()) restartOpenFiles(paths)
@@ -73,10 +69,3 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
 /** Gives the YAML configuration files of the projects and the inherited YAML files of [state]. Only these files have run icons. */
 internal fun runMarkerPaths(state: TasksState.Loaded?): Set<Path> =
     state?.configFiles?.let { it.projects.values + it.inherited.values }?.filterTo(HashSet(), ::isYamlFile).orEmpty()
-
-/** Starts [RunMarkersRefresher] when the user opens the IDE project. The service starts to monitor the state when the IDE makes the service. */
-class RunMarkersRefresherStartupActivity : ProjectActivity {
-    override suspend fun execute(project: Project) {
-        project.service<RunMarkersRefresher>()
-    }
-}

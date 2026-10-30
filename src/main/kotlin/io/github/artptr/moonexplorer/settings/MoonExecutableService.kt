@@ -45,5 +45,6 @@ class MoonExecutableService(private val project: Project, val scope: CoroutineSc
         env: SearchEnvironment = SearchEnvironment.current(),
     ): MoonExecutableSearch = MoonExecutableLocator.find(settingsPath, workspaceRoot(projectDir), env)
 
-    private fun projectDir(): Path? = project.basePath?.let(Path::of)
+    /** Gives the directory of the IDE project, or null if the project has no directory. */
+    internal fun projectDir(): Path? = project.basePath?.let(Path::of)
 }

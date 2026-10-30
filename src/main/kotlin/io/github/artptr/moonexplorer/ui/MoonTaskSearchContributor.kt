@@ -56,8 +56,9 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
         for (task in tasks.allTasks) {
             progressIndicator.checkCanceled()
             val text = taskSearchText(task)
-            if (!matcher.matches(text)) continue
-            if (!consumer.process(FoundItemDescriptor(task, matcher.matchingDegree(text)))) return
+            // The fragments tell if the text matches. The degree uses them. Thus the matcher examines the text only one time.
+            val fragments = matcher.matchingFragments(text) ?: continue
+            if (!consumer.process(FoundItemDescriptor(task, matcher.matchingDegree(text, false, fragments)))) return
         }
     }
 

@@ -8,7 +8,6 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.ProjectActivity
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
@@ -81,15 +80,5 @@ class RefreshFailureNotifier(private val project: Project, private val scope: Co
     internal companion object {
         /** The ID of the notification group in `plugin.xml`. */
         const val GROUP_ID = "Moon Explorer"
-    }
-}
-
-/**
- * Starts [RefreshFailureNotifier] when the user opens the IDE project. The service starts to monitor the state when the IDE makes it.
- * The model layer does not use the UI layer. Thus `MoonTasksStartupActivity` does not start the notifier.
- */
-class RefreshFailureNotifierStartupActivity : ProjectActivity {
-    override suspend fun execute(project: Project) {
-        project.service<RefreshFailureNotifier>()
     }
 }

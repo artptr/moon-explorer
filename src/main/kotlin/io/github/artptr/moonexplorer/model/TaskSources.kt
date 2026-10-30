@@ -79,7 +79,7 @@ fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> 
 fun projectSourceFile(state: TasksState.Loaded, projectId: String): SourceFile? =
     state.configFiles.projects[projectId]?.let { SourceFile(it, null) }
 
-/** The targets that a task key in a configuration file runs. Refer to [taskKeyTargets]. */
+/** The targets that a task key in a configuration file runs. Refer to [TaskKeyIndex.targets]. */
 sealed interface TaskKeyTargets {
     /** A task key in the configuration file of a project, for example `moon.yml`. The key runs [target]. */
     data class Single(val target: String) : TaskKeyTargets
@@ -94,15 +94,6 @@ sealed interface TaskKeyTargets {
 }
 
 /**
- * Gives the targets of the task key [taskId] in the configuration file [file]. [file] must be absolute and normalized.
- * Gives null if [file] is not a configuration file of the last load, or if the loaded data does not contain the task.
- * The projects of an inherited file come from `inherited.layers` of moon. The plugin does not calculate the inheritance.
- * It only uses the `workspace.inheritedTasks` settings of each project. Refer to [TaskConfigs.inheritedLayers].
- * The function uses only [TasksState.Loaded]. Thus it does not start moon and does not read the disk.
- */
-fun taskKeyTargets(state: TasksState.Loaded, file: Path, taskId: String): TaskKeyTargets? = state.taskKeyIndex.targets(file, taskId)
-
-/**
  * The targets of the task keys in the configuration files of one load. The keys of the maps are the absolute and normalized paths of the files.
  * [projectFiles] gives the project of each configuration file of a project. [shared] gives the targets of each task ID in each inherited file.
  * The plugin calls [targets] for each task key during the analysis of a file. Thus the index makes the maps only one time for each load.
@@ -111,6 +102,13 @@ internal class TaskKeyIndex private constructor(
     private val projectFiles: Map<Path, MoonProject>,
     private val shared: Map<Path, Map<String, List<String>>>,
 ) {
+    /**
+     * Gives the targets of the task key [taskId] in the configuration file [file]. [file] must be absolute and normalized.
+     * Gives null if [file] is not a configuration file of the load, or if the loaded data does not contain the task.
+     * The projects of an inherited file come from `inherited.layers` of moon. The plugin does not calculate the inheritance.
+     * It only uses the `workspace.inheritedTasks` settings of each project. Refer to [TaskConfigs.inheritedLayers].
+     * The function does not start moon and does not read the disk.
+     */
     fun targets(file: Path, taskId: String): TaskKeyTargets? {
         val project = projectFiles[file]
         if (project != null) return project.tasks.firstOrNull { it.id == taskId }?.let { TaskKeyTargets.Single(it.target) }

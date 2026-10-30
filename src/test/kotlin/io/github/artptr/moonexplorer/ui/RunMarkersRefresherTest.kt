@@ -49,7 +49,7 @@ class RunMarkersRefresherTest : BasePlatformTestCase() {
         // findExtension makes only the extension of this class. Some bundled plugins register extensions with an other interface.
         // setUp already makes the service. Thus the test can only make sure that the activity is registered and that it operates without an error.
         val activity = ExtensionPointName<ProjectActivity>("com.intellij.postStartupActivity")
-            .findExtension(RunMarkersRefresherStartupActivity::class.java) ?: error("plugin.xml does not register the startup activity")
+            .findExtension(UiServicesStartupActivity::class.java) ?: error("plugin.xml does not register the startup activity")
         runBlocking { activity.execute(project) }
     }
 

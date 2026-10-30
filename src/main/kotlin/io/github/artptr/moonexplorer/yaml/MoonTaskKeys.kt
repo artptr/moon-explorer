@@ -6,7 +6,6 @@ import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TaskKeyTargets
 import io.github.artptr.moonexplorer.model.configFilePath
 import io.github.artptr.moonexplorer.model.lastLoaded
-import io.github.artptr.moonexplorer.model.taskKeyTargets
 import org.jetbrains.yaml.psi.YAMLDocument
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import java.nio.file.Path
@@ -33,9 +32,9 @@ internal fun taskKeyAt(element: PsiElement): TaskKey? {
     return TaskKey(file, keyValue.keyText)
 }
 
-/** Gives the targets of the task key of [element] from the loaded data. The function does not start moon. Refer to [taskKeyTargets]. */
+/** Gives the targets of the task key of [element] from the loaded data. The function does not start moon. Refer to [TaskKeyIndex.targets]. */
 internal fun taskKeyTargetsAt(element: PsiElement): TaskKeyTargets? {
     val key = taskKeyAt(element) ?: return null
     val state = element.project.service<MoonTasksService>().state.value.lastLoaded ?: return null
-    return taskKeyTargets(state, key.file, key.taskId)
+    return state.taskKeyIndex.targets(key.file, key.taskId)
 }
