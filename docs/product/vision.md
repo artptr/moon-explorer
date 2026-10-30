@@ -106,6 +106,11 @@ The other functions do not operate without the `moon` executable.
 ## 5. Principles
 
 1. The moon CLI is the only source of data about the workspace. The plugin does not calculate task inheritance itself.
+   - moon finds the global tasks of each project and merges them with the local tasks. moon also gives the task dependencies.
+   - The plugin uses only the `include`, `exclude`, and `rename` settings in `workspace.inheritedTasks` of a project.
+     The plugin gets these settings from the output of `moon query projects`. It does not read them from the configuration files.
+     The plugin must use these settings because `inherited.layers` in the output of moon shows the global tasks before moon uses these settings.
+     The run icons and the hints of issue [#100](https://github.com/artptr/moon-explorer/issues/100) use the result of these settings.
 2. The plugin operates without a network connection. It does not send telemetry.
    The IDE sends exception reports and freeze reports of the plugin to JetBrains Marketplace only if the user agrees.
 3. The plugin operates with moon v2. The minimum version that the team tests is moon 2.2.3.
@@ -152,7 +157,7 @@ The MVP is complete when these conditions are true:
 
 ## 7. Later releases
 
-These functions are possible for a later release. The team did not approve them.
+These functions are possible for a later release. The team did not approve them, except the functions with the text **Approved**.
 The functions that use the moon configuration files are for the workspace maintainer (section 2.2).
 
 - A tool window that shows the final configuration of a task after inheritance: command, arguments, dependencies, inputs, outputs, and the source of each value
@@ -175,6 +180,7 @@ The functions that use the moon configuration files are for the workspace mainta
 - Run icons in the gutter of `moon.yml`. WebStorm has the same function for scripts in `package.json`. Issue [#70](https://github.com/artptr/moon-explorer/issues/70)
 - Test results in the test runner of the IDE
 - Code Vision hints and gutter icons that show the task inheritance and the task dependents in moon configuration files. In `moon.yml`, the hints show the inherited tasks of the project. Issue [#100](https://github.com/artptr/moon-explorer/issues/100)
+  **Approved**: the team approved this function for milestone 0.5 on 2026-10-30. [ADR 0005](../adr/0005-yaml-file-type-and-task-hints.md) gives the design.
 
 ## 8. Out of scope
 
