@@ -32,7 +32,7 @@ internal fun taskKeyAt(element: PsiElement): TaskKey? {
     return TaskKey(file, keyValue.keyText)
 }
 
-/** Gives the targets of the task key of [element] from the loaded data. The function does not start moon. Refer to [TaskKeyIndex.targets]. */
+/** Gives the targets of the task key of [element] from the loaded data. The function does not start moon. Refer to [TaskKeyTargets]. */
 internal fun taskKeyTargetsAt(element: PsiElement): TaskKeyTargets? {
     val key = taskKeyAt(element) ?: return null
     val state = element.project.service<MoonTasksService>().state.value.lastLoaded ?: return null
