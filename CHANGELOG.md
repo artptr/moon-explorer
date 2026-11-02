@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-02
+
 ### Added
 
 - The toolbar of the **Moon** tool window has the action **Execute Moon Task**. The action opens **Run Anything** with the text `moon `. Then select a target from the list, or type a moon command. The action is available after the plugin loads the tasks.
@@ -74,7 +76,8 @@
 - **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.
 - Speed search in the tree of the **Moon** tool window. Select the tree. Then type text to find a task by its ID, its project, or its description.
 
-[Unreleased]: https://github.com/artptr/moon-explorer/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/artptr/moon-explorer/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/artptr/moon-explorer/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/artptr/moon-explorer/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/artptr/moon-explorer/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/artptr/moon-explorer/commits/0.1.0
