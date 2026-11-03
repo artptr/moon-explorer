@@ -16,6 +16,12 @@ class MoonFileTypeTest : BasePlatformTestCase() {
         assertSame(MoonFileType, fileTypeOf("moon.yaml"))
     }
 
+    /** The IDE keeps the name in the settings. A primary file type replaces the file type of the YAML language. */
+    fun testNameAndSecondaryFlag() {
+        assertEquals("Moon", MoonFileType.name)
+        assertTrue(MoonFileType.isSecondary)
+    }
+
     fun testYamlLanguageKeepsItsPrimaryFileType() {
         assertSame(YAMLFileType.YML, YAMLLanguage.INSTANCE.associatedFileType)
     }

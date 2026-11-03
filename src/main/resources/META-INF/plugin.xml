@@ -11,7 +11,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
-    <!-- This dependency gives the run icons in the YAML configuration files and the file type of moon.yml. Refer to docs/adr/0004-yaml-plugin-optional-dependency.md and docs/adr/0005-yaml-file-type-and-task-hints.md. -->
+    <!-- This dependency gives the run icons in the YAML configuration files and the file type of moon.yml and moon.yaml. Refer to docs/adr/0004-yaml-plugin-optional-dependency.md and docs/adr/0005-yaml-file-type-and-task-hints.md. -->
     <depends optional="true" config-file="moon-explorer-yaml.xml">org.jetbrains.plugins.yaml</depends>
 
     <resource-bundle>messages.MoonExplorerBundle</resource-bundle>
