@@ -143,13 +143,14 @@ Obey these rules:
 11. Put the model of a configuration file and the logic of the hints in the package `io.github.artptr.moonexplorer.config`. This package must not import the classes of a language plugin.
 12. Define an extension point for the converters in `plugin.xml`. Register the YAML converter in `moon-explorer-yaml.xml`. Put its class in the package `io.github.artptr.moonexplorer.yaml`.
 13. Register the Code Vision providers in `plugin.xml`. They get the PSI elements for the hints from the model. Register each line marker provider in the descriptor file of its format. The IDE uses a line marker provider for one language only.
-14. Use the absolute path to identify a moon configuration file. The run icons use the same method with `configFilePath` and the loaded data. Do not use the file type to identify a moon configuration file. The file type does not contain the files in `.moon/`.
+14. Use the absolute path to identify a moon configuration file. The run icons use the same method with `configFilePath` and the loaded data. Do not use the file type to identify a moon configuration file. The file type does not contain the usual files in `.moon/`. It compares only the file name. Thus a file `.moon/tasks/moon.yml` gets the moon file type.
 
 This is an example of the registration:
 
 ```xml
 <fileType name="Moon"
           implementationClass="io.github.artptr.moonexplorer.yaml.MoonFileType"
+          fieldName="INSTANCE"
           fileNames="moon.yml;moon.yaml"/>
 ```
 
@@ -159,8 +160,14 @@ This is an example of the registration:
 - Other YAML files keep the YAML file type, because the YAML language keeps its primary file type.
 - When the YAML plugin is not active, the IDE has no moon file type. It shows no hints, no gutter icons, and no run icons. The tool window and the run configuration operate.
 - JetBrains Marketplace gets the masks `moon.yml` and `moon.yaml`. It does not get masks for the files in `.moon/`. Thus a file in `.moon/` does not cause a plugin suggestion.
-- The files in `.moon/` keep the usual YAML file type. The hints, the gutter icons, and the run icons operate in these files, because the plugin identifies these files from the path.
-- This decision changes acceptance criterion 2 of issue #99. Only `moon.yml` and `moon.yaml` get the new file type. The files in `.moon/` keep the YAML file type.
+- The usual files in `.moon/` keep the YAML file type. The hints, the gutter icons, and the run icons operate in these files, because the plugin identifies these files from the path.
+- This decision changes acceptance criterion 2 of issue #99. Only `moon.yml` and `moon.yaml` get the new file type.
+- Some classes of the YAML plugin compare the file type of a file with `YAMLFileType.YML`. These classes do not operate on `moon.yml` and `moon.yaml`. The team examined IntelliJ IDEA 2025.3.6.1. These are the results:
+  - The YAML keys contributor of **Search Everywhere** does not find the keys in these files, because `findYamlKeysByPattern` in `YamlKeysSearcherKt` restricts the scope to `YAMLFileType.YML`.
+  - `OpenApiSuggestionProvider` does not suggest the OpenAPI plugin for these files.
+  - `ImportantFileTypeUsageDescriptor` does not include these files in the YAML schema usage statistics.
+  - The classes in `com.intellij.yaml.frontend.split` are for the split mode of remote development. They compare the file type in the same way. The team did not examine the result in split mode.
+- The JSON schemas do not have this problem, because `YamlJsonEnabler` uses the language.
 - The IDE shows no hints in configuration files in JSON, JSONC, TOML, HCL, or Pkl. A later issue can add a converter for each format. Each format with a converter gets an optional descriptor file, as in ADR 0004.
 - Option C makes more work for issue #100 than option A, because issue #100 adds the model and the extension point.
 - The run icons of ADR 0004 continue to read the YAML PSI. A later issue can change them to use the model.
