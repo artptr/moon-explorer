@@ -161,7 +161,7 @@ This is an example of the registration:
 - When the YAML plugin is not active, the IDE has no moon file type. It shows no hints, no gutter icons, and no run icons. The tool window and the run configuration operate.
 - JetBrains Marketplace gets the masks `moon.yml` and `moon.yaml`. It does not get masks for the files in `.moon/`. Thus a file in `.moon/` does not cause a plugin suggestion.
 - The usual files in `.moon/` keep the YAML file type. The hints, the gutter icons, and the run icons operate in these files, because the plugin identifies these files from the path.
-- This decision changes acceptance criterion 2 of issue #99. Only `moon.yml` and `moon.yaml` get the new file type. The usual files in `.moon/` keep the YAML file type.
+- This decision changes acceptance criterion 2 of issue #99. Only `moon.yml` and `moon.yaml` get the new file type.
 - Some classes of the YAML plugin compare the file type of a file with `YAMLFileType.YML`. These classes do not operate on `moon.yml` and `moon.yaml`. The team examined IntelliJ IDEA 2025.3.6.1. These are the results:
   - The YAML keys contributor of **Search Everywhere** does not find the keys in these files, because `findYamlKeysByPattern` in `YamlKeysSearcherKt` restricts the scope to `YAMLFileType.YML`.
   - `OpenApiSuggestionProvider` does not suggest the OpenAPI plugin for these files.

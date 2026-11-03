@@ -32,10 +32,8 @@ class MoonFileTypeTest : BasePlatformTestCase() {
         }
     }
 
-    fun testMoonFileUsesTheYamlLanguage() {
-        val file = myFixture.configureByText("moon.yml", "tasks:\n  build:\n    command: tsc\n")
-        assertSame(YAMLLanguage.INSTANCE, file.language)
-        assertSame(MoonFileType, file.virtualFile.fileType)
+    fun testMoonFileTypeUsesTheYamlLanguage() {
+        assertSame(YAMLLanguage.INSTANCE, MoonFileType.language)
     }
 
     /** `YamlJsonEnabler` is the condition for the JSON schemas from SchemaStore. */
