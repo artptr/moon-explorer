@@ -6,7 +6,7 @@
 
 ### Added
 
-- The IDE opens `moon.yml` and `moon.yaml` with the file type **Moon**. These files show the moon icon. The JSON schemas continue to operate. The file type operates only when the YAML plugin is active. The usual files in `.moon/` keep the YAML file type. **Search Everywhere** does not find the YAML keys in `moon.yml` and `moon.yaml`.
+- The IDE opens `moon.yml` and `moon.yaml` with the file type **Moon**. These files show the moon icon. The JSON schemas continue to operate. The file type operates only when the YAML plugin is active. The usual files in `.moon/` keep the YAML file type. The YAML keys contributor of **Search Everywhere** does not find the keys in `moon.yml` and `moon.yaml`.
 - JetBrains Marketplace finds the file names `moon.yml` and `moon.yaml`. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
 ## [0.4.0] - 2026-11-02
