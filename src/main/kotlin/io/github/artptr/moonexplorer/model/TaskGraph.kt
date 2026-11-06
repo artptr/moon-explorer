@@ -4,7 +4,7 @@ package io.github.artptr.moonexplorer.model
  * The data from the output of `moon task-graph --json`. This output also contains the internal tasks.
  * [dependents] gives the direct dependents of each target. The dependents are in [ID_ORDER]. A target without dependents is not in the map.
  *
- * [mergeStrategies] gives the merge strategies of each target. Refer to [mergeStrategies]. A task with only the value `append` is not in the map.
+ * [mergeStrategies] gives the merge strategies of each target after the merge. A task with only the value `append` is not in the map.
  */
 data class TaskGraph(
     val dependents: Map<String, Set<String>> = emptyMap(),

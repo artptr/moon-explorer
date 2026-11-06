@@ -98,7 +98,8 @@ class TaskSourcesTest {
     fun excludedTaskKeyInAnInheritedFileDoesNotRunTheLocalTaskWithTheSameId() {
         // The project web excludes the global task format and has a local task format.
         val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
-        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "scripts:format" - "web:format", format.targets)
+        // The task icons:format is internal. Thus it has no run icon.
+        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "icons:format" - "scripts:format" - "web:format", format.targets)
         assertEquals(TaskKeyTargets.Single("web:format"), keyTargets("apps/web/moon.yml", "format"))
     }
 

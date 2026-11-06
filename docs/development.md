@@ -79,6 +79,7 @@ The test workspace contains these items:
 - Dependents of inherited tasks. The tasks `ui:build` and `ui:generate-icons` have a dependency on `ui:lint`. The task `web:build` has a dependency on `web:tsc`. moon does not write internal tasks in `tasks`, but `moon/task-graph.json` contains them.
 - Tasks with a description and tasks without a description
 - The project `ui` has the internal task `generate-icons`. moon does not write internal tasks in the key `tasks` in the output of `moon query projects`.
+- The project `icons` has the internal task `format`, which merges with the global task `format`. The value of `mergeArgs` is `replace`.
 - The project `config` has no tasks.
 - The project `icons` in `packages/ui/icons` is a nested project in the project `ui`. The key `sources` in `.moon/workspace.yml` adds it.
 - `build` tasks with the optional output `dist`. The commands do not make output files. Thus `moon run` completes for each task.

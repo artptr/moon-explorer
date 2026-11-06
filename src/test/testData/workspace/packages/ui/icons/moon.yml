@@ -9,3 +9,8 @@ tasks:
   optimize:
     command: 'echo optimize icons'
     description: 'Make the SVG files smaller.'
+  # An internal task that merges with the global task format. moon does not write this task in the key "tasks" in the output of "moon query projects".
+  format:
+    options:
+      internal: true
+      mergeArgs: 'replace'
