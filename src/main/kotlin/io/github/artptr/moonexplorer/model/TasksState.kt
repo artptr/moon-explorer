@@ -39,7 +39,8 @@ sealed interface TasksState {
      * The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`.
      * [root] is absolute and normalized. Use [TasksLoader.loadedState] to make this state.
      * [configFiles] contains the configuration files that existed at the time of the load. Refer to [findExistingConfigFiles].
-     * [taskGraph] is the result of `moon task-graph`, or null if this command failed in this load.
+     * [taskGraph] is the result of `moon task-graph`. During a load, it is the result of the last load until the command completes.
+     * The value is null if the command failed, or if no load completed the command.
      * The constructor makes the indexes. Thus make this state on a background thread.
      */
     data class Loaded(

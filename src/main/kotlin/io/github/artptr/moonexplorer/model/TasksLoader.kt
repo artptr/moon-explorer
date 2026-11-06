@@ -23,15 +23,15 @@ object TasksLoader {
     /**
      * Runs [queryProjects] in the workspace [root] and reads the output. If [root] is null, the function gives [TasksState.NoWorkspace].
      * The output of `moon query projects` contains the tasks, the `stack` value, and the `layer` value of each project.
-     * After a success, the function runs [taskGraph] and finds the configuration files on the disk.
-     * If [taskGraph] fails, the load does not fail. Then [TasksState.Loaded.taskGraph] is null.
-     * Call this function on a background thread.
+     * After a success, the function finds the configuration files on the disk.
+     * The state keeps [lastGraph], the task graph of the last successful load, until [loadTaskGraph] gives the new task graph.
+     * Thus the dependents do not go from the state during a refresh. Call this function on a background thread.
      */
-    suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult, taskGraph: suspend (Path) -> CliResult): TasksState {
+    suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult, lastGraph: TaskGraph? = null): TasksState {
         if (root == null) return TasksState.NoWorkspace
         return try {
             when (val result = queryProjects(root)) {
-                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root, loadTaskGraph(root, taskGraph))
+                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root, lastGraph)
                 is CliFailure -> TasksState.MoonFailed(moonFailure(result))
             }
         } catch (e: MoonOutputException) {
@@ -45,8 +45,11 @@ object TasksLoader {
         }
     }
 
-    /** Runs [taskGraph] in [root] and reads the output. Gives null if the command fails or if the plugin cannot read the output. */
-    private suspend fun loadTaskGraph(root: Path, taskGraph: suspend (Path) -> CliResult): TaskGraph? = try {
+    /**
+     * Runs [taskGraph] in [root] and reads the output. Gives null if the command fails or if the plugin cannot read the output.
+     * Call this function on a background thread.
+     */
+    suspend fun loadTaskGraph(root: Path, taskGraph: suspend (Path) -> CliResult): TaskGraph? = try {
         when (val result = taskGraph(root)) {
             is CliResult.Success -> TaskGraphParser.parse(result.stdout).also { if (it == null) thisLogger().warn("The output of moon task-graph has no task data") }
             is CliFailure -> {
