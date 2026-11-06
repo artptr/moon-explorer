@@ -84,7 +84,8 @@ data class InheritedLayer(val globalId: String, val file: String)
  * for example `.moon/tasks/all.yml`.
  * [inheritedLayers] gives the inherited files of each task ID of the project. Refer to [InheritedTasksFilter.inheritedLayers].
  * [mergeStrategies] gives the merge strategies of each task ID of the project. Refer to [mergeStrategies]. A task with only the value `append` is not in the map.
- * The output of `moon query projects` does not contain internal tasks. Thus this map does not contain them. Refer to [TaskGraph.mergeStrategies].
+ * The key `tasks` in the output of `moon query projects` does not contain internal tasks. For an internal task, the map contains only the values in
+ * `config.tasks`, the values in the configuration file of the project. [TaskGraph.mergeStrategies] contains the values after the merge.
  *
  * **NOTE:** moon 2.6.4 writes in [layers] all the global tasks that the project can inherit. This includes the tasks that
  * `workspace.inheritedTasks` removes. Thus use [inheritedLayers] to find the inherited files of a task of the project.

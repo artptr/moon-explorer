@@ -90,13 +90,23 @@ class InheritanceIndexTest {
     }
 
     @Test
-    fun internalTaskGetsItsStrategiesFromTheTaskGraph() {
+    fun internalTaskThatMergesHasItsStrategies() {
+        val expected = mapOf("args" to "replace")
+        assertEquals(expected, index.project("icons")!!.merged.getValue("format").strategies)
+        val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
+        assertEquals(expected, withoutGraph.project("icons")!!.merged.getValue("format").strategies)
+        assertEquals(listOf("icons", "web"), withoutGraph.file(all)!!.tasks.values.flatMap { it.mergedIn }.map { it.projectId }.sorted())
+    }
+
+    @Test
+    fun taskGraphValueHasPriorityOverTheQueryValue() {
         val tasks = WorkspaceTasks(
             projects = listOf(MoonProject("web", listOf(MoonTask("build", "web:build", null)))),
             sources = listOf(ProjectSource("web", "apps/web")),
             taskConfigs = mapOf(
                 "web" to TaskConfigs(
                     ownTasks = setOf("lint"),
+                    mergeStrategies = mapOf("lint" to mapOf("args" to "prepend")),
                     inheritedLayers = mapOf("lint" to listOf(InheritedLayer("lint", ".moon/tasks/all.yml"))),
                 ),
             ),
