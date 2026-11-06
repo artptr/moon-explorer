@@ -10,10 +10,12 @@ import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.awaitState
@@ -74,6 +76,26 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         service.queryProjects = { CliResult.Success(json) }
         service.refresh()
         service.awaitState(TestData.loadedState(QueryProjectsParser.parse(json), root))
+    }
+
+    fun testHintStaysOnTheKeyWhileTheUserTypes() {
+        load(listOf("check"))
+        open(".moon/tasks/one.yml")
+        val provider = MoonMergedCodeVisionProvider()
+        fun hintText() = provider.computeForEditor(myFixture.editor, myFixture.file).single().first.let { myFixture.editor.document.getText(it) }
+        val before = provider.computeForEditor(myFixture.editor, myFixture.file).single().first.startOffset
+        assertEquals("check", hintText())
+        myFixture.editor.caretModel.moveToOffset(0)
+        myFixture.type("# A new line.\n")
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+        assertEquals("check", hintText())
+        assertEquals(before + "# A new line.\n".length, provider.computeForEditor(myFixture.editor, myFixture.file).single().first.startOffset)
+    }
+
+    fun testInheritanceIconIsInTheGutter() {
+        load(listOf("check"))
+        open(".moon/tasks/one.yml")
+        assertTrue(myFixture.findAllGutters().any { it.tooltipText == "Merged in 1 project" })
     }
 
     private fun open(path: String) {
