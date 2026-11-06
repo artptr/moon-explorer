@@ -12,6 +12,9 @@ internal fun <T> List<T>.sortedById(id: (T) -> String): List<T> = sortedWith(com
 /** A task of a moon project. [target] has the format `<project>:<task>`. */
 data class MoonTask(val id: String, val target: String, val description: String?)
 
+/** Gives the target of the task [taskId] in the project [projectId]. */
+fun taskTarget(projectId: String, taskId: String): String = "$projectId:$taskId"
+
 /** Gives the project ID of [target], the part before the last `:`. */
 fun targetProjectId(target: String): String = target.substringBeforeLast(':')
 
@@ -83,7 +86,7 @@ data class InheritedLayer(val globalId: String, val file: String)
  * [layers] gives the inherited files of each global task ID from `inherited.layers`. Each file is a path from the workspace root,
  * for example `.moon/tasks/all.yml`.
  * [inheritedLayers] gives the inherited files of each task ID of the project. Refer to [InheritedTasksFilter.inheritedLayers].
- * [mergeStrategies] gives the merge strategies of each task ID of the project. Refer to [mergeStrategies]. A task with only the value `append` is not in the map.
+ * [mergeStrategies] gives the merge strategies of each task in [ownTasks]. Refer to [mergeStrategies]. A task with only the value `append` is not in the map.
  * The key `tasks` in the output of `moon query projects` does not contain internal tasks. For an internal task, the map contains only the values in
  * `config.tasks`, the values in the configuration file of the project. [TaskGraph.mergeStrategies] contains the values after the merge.
  *
