@@ -47,6 +47,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     private val defaultProjectDir: () -> Path? = { project.service<MoonExecutableService>().projectDir() }
     private val defaultQueryProjects: suspend (Path) -> CliResult = ::queryProjects
+    private val defaultTaskGraph: suspend (Path) -> CliResult = ::taskGraph
 
     /**
      * Gives the IDE project directory. Tests change this value.
@@ -59,6 +60,12 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
      * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
      */
     internal var queryProjects: suspend (Path) -> CliResult = defaultQueryProjects
+
+    /**
+     * Runs `moon task-graph --json`. Tests change this value to a fake.
+     * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
+     */
+    internal var taskGraph: suspend (Path) -> CliResult = defaultTaskGraph
 
     /**
      * The time that [scheduleRefresh] waits before the refresh. Tests change this value.
@@ -107,6 +114,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
         val queryProjectsFn = queryProjects
+        val taskGraphFn = taskGraph
         job = scope.launch {
             previous?.join()
             _state.value = withContext(Dispatchers.IO) {
@@ -116,7 +124,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
                 val last = _state.value.lastLoaded
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
                 watchConfig(root, dir, last)
-                val result = TasksLoader.loadTasksIn(root, queryProjectsFn)
+                val result = TasksLoader.loadTasksIn(root, queryProjectsFn, taskGraphFn)
                 // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
                 // NoWorkspace does not keep the last load, because the old tasks are not correct.
                 // A load with the same result keeps the last instance. Thus the users of the state do not repeat their work for it.
@@ -147,13 +155,23 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         return MoonCli.queryProjects(executable, root, timeoutMillis())
     }
 
+    /**
+     * Runs `moon task-graph --json` in [root] with the executable of [MoonExecutableService].
+     * Each call gets the current time limit from [timeoutMillis].
+     */
+    private suspend fun taskGraph(root: Path): CliResult {
+        val search = project.service<MoonExecutableService>().findInWorkspace(root)
+        val executable = search.executable ?: return CliResult.NotFound(search.examined)
+        return MoonCli.taskGraph(executable, root, timeoutMillis())
+    }
+
     /** Gives the time limit from [MoonSettings] in milliseconds. */
     internal fun timeoutMillis(): Int = project.service<MoonSettings>().timeoutSeconds * 1000
 
     /**
      * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading] without the last successful load.
      * Also cancels the refresh that waits, removes the data of the last successful load from [configWatch],
-     * and sets [projectDir], [queryProjects], and [refreshDelay] to their default values. Only tests use this function.
+     * and sets [projectDir], [queryProjects], [taskGraph], and [refreshDelay] to their default values. Only tests use this function.
      * Call it only on the test thread.
      */
     @TestOnly
@@ -161,6 +179,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         val previous = synchronized(this) {
             projectDir = defaultProjectDir
             queryProjects = defaultQueryProjects
+            taskGraph = defaultTaskGraph
             refreshDelay = REFRESH_DELAY
             pending?.cancel()
             pending = null

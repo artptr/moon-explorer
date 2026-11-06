@@ -39,11 +39,20 @@ sealed interface TasksState {
      * The plugin read the tasks of the workspace. [root] is the workspace root, the directory that contains `.moon/`.
      * [root] is absolute and normalized. Use [TasksLoader.loadedState] to make this state.
      * [configFiles] contains the configuration files that existed at the time of the load. Refer to [findExistingConfigFiles].
-     * The constructor makes the index of the task keys. Thus make this state on a background thread.
+     * [taskGraph] is the result of `moon task-graph`, or null if this command failed in this load.
+     * The constructor makes the indexes. Thus make this state on a background thread.
      */
-    data class Loaded(val tasks: WorkspaceTasks, val root: Path, val configFiles: ExistingConfigFiles) : TasksState {
+    data class Loaded(
+        val tasks: WorkspaceTasks,
+        val root: Path,
+        val configFiles: ExistingConfigFiles,
+        val taskGraph: TaskGraph? = null,
+    ) : TasksState {
         /** The targets of the task keys in the configuration files, one index for each load. The index is not a part of [equals]. */
         internal val taskKeyIndex: TaskKeyIndex = TaskKeyIndex.of(this)
+
+        /** The task inheritance and the dependents, one index for each load. The index is not a part of [equals]. */
+        internal val inheritanceIndex: InheritanceIndex = InheritanceIndex.of(this)
     }
 
     /**

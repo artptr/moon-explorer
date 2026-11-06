@@ -3,6 +3,8 @@ package io.github.artptr.moonexplorer.testData
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
+import io.github.artptr.moonexplorer.model.TaskGraph
+import io.github.artptr.moonexplorer.model.TaskGraphParser
 import io.github.artptr.moonexplorer.model.TasksLoader
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
@@ -39,12 +41,19 @@ object TestData {
     /** Reads a recorded file from [moon]. */
     fun recorded(name: String): String = File(moon, name).readText()
 
+    /** The task graph of the recorded `moon task-graph --json` output. */
+    fun recordedTaskGraph(): TaskGraph = TaskGraphParser.parse(recorded("task-graph.json")) ?: error("The recorded task graph has no data")
+
     /** The projects and tasks of the recorded `moon query projects` output. */
     fun recordedTasks(): WorkspaceTasks = QueryProjectsParser.parse(recorded("query-projects.json"))
 
     /** The state after a successful load of the recorded `moon query projects` output in [workspace]. */
     fun recordedState(): TasksState.Loaded = loadedState(recordedTasks())
 
-    /** The state after a successful load of [tasks] in [root]. The loader makes the state. Thus it contains the configuration files on the disk. */
-    fun loadedState(tasks: WorkspaceTasks, root: Path = workspaceRoot): TasksState.Loaded = TasksLoader.loadedState(tasks, root)
+    /**
+     * The state after a successful load of [tasks] in [root]. The loader makes the state. Thus it contains the configuration files on the disk.
+     * [taskGraph] has the value that `prepareForTests` gives to the service.
+     */
+    fun loadedState(tasks: WorkspaceTasks, root: Path = workspaceRoot, taskGraph: TaskGraph? = recordedTaskGraph()): TasksState.Loaded =
+        TasksLoader.loadedState(tasks, root, taskGraph)
 }

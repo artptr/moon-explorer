@@ -11,13 +11,14 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Removes the state and the load of the previous test. The light project is the same for all tests.
- * Then sets the test workspace and the recorded output of `moon query projects`. Thus the tests do not start moon.
+ * Then sets the test workspace and the recorded output of `moon query projects` and `moon task-graph`. Thus the tests do not start moon.
  * The tests that need other output change these values. Call [MoonTasksService.resetForTests] in tearDown.
  */
 fun MoonTasksService.prepareForTests() {
     runBlocking { resetForTests() }
     projectDir = { TestData.workspace.toPath() }
     queryProjects = { CliResult.Success(TestData.recorded("query-projects.json")) }
+    taskGraph = { CliResult.Success(TestData.recorded("task-graph.json")) }
 }
 
 /** Waits until the state is equal to [expected]. If this does not occur in 10 seconds, the test fails. */

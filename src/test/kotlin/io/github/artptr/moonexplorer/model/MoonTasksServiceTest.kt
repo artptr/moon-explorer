@@ -48,8 +48,14 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // The fake moon is a shell script. Thus this test does not run on Windows.
         if (SystemInfo.isWindows) return
         // The script writes one project. The ID of the project is the first two arguments.
+        // For the task graph, the script writes one task. The target of the task is the first two arguments.
         val moon = fakeMoonExecutable(
-            content = "#!/bin/sh\nprintf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n",
+            content = "#!/bin/sh\n" +
+                "if [ \"\$1\" = task-graph ]; then\n" +
+                "  printf '{\"data\": {\"0\": {\"target\": \"%s-%s\", \"deps\": [{\"target\": \"a:b\"}]}}}' \"\$1\" \"\$2\"\n" +
+                "else\n" +
+                "  printf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n" +
+                "fi\n",
         )
         val settings = project.service<MoonSettings>()
         try {
@@ -59,7 +65,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             service.projectDir = { TestData.workspace.toPath() }
             service.refresh()
             val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
-            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected))))
+            val graph = TaskGraph(mapOf("a:b" to setOf("task-graph---json")))
+            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected)), taskGraph = graph))
         } finally {
             settings.executablePath = ""
         }

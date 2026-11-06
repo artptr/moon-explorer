@@ -68,7 +68,11 @@ object QueryProjectsParser {
         // moon does not write the key "taskTargets" if the project has no tasks.
         val taskIds = project.get("taskTargets")?.strings().orEmpty().mapTo(HashSet(), ::targetTaskId)
         // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
-        return TaskConfigs(ownTasks.toSet(), layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds))
+        val strategies = project.obj("tasks")?.entrySet().orEmpty().mapNotNull { (key, value) ->
+            val task = value.objectOrNull() ?: return@mapNotNull null
+            mergeStrategies(task).takeIf { it.isNotEmpty() }?.let { (task.string("id") ?: key) to it }
+        }.toMap()
+        return TaskConfigs(ownTasks.toSet(), layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds), strategies)
     }
 
     /**

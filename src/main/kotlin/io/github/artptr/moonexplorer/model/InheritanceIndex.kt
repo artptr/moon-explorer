@@ -1,0 +1,125 @@
+package io.github.artptr.moonexplorer.model
+
+import java.nio.file.Path
+
+/**
+ * A global task that a project inherits. [globalId] is the task key in [files]. [localId] is the task ID in the project.
+ * [files] contains the files in `.moon/tasks/` that define the task and that exist. The list is not empty.
+ */
+data class InheritedTask(val globalId: String, val localId: String, val files: List<Path>)
+
+/**
+ * A local task that merges with one or more global tasks.
+ * [strategies] gives the merge strategies that are not `append`, for example `args` to `prepend`.
+ */
+data class MergedTask(val localId: String, val globalTasks: List<InheritedTask>, val strategies: Map<String, String>)
+
+/**
+ * The inheritance of one project. [inherited] contains the inherited tasks, in [ID_ORDER] of the global IDs.
+ * [merged] gives the merged task of each local task ID.
+ */
+data class ProjectInheritance(val inherited: List<InheritedTask>, val merged: Map<String, MergedTask>)
+
+/** A project that merges a global task with its local task [localId]. Refer to [MergedTask.strategies] for [strategies]. */
+data class MergingProject(val projectId: String, val localId: String, val strategies: Map<String, String>)
+
+/**
+ * The inheritance of a global task in one file.
+ * [inheritedBy] gives the local task ID in each project that inherits the task. The projects are in [ID_ORDER].
+ * [mergedIn] contains the projects of [inheritedBy] with a local task that merges. The projects are in [ID_ORDER].
+ * [dependents] gives the direct dependents of each inherited target that has dependents. The targets are in [ID_ORDER]. A dependent can be below more than one target.
+ * The value is null if `moon task-graph` failed in the load.
+ */
+data class GlobalTaskInheritance(
+    val inheritedBy: Map<String, String>,
+    val mergedIn: List<MergingProject>,
+    val dependents: Map<String, Set<String>>?,
+)
+
+/** The inheritance of one file in `.moon/tasks/`. [projects] contains the projects that inherit one or more tasks of the file, in [ID_ORDER]. */
+data class FileInheritance(val projects: List<String>, val tasks: Map<String, GlobalTaskInheritance>)
+
+/**
+ * The task inheritance and the dependents of one load. The keys with paths are absolute and normalized.
+ *
+ * moon finds the files of each project. The plugin does not calculate which files apply to a project.
+ * It only uses `include`, `exclude`, and `rename` of each project. Refer to [TaskConfigs.inheritedLayers].
+ * The index examines [TasksState.Loaded.tasks] with `taskConfigs`, not with the task list, because the task list does not contain internal tasks.
+ * The function does not start moon and does not read the disk.
+ */
+internal class InheritanceIndex private constructor(
+    private val projects: Map<String, ProjectInheritance>,
+    private val projectFiles: Map<Path, String>,
+    private val files: Map<Path, FileInheritance>,
+) {
+    /** Gives the inheritance of the project [projectId], or null if the project has no inherited tasks. */
+    fun project(projectId: String): ProjectInheritance? = projects[projectId]
+
+    /** Gives the ID of the project with the configuration file [file], or null if [file] is not the configuration file of a project. */
+    fun projectOfFile(file: Path): String? = projectFiles[file]
+
+    /** Gives the inheritance of the inherited file [file], or null if no project of the load has this file in `inherited.layers`. */
+    fun file(file: Path): FileInheritance? = files[file]
+
+    companion object {
+        fun of(state: TasksState.Loaded): InheritanceIndex {
+            val configs = state.tasks.taskConfigs
+            val projects = HashMap<String, ProjectInheritance>()
+            // All known inherited files have an entry. Thus a file that no project inherits after the filters has the count 0.
+            val builders = state.configFiles.inherited.values.associateWithTo(HashMap()) { FileBuilder() }
+            for (projectId in configs.keys.sortedWith(ID_ORDER)) {
+                val config = configs.getValue(projectId)
+                val inherited = inheritedTasks(config, state.configFiles.inherited)
+                if (inherited.isEmpty()) continue
+                val merged = inherited.filter { it.localId in config.ownTasks }.groupBy { it.localId }.mapValues { (localId, tasks) ->
+                    val strategies = config.mergeStrategies[localId] ?: state.taskGraph?.mergeStrategies?.get("$projectId:$localId").orEmpty()
+                    MergedTask(localId, tasks, strategies)
+                }
+                projects[projectId] = ProjectInheritance(inherited, merged)
+                for (task in inherited) {
+                    task.files.forEach { file -> builders.getValue(file).add(projectId, task, merged[task.localId], state.taskGraph) }
+                }
+            }
+            val projectFiles = state.configFiles.projects.entries.associate { (id, file) -> file to id }
+            return InheritanceIndex(projects, projectFiles, builders.mapValues { (_, builder) -> builder.build(state.taskGraph != null) })
+        }
+
+        /** Gives the inherited tasks of a project. The function ignores the files that are not on the disk. */
+        private fun inheritedTasks(config: TaskConfigs, existing: Map<String, Path>): List<InheritedTask> =
+            config.inheritedLayers.flatMap { (localId, layers) ->
+                layers.groupBy { it.globalId }.mapNotNull { (globalId, sameTask) ->
+                    val files = sameTask.mapNotNull { existing[it.file] }.distinct()
+                    if (files.isEmpty()) null else InheritedTask(globalId, localId, files)
+                }
+            }.sortedById { it.globalId }
+    }
+
+    /** Collects the data of one file. The caller adds the projects in [ID_ORDER]. */
+    private class FileBuilder {
+        private val projects = LinkedHashSet<String>()
+        private val tasks = LinkedHashMap<String, TaskBuilder>()
+
+        fun add(projectId: String, task: InheritedTask, merged: MergedTask?, graph: TaskGraph?) {
+            projects += projectId
+            val builder = tasks.getOrPut(task.globalId, ::TaskBuilder)
+            builder.inheritedBy[projectId] = task.localId
+            if (merged != null) builder.mergedIn += MergingProject(projectId, task.localId, merged.strategies)
+            val target = "$projectId:${task.localId}"
+            graph?.dependents?.get(target)?.let { builder.dependents[target] = it }
+        }
+
+        fun build(hasGraph: Boolean) = FileInheritance(
+            projects.toList(),
+            tasks.mapValues { (_, task) ->
+                val dependents = task.dependents.takeIf { hasGraph }?.toSortedMap(ID_ORDER)
+                GlobalTaskInheritance(task.inheritedBy, task.mergedIn, dependents)
+            },
+        )
+    }
+
+    private class TaskBuilder {
+        val inheritedBy = LinkedHashMap<String, String>()
+        val mergedIn = ArrayList<MergingProject>()
+        val dependents = HashMap<String, Set<String>>()
+    }
+}

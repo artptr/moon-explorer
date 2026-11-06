@@ -1,0 +1,2984 @@
+{
+  "graph": {
+    "nodes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49
+    ],
+    "node_holes": [],
+    "edge_property": "directed",
+    "edges": [
+      [
+        0,
+        1,
+        "required"
+      ],
+      [
+        0,
+        2,
+        "required"
+      ],
+      [
+        1,
+        8,
+        "required"
+      ],
+      [
+        10,
+        8,
+        "required"
+      ],
+      [
+        19,
+        20,
+        "required"
+      ],
+      [
+        19,
+        2,
+        "required"
+      ],
+      [
+        23,
+        24,
+        "required"
+      ],
+      [
+        37,
+        1,
+        "required"
+      ],
+      [
+        37,
+        2,
+        "required"
+      ],
+      [
+        37,
+        38,
+        "required"
+      ],
+      [
+        42,
+        37,
+        "required"
+      ],
+      [
+        45,
+        20,
+        "required"
+      ]
+    ]
+  },
+  "data": {
+    "0": {
+      "command": "echo",
+      "args": [
+        "build",
+        "admin"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "ui:build",
+          "cacheStrategy": "hash"
+        },
+        {
+          "args": [],
+          "env": {},
+          "target": "utils:build",
+          "cacheStrategy": "hash"
+        }
+      ],
+      "description": "Make the production bundle.",
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "admin:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "44": {
+      "command": "echo",
+      "args": [
+        "audit"
+      ],
+      "description": "Do a check of the dependencies for known vulnerabilities.",
+      "id": "audit",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "worker:audit",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "3": {
+      "command": "echo",
+      "args": [
+        "dev",
+        "admin"
+      ],
+      "id": "dev",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "outputStyle": "stream",
+        "persistent": true,
+        "priority": "low",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": false,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "preset": "server",
+      "state": {
+        "defaultInputs": true,
+        "setRunInCi": true
+      },
+      "target": "admin:dev",
+      "toolchains": [
+        "system"
+      ],
+      "type": "run"
+    },
+    "25": {
+      "command": "echo",
+      "args": [
+        "test",
+        "backend"
+      ],
+      "description": "Run the unit tests in Node.js.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "api:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "47": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "worker:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "6": {
+      "command": "echo",
+      "args": [
+        "test",
+        "frontend"
+      ],
+      "description": "Run the unit tests in a browser environment.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "admin:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "28": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "db:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "22": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "api:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "9": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "ui:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "31": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "icons:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "12": {
+      "command": "echo",
+      "args": [
+        "test",
+        "frontend"
+      ],
+      "description": "Run the unit tests in a browser environment.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "ui:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "34": {
+      "command": "echo",
+      "args": [
+        "typecheck"
+      ],
+      "id": "typecheck",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "icons:typecheck",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "15": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "utils:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "37": {
+      "command": "echo",
+      "args": [
+        "build",
+        "web"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "ui:build",
+          "cacheStrategy": "hash"
+        },
+        {
+          "args": [],
+          "env": {},
+          "target": "utils:build",
+          "cacheStrategy": "hash"
+        },
+        {
+          "args": [],
+          "env": {},
+          "target": "web:tsc",
+          "cacheStrategy": "ignored"
+        }
+      ],
+      "description": "Make the production bundle.",
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "web:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "18": {
+      "command": "echo",
+      "args": [
+        "audit"
+      ],
+      "description": "Do a check of the dependencies for known vulnerabilities.",
+      "id": "audit",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "api:audit",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "40": {
+      "command": "echo",
+      "args": [
+        "format",
+        "web"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "web:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "21": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "api:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "43": {
+      "command": "echo",
+      "args": [
+        "test",
+        "frontend"
+      ],
+      "description": "Run the unit tests in a browser environment.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "web:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "24": {
+      "command": "echo",
+      "args": [
+        "migrate"
+      ],
+      "description": "Run the database migrations.",
+      "id": "migrate",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "db:migrate",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "46": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "worker:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "2": {
+      "command": "echo",
+      "args": [
+        "build",
+        "utils"
+      ],
+      "description": "Compile the library.",
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "utils:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "5": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "admin:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "49": {
+      "command": "echo",
+      "args": [
+        "test",
+        "backend"
+      ],
+      "description": "Run the unit tests in Node.js.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "worker:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "27": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "db:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "8": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "ui:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "30": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "icons:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "11": {
+      "command": "echo",
+      "args": [
+        "storybook"
+      ],
+      "description": "Start Storybook for the components.",
+      "id": "storybook",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": true,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": false,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "ui:storybook",
+      "toolchains": [
+        "system"
+      ],
+      "type": "run"
+    },
+    "33": {
+      "command": "echo",
+      "args": [
+        "test",
+        "frontend"
+      ],
+      "description": "Run the unit tests in a browser environment.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "icons:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "14": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "utils:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "36": {
+      "command": "echo",
+      "args": [
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "scripts:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "17": {
+      "command": "echo",
+      "args": [
+        "typecheck"
+      ],
+      "id": "typecheck",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "utils:typecheck",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "39": {
+      "command": "echo",
+      "args": [
+        "dev",
+        "web"
+      ],
+      "description": "Start the development server.",
+      "id": "dev",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "outputStyle": "stream",
+        "persistent": true,
+        "priority": "low",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": false,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "preset": "server",
+      "state": {
+        "defaultInputs": true,
+        "setRunInCi": true
+      },
+      "target": "web:dev",
+      "toolchains": [
+        "system"
+      ],
+      "type": "run"
+    },
+    "20": {
+      "command": "echo",
+      "args": [
+        "build",
+        "db"
+      ],
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "db:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "42": {
+      "command": "echo",
+      "args": [
+        "preview",
+        "web"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "web:build",
+          "cacheStrategy": "hash"
+        }
+      ],
+      "id": "preview",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "web:preview",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "1": {
+      "command": "echo",
+      "args": [
+        "build",
+        "ui"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "ui:lint",
+          "cacheStrategy": "ignored"
+        }
+      ],
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "ui:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "23": {
+      "command": "echo",
+      "args": [
+        "start",
+        "api"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "db:migrate",
+          "cacheStrategy": "ignored"
+        }
+      ],
+      "description": "Start the API server.",
+      "id": "start",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "outputStyle": "stream",
+        "persistent": true,
+        "priority": "low",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": false,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "preset": "server",
+      "state": {
+        "defaultInputs": true,
+        "setRunInCi": true
+      },
+      "target": "api:start",
+      "toolchains": [
+        "system"
+      ],
+      "type": "run"
+    },
+    "45": {
+      "command": "echo",
+      "args": [
+        "build",
+        "worker"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "db:build",
+          "cacheStrategy": "hash"
+        }
+      ],
+      "description": "Compile the worker.",
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "worker:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "4": {
+      "command": "echo",
+      "args": [
+        "format"
+      ],
+      "id": "format",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "admin:format",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "48": {
+      "command": "echo",
+      "args": [
+        "start",
+        "worker"
+      ],
+      "id": "start",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "outputStyle": "stream",
+        "persistent": true,
+        "priority": "low",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": false,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "preset": "server",
+      "state": {
+        "defaultInputs": true,
+        "setRunInCi": true
+      },
+      "target": "worker:start",
+      "toolchains": [
+        "system"
+      ],
+      "type": "run"
+    },
+    "26": {
+      "command": "echo",
+      "args": [
+        "audit"
+      ],
+      "description": "Do a check of the dependencies for known vulnerabilities.",
+      "id": "audit",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "db:audit",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "7": {
+      "command": "echo",
+      "args": [
+        "typecheck"
+      ],
+      "id": "typecheck",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "admin:typecheck",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "29": {
+      "command": "echo",
+      "args": [
+        "test",
+        "backend"
+      ],
+      "description": "Run the unit tests in Node.js.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "db:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "10": {
+      "command": "echo",
+      "args": [
+        "generate",
+        "icons"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "ui:lint",
+          "cacheStrategy": "ignored"
+        }
+      ],
+      "description": "Make the icon components from the SVG files.",
+      "id": "generate-icons",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": true,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "ui:generate-icons",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "32": {
+      "command": "echo",
+      "args": [
+        "optimize",
+        "icons"
+      ],
+      "description": "Make the SVG files smaller.",
+      "id": "optimize",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "icons:optimize",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "13": {
+      "command": "echo",
+      "args": [
+        "typecheck"
+      ],
+      "id": "typecheck",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "ui:typecheck",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "35": {
+      "command": "echo",
+      "args": [
+        "changelog"
+      ],
+      "description": "Make the changelog for the next release.",
+      "id": "changelog",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "scripts:changelog",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "16": {
+      "command": "echo",
+      "args": [
+        "test",
+        "frontend"
+      ],
+      "description": "Run the unit tests in a browser environment.",
+      "id": "test",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "utils:test",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "38": {
+      "command": "echo",
+      "args": [
+        "typecheck"
+      ],
+      "id": "tsc",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/frontend.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "web:tsc",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    },
+    "19": {
+      "command": "echo",
+      "args": [
+        "build",
+        "api"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "db:build",
+          "cacheStrategy": "hash"
+        },
+        {
+          "args": [],
+          "env": {},
+          "target": "utils:build",
+          "cacheStrategy": "hash"
+        }
+      ],
+      "id": "build",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "outputs": [
+        {
+          "file": "dist",
+          "optional": true
+        }
+      ],
+      "state": {
+        "defaultInputs": true
+      },
+      "target": "api:build",
+      "toolchains": [
+        "system"
+      ],
+      "type": "build"
+    },
+    "41": {
+      "command": "echo",
+      "args": [
+        "--max-warnings",
+        "0",
+        "lint"
+      ],
+      "description": "Do a check of the source code with the linter.",
+      "id": "lint",
+      "inputs": [
+        {
+          "glob": "src/**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        },
+        {
+          "file": "/.moon/tasks/all.yml"
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": true,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "prepend",
+        "mergeChecks": "append",
+        "mergeDeps": "replace",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "persistent": false,
+        "priority": "normal",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": true,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "state": {},
+      "target": "web:lint",
+      "toolchains": [
+        "system"
+      ],
+      "type": "test"
+    }
+  }
+}

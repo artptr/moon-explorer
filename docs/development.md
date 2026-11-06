@@ -73,9 +73,10 @@ The test workspace contains these items:
 - The project `scripts` has no `stack` value and no `layer` value. moon gives the value `unknown` for `stack` and for `layer`.
 - Tags. Some tags are on more than one project. Some projects have two tags. The projects `icons` and `scripts` have no tags.
 - Three files in `.moon/tasks/`. All projects inherit `all.yml`. Frontend projects inherit `frontend.yml`. Backend projects inherit `backend.yml`.
-- The project `web` changes the inherited task `lint`.
+- The project `web` changes the inherited task `lint`. The value of `mergeArgs` is `prepend`, and the value of `mergeDeps` is `replace`.
 - The project `scripts` includes only the inherited task `lint`. Thus it does not inherit `format`.
 - The project `web` excludes the inherited task `format` and has a local task `format`. It renames the inherited task `typecheck` to `tsc`. moon writes `format` and `typecheck` in `inherited.layers` of `web`, but the plugin must use the `workspace.inheritedTasks` settings of `web` with these entries.
+- Dependents of inherited tasks. The tasks `ui:build` and `ui:generate-icons` have a dependency on `ui:lint`. The task `web:build` has a dependency on `web:tsc`. moon does not write internal tasks in `tasks`, but `moon/task-graph.json` contains them.
 - Tasks with a description and tasks without a description
 - The project `ui` has the internal task `generate-icons`. moon does not write internal tasks in the key `tasks` in the output of `moon query projects`.
 - The project `config` has no tasks.
@@ -99,7 +100,7 @@ The script installs the moon version that `package.json` gives. Then it removes 
 A different moon version cannot always read the cache of the previous version.
 If a moon command fails, the script stops, and the files in `moon/` do not change.
 
-The output of `moon query projects` contains the absolute path of each project. The script replaces the path of the workspace with `/workspace`.
+The output of `moon query projects` and `moon task-graph --json` can contain the absolute path of each project. The script replaces the path of the workspace with `/workspace`.
 The script stops with an error if a recorded file contains the path of the repository on your computer.
 
 The test data is an input of the Gradle task `test`. Thus Gradle runs the tests again when the test data changes.

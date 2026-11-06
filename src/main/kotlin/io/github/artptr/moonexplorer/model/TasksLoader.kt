@@ -14,22 +14,23 @@ object TasksLoader {
      * The state contains [root] as an absolute and normalized path. Thus the users of the state do not normalize it again.
      * Call this function on a background thread.
      */
-    internal fun loadedState(tasks: WorkspaceTasks, root: Path): TasksState.Loaded {
+    internal fun loadedState(tasks: WorkspaceTasks, root: Path, taskGraph: TaskGraph? = null): TasksState.Loaded {
         val normalizedRoot = root.toAbsolutePath().normalize()
-        return TasksState.Loaded(tasks, normalizedRoot, findExistingConfigFiles(tasks, normalizedRoot))
+        return TasksState.Loaded(tasks, normalizedRoot, findExistingConfigFiles(tasks, normalizedRoot), taskGraph)
     }
 
     /**
      * Runs [queryProjects] in the workspace [root] and reads the output. If [root] is null, the function gives [TasksState.NoWorkspace].
      * The output of `moon query projects` contains the tasks, the `stack` value, and the `layer` value of each project.
-     * Thus the function starts only one moon process. After a success, the function finds the configuration files on the disk.
+     * After a success, the function runs [taskGraph] and finds the configuration files on the disk.
+     * If [taskGraph] fails, the load does not fail. Then [TasksState.Loaded.taskGraph] is null.
      * Call this function on a background thread.
      */
-    suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult): TasksState {
+    suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult, taskGraph: suspend (Path) -> CliResult): TasksState {
         if (root == null) return TasksState.NoWorkspace
         return try {
             when (val result = queryProjects(root)) {
-                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root)
+                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root, loadTaskGraph(root, taskGraph))
                 is CliFailure -> TasksState.MoonFailed(moonFailure(result))
             }
         } catch (e: MoonOutputException) {
@@ -41,6 +42,23 @@ object TasksLoader {
             thisLogger().warn("Cannot get the moon tasks", e)
             TasksState.UnexpectedError
         }
+    }
+
+    /** Runs [taskGraph] in [root] and reads the output. Gives null if the command fails or if the plugin cannot read the output. */
+    private suspend fun loadTaskGraph(root: Path, taskGraph: suspend (Path) -> CliResult): TaskGraph? = try {
+        when (val result = taskGraph(root)) {
+            is CliResult.Success -> TaskGraphParser.parse(result.stdout).also { if (it == null) thisLogger().warn("The output of moon task-graph has no task data") }
+            is CliFailure -> {
+                thisLogger().warn("Cannot get the moon task graph: $result")
+                null
+            }
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        // The tree and the run icons do not use the task graph. Thus an error in the graph must not stop the load.
+        thisLogger().warn("Cannot get the moon task graph", e)
+        null
     }
 
     private fun moonFailure(result: CliFailure): MoonFailure = when (result) {

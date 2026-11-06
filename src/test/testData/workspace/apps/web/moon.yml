@@ -22,7 +22,8 @@ tasks:
   build:
     command: 'echo build web'
     description: 'Make the production bundle.'
-    deps: ['ui:build', 'utils:build']
+    # This task is a dependent of the inherited task tsc. The global ID of tsc is typecheck.
+    deps: ['ui:build', 'utils:build', 'tsc']
     # The command does not make dist. The output is optional. Thus moon does not stop with an error.
     outputs:
       - file: 'dist'
@@ -31,8 +32,12 @@ tasks:
     command: 'echo preview web'
     deps: ['build']
   # This project changes the inherited task lint. It adds the option --max-warnings 0.
+  # The merge strategies of the two fields are not the default value append.
   lint:
     args: ['--max-warnings', '0']
+    options:
+      mergeArgs: 'prepend'
+      mergeDeps: 'replace'
   # This local task has the same ID as the global task format that this project does not inherit.
   format:
     command: 'echo format web'
