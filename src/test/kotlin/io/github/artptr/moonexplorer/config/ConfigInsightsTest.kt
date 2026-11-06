@@ -8,7 +8,16 @@ import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.InheritedLayer
+import io.github.artptr.moonexplorer.model.MoonProject
+import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.ProjectSource
+import io.github.artptr.moonexplorer.model.TaskConfigs
+import io.github.artptr.moonexplorer.model.TaskGraph
+import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
@@ -121,6 +130,56 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertFalse(insights("apps/web/moon.yml").mergedHints().any { it.element.text == "format" })
     }
 
+    fun testGlobalTaskHasTheHintWithItsDependents() {
+        val hint = insights(".moon/tasks/all.yml").dependentsHints().single()
+        assertEquals("2 dependents", hint.text)
+        assertEquals("lint", hint.element.text)
+        assertEquals(listOf("ui:build", "ui:generate-icons"), hint.list.items.map { it.text })
+        assertEquals(setOf("ui:lint"), hint.list.items.mapTo(HashSet()) { it.group })
+        val internal = hint.list.items[1]
+        assertEquals(SourceFile(workspacePath("packages/ui/moon.yml"), "generate-icons"), internal.target)
+        assertEquals("packages/ui/moon.yml", internal.secondary)
+    }
+
+    fun testGroupOfARenamedTaskIsItsTarget() {
+        val hint = insights(".moon/tasks/frontend.yml").dependentsHints().single { it.element.text == "typecheck" }
+        assertEquals("1 dependent", hint.text)
+        assertEquals("web:tsc", hint.list.items.single().group)
+    }
+
+    fun testDependentIsCountedOneTime() {
+        val tasks = WorkspaceTasks(
+            projects = listOf(MoonProject("a", listOf(MoonTask("lint", "a:lint", null))), MoonProject("b", listOf(MoonTask("lint", "b:lint", null)))),
+            sources = listOf(ProjectSource("a", "apps/web"), ProjectSource("b", "apps/api")),
+            taskConfigs = listOf("a", "b").associateWith {
+                TaskConfigs(inheritedLayers = mapOf("lint" to listOf(InheritedLayer("lint", ".moon/tasks/all.yml"))))
+            },
+        )
+        val graph = TaskGraph(mapOf("a:lint" to setOf("c:x"), "b:lint" to setOf("c:x", "c:y")))
+        val state = TestData.loadedState(tasks, taskGraph = graph)
+        val syntax = run {
+            myFixture.openFileInEditor(TestData.workspaceVirtualFile(".moon/tasks/all.yml"))
+            configSyntax(myFixture.file)!!
+        }
+        val hint = ConfigInsights(syntax, state, workspacePath(".moon/tasks/all.yml")).dependentsHints().single()
+        assertEquals("2 dependents", hint.text)
+        assertEquals(listOf("a:lint" to "c:x", "b:lint" to "c:x", "b:lint" to "c:y"), hint.list.items.map { it.group to it.text })
+    }
+
+    fun testNoHintAndOtherHintsStayIfTheTaskGraphFails() {
+        service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+        val insights = insights(".moon/tasks/all.yml")
+        assertEmpty(insights.dependentsHints())
+        assertEquals("Inherited by 9 projects", insights.inheritedHints().single().text)
+        assertEquals(1, insights.mergedHints().size)
+    }
+
+    fun testProjectFileHasNoDependentsHint() {
+        assertEmpty(insights("packages/ui/moon.yml").dependentsHints())
+    }
+
     fun testStrategiesAreOnlyInTheTextIfTheyExist() {
         assertEquals("web", withStrategies("web", emptyMap()))
         assertEquals("web (args: replace)", withStrategies("web", mapOf("args" to "replace")))
@@ -144,6 +203,7 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val providers = ExtensionPointName<DaemonBoundCodeVisionProvider>(DaemonBoundCodeVisionProvider.EP_NAME).extensionList
         assertTrue(providers.any { it is MoonInheritedCodeVisionProvider })
         assertTrue(providers.any { it is MoonMergedCodeVisionProvider })
+        assertTrue(providers.any { it is MoonDependentsCodeVisionProvider })
         val settings = ExtensionPointName<CodeVisionGroupSettingProvider>("com.intellij.config.codeVisionGroupSettingProvider").extensionList
         assertEquals(MOON_CODE_VISION_GROUP, settings.first { it is MoonCodeVisionGroupSettingProvider }.groupId)
     }

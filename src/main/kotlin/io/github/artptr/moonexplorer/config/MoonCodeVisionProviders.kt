@@ -49,9 +49,22 @@ class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
 
 /** The hint for a global task that merges with local tasks. */
 class MoonMergedCodeVisionProvider : MoonCodeVisionProvider() {
-    override val id: String get() = "moon.merged"
+    override val id: String get() = ID
     override val name: String get() = MoonExplorerBundle.message("codeVision.merged.name")
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.mergedHints()
+
+    internal companion object {
+        const val ID = "moon.merged"
+    }
+}
+
+/** The hint with the number of direct dependents of a global task. The hint is after the hint of [MoonMergedCodeVisionProvider]. */
+class MoonDependentsCodeVisionProvider : MoonCodeVisionProvider() {
+    override val id: String get() = "moon.dependents"
+    override val name: String get() = MoonExplorerBundle.message("codeVision.dependents.name")
+    override val relativeOrderings: List<CodeVisionRelativeOrdering>
+        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter(MoonMergedCodeVisionProvider.ID))
+    override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.dependentsHints()
 }
 
 /** Adds the hints of the plugin to **Settings | Editor | Inlay Hints**. */

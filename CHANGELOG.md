@@ -11,6 +11,7 @@
 - A global task that merges with a local task has an icon in the gutter. The list of the icon shows each project. It also shows the merge strategies that are not `append`, for example `web (args: prepend, deps: replace)`. The hints and the icon operate only in YAML files.
 - The `moon.yml` file of a project shows Code Vision hints. The hint **N inherited tasks** is above the key `tasks`. A local task that merges with a global task has a hint with the name of the global file, for example **Merged with `all.yml`**. Each entry of `workspace.inheritedTasks` also has a hint, for example **Excludes lint from `all.yml`**. Click a hint to open a list. Then click an item to open the global task.
 - A local task that merges with a global task has an icon in the gutter. The icon opens the global task. The tooltip shows the merge strategies that are not `append`.
+- A global task with direct dependents has the hint **N dependents** in its file in `.moon/tasks/`. The list puts the dependents into groups by the target of the inherited task, for example `ui:lint`. The list also shows the internal tasks. Click an item to open the task key of the dependent. If the command `moon task-graph` fails, the hint does not show. The other hints show.
 - JetBrains Marketplace finds the file names `moon.yml` and `moon.yaml`. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
 ## [0.4.0] - 2026-11-02

@@ -42,6 +42,7 @@
         <dependencySupport kind="javascript" coordinate="npm:@moonrepo/cli" displayName="moon"/>
         <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonInheritedCodeVisionProvider"/>
         <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider"/>
+        <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonDependentsCodeVisionProvider"/>
         <config.codeVisionGroupSettingProvider implementation="io.github.artptr.moonexplorer.config.MoonCodeVisionGroupSettingProvider"/>
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
