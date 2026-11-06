@@ -1,11 +1,14 @@
 package io.github.artptr.moonexplorer.ui
 
+import com.intellij.codeInsight.hints.codeVision.ModificationStampUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.ExistingConfigFiles
@@ -65,6 +68,16 @@ class RunMarkersRefresherTest : BasePlatformTestCase() {
         )
         assertEquals(setOf(root.resolve("apps/web/moon.yml"), root.resolve(".moon/tasks/all.yaml")), runMarkerPaths(state))
         assertEquals(emptySet<Path>(), runMarkerPaths(null))
+    }
+
+    fun testLoadClearsTheCodeVisionStampOfTheOpenConfigFiles() {
+        val virtualFile = TestData.workspaceVirtualFile(".moon/tasks/all.yml")
+        val editor = FileEditorManager.getInstance(project).openTextEditor(OpenFileDescriptor(project, virtualFile), false)!!
+        ModificationStampUtil.putCurrentModificationStamp(editor, PsiManager.getInstance(project).findFile(virtualFile)!!)
+        assertNotNull(ModificationStampUtil.getModificationStamp(editor))
+        service.loadRecorded()
+        PlatformTestUtil.waitWithEventsDispatching("The refresher did not restart the file", { restarted.isNotEmpty() }, 10)
+        assertNull(ModificationStampUtil.getModificationStamp(editor))
     }
 
     fun testLoadRestartsTheOpenConfigFilesOnly() {

@@ -7,6 +7,8 @@
 ### Added
 
 - The IDE opens `moon.yml` and `moon.yaml` with the file type **Moon**. These files show the moon icon. The JSON schemas continue to operate. The file type operates only when the YAML plugin is active. The usual files in `.moon/` keep the YAML file type. The YAML keys contributor of **Search Everywhere** does not find the keys in `moon.yml` and `moon.yaml`.
+- A file in `.moon/tasks/` shows Code Vision hints. The hint **Inherited by N projects** is at the top of the file. A global task that merges with a local task has the hint **Merged in N projects**. Click a hint to open a list of the projects. Then click a project to open its `moon.yml` file. To disable the hints, use **Settings | Editor | Inlay Hints**. The numbers change after the plugin loads the tasks again.
+- A global task that merges with a local task has an icon in the gutter. The list of the icon shows each project. It also shows the merge strategies that are not `append`, for example `web (args: prepend, deps: replace)`. The hints and the icon operate only in YAML files.
 - JetBrains Marketplace finds the file names `moon.yml` and `moon.yaml`. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
 ### Changed
