@@ -39,7 +39,8 @@ class YamlConfigConverterTest : BasePlatformTestCase() {
     fun testQuotedKeyHasItsTextWithoutQuotes() {
         val syntax = syntax("tasks:\n  'lint':\n    command: a\n")
         assertEquals("lint", syntax.taskKeys.single().id)
-        assertEquals(0, syntax.taskKeys.single().element.firstChild?.textLength ?: 0)
+        // The hints and the icons attach to the leaf of the key. The text of this leaf contains the quotes.
+        assertEquals("'lint'", syntax.taskKeys.single().element.text)
     }
 
     fun testFileWithACommentStartsAtTheComment() {

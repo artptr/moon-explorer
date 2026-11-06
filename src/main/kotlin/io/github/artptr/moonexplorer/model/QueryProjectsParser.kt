@@ -55,7 +55,7 @@ object QueryProjectsParser {
     /**
      * Gives the configuration files of the tasks of [project]. `config.tasks` contains the tasks of the configuration file of the project.
      * `inherited.layers` gives the inherited files of each global task. `config.workspace.inheritedTasks` gives the filter of the global tasks.
-     * `taskTargets` contains the targets of all tasks of the project. The function ignores values that are not strings.
+     * `taskTargets` contains the targets of all tasks of the project. The key `options` of each task gives the merge strategies. The function ignores values that are not strings.
      */
     private fun taskConfigs(project: JsonObject): TaskConfigs {
         val ownTasks = project.obj("config")?.obj("tasks")?.keySet().orEmpty()
@@ -68,11 +68,17 @@ object QueryProjectsParser {
         // moon does not write the key "taskTargets" if the project has no tasks.
         val taskIds = project.get("taskTargets")?.strings().orEmpty().mapTo(HashSet(), ::targetTaskId)
         // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
-        val strategies = project.obj("tasks")?.entrySet().orEmpty().mapNotNull { (key, value) ->
+        val tasks = project.obj("tasks")
+        val strategies = tasks?.entrySet().orEmpty().mapNotNull { (key, value) ->
             val task = value.objectOrNull() ?: return@mapNotNull null
             mergeStrategies(task).takeIf { it.isNotEmpty() }?.let { (task.string("id") ?: key) to it }
         }.toMap()
-        return TaskConfigs(ownTasks.toSet(), layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds), strategies)
+        // The key "tasks" does not contain internal tasks. For these tasks, the function reads the values of the project in "config.tasks".
+        val internalStrategies = project.obj("config")?.obj("tasks")?.entrySet().orEmpty().mapNotNull { (id, value) ->
+            if (tasks?.has(id) == true) return@mapNotNull null
+            value.objectOrNull()?.let(::mergeStrategies)?.takeIf { it.isNotEmpty() }?.let { id to it }
+        }.toMap()
+        return TaskConfigs(ownTasks.toSet(), layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds), strategies + internalStrategies)
     }
 
     /**

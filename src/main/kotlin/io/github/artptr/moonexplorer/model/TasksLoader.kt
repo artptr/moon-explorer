@@ -11,6 +11,7 @@ object TasksLoader {
 
     /**
      * Gives the state after a successful load of [tasks] in the workspace [root]. The function finds the configuration files on the disk.
+     * [taskGraph] is the result of `moon task-graph`, or null if this command failed.
      * The state contains [root] as an absolute and normalized path. Thus the users of the state do not normalize it again.
      * Call this function on a background thread.
      */
