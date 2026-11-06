@@ -15,7 +15,7 @@ object TasksLoader {
      * The state contains [root] as an absolute and normalized path. Thus the users of the state do not normalize it again.
      * Call this function on a background thread.
      */
-    internal fun loadedState(tasks: WorkspaceTasks, root: Path, taskGraph: TaskGraph? = null): TasksState.Loaded {
+    internal fun loadedState(tasks: WorkspaceTasks, root: Path, taskGraph: TaskGraph?): TasksState.Loaded {
         val normalizedRoot = root.toAbsolutePath().normalize()
         return TasksState.Loaded(tasks, normalizedRoot, findExistingConfigFiles(tasks, normalizedRoot), taskGraph)
     }

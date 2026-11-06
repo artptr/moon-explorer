@@ -32,7 +32,7 @@ object QueryProjectsParser {
                 val id = task.string("id") ?: key
                 MoonTask(
                     id = id,
-                    target = task.string("target") ?: "$projectId:$id",
+                    target = task.string("target") ?: taskTarget(projectId, id),
                     description = task.string("description")?.takeIf { it.isNotBlank() },
                 )
             }
@@ -58,7 +58,7 @@ object QueryProjectsParser {
      * `taskTargets` contains the targets of all tasks of the project. The key `options` of each task gives the merge strategies. The function ignores values that are not strings.
      */
     private fun taskConfigs(project: JsonObject): TaskConfigs {
-        val ownTasks = project.obj("config")?.obj("tasks")?.keySet().orEmpty()
+        val configTasks = project.obj("config")?.obj("tasks")
         val layers = buildMap {
             project.obj("inherited")?.obj("layers")?.entrySet().orEmpty().forEach { (taskId, files) ->
                 val paths = files.strings()
@@ -67,18 +67,15 @@ object QueryProjectsParser {
         }
         // moon does not write the key "taskTargets" if the project has no tasks.
         val taskIds = project.get("taskTargets")?.strings().orEmpty().mapTo(HashSet(), ::targetTaskId)
-        // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
+        // The key "tasks" has the values after the merge, but it does not contain internal tasks. For these tasks, "config.tasks" has the values of the project.
         val tasks = project.obj("tasks")
-        val strategies = tasks?.entrySet().orEmpty().mapNotNull { (key, value) ->
-            val task = value.objectOrNull() ?: return@mapNotNull null
-            mergeStrategies(task).takeIf { it.isNotEmpty() }?.let { (task.string("id") ?: key) to it }
+        val strategies = configTasks?.entrySet().orEmpty().mapNotNull { (id, own) ->
+            val task = tasks?.obj(id) ?: own.objectOrNull() ?: return@mapNotNull null
+            mergeStrategies(task).takeIf { it.isNotEmpty() }?.let { id to it }
         }.toMap()
-        // The key "tasks" does not contain internal tasks. For these tasks, the function reads the values of the project in "config.tasks".
-        val internalStrategies = project.obj("config")?.obj("tasks")?.entrySet().orEmpty().mapNotNull { (id, value) ->
-            if (tasks?.has(id) == true) return@mapNotNull null
-            value.objectOrNull()?.let(::mergeStrategies)?.takeIf { it.isNotEmpty() }?.let { id to it }
-        }.toMap()
-        return TaskConfigs(ownTasks.toSet(), layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds), strategies + internalStrategies)
+        // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
+        val ownTasks = configTasks?.keySet().orEmpty().toSet()
+        return TaskConfigs(ownTasks, layers, inheritedTasksFilter(project).inheritedLayers(layers, taskIds), strategies)
     }
 
     /**

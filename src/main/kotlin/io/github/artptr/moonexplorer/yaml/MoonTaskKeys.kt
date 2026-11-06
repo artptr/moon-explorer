@@ -13,7 +13,7 @@ import java.nio.file.Path
 /** A task key in a YAML file. [file] is absolute and normalized. [taskId] is the key text without quotes. */
 internal data class TaskKey(val file: Path, val taskId: String)
 
-private const val TASKS_KEY = "tasks"
+internal const val TASKS_KEY = "tasks"
 
 /**
  * Gives the task key of [element], or null. [element] must be the first leaf of a key below the top-level key `tasks:`.
