@@ -72,6 +72,56 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         }
     }
 
+    fun testServiceShowsTheTasksBeforeTheTaskGraphCompletes() {
+        val started = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        service.taskGraph = {
+            started.complete(Unit)
+            finish.await()
+            CliResult.Success(TestData.recorded("task-graph.json"))
+        }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+        runBlocking { withTimeout(10_000) { started.await() } }
+        finish.complete(Unit)
+        service.awaitState(TestData.recordedState())
+    }
+
+    fun testRefreshKeepsTheLastTaskGraphUntilTheCommandCompletes() {
+        service.loadRecorded()
+        val last = service.state.value
+        val started = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        service.taskGraph = {
+            started.complete(Unit)
+            finish.await()
+            CliResult.Success("""{"data": {}}""")
+        }
+        service.refresh()
+        runBlocking { withTimeout(10_000) { started.await() } }
+        // The result of moon query projects did not change. Thus the state is the same instance, with the last task graph.
+        assertSame(last, service.state.value)
+        finish.complete(Unit)
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = TaskGraph()))
+    }
+
+    fun testTaskGraphFailureRemovesOnlyTheTaskGraph() {
+        service.loadRecorded()
+        service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+    }
+
+    fun testNewLoadCancelsTheTaskGraphOfTheLastLoad() {
+        val started = CompletableDeferred<Unit>()
+        service.taskGraph = { started.complete(Unit); awaitCancellation() }
+        service.refresh()
+        runBlocking { withTimeout(10_000) { started.await() } }
+        service.taskGraph = { CliResult.Success(TestData.recorded("task-graph.json")) }
+        service.refresh()
+        service.awaitState(TestData.recordedState())
+    }
+
     fun testTimeoutComesFromTheSettings() {
         val settings = project.service<MoonSettings>()
         try {
