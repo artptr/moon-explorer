@@ -37,7 +37,7 @@ class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: H
 /**
  * Joins the syntax of the configuration file [file] with the loaded data. The function finds the data with the task IDs.
  * Thus the hints stay on the correct lines while the user types. The numbers change after the next load.
- * [syntax] contains PSI. Use this class only in a read action, and do not keep it.
+ * [syntax] contains PSI. Use this class only in a read action. Do not keep it.
  */
 class ConfigInsights internal constructor(private val syntax: ConfigSyntax, private val state: TasksState.Loaded, private val file: Path) {
 

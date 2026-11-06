@@ -19,7 +19,7 @@ internal const val MOON_CODE_VISION_GROUP = "moon.inheritance"
  * Shows the hints of [ConfigInsights] in the configuration files. The provider uses only the loaded data. It does not start moon.
  * After a load, [io.github.artptr.moonexplorer.ui.RunMarkersRefresher] updates the hints.
  *
- * Each kind of hint that can be on the same line as an other kind has its own provider. Thus [relativeOrderings] sets the sequence of the hints.
+ * Each kind of hint that can be on the same line as another kind has its own provider. Thus [relativeOrderings] sets the sequence of the hints.
  */
 abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware {
 
@@ -40,7 +40,7 @@ abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware
         }
 }
 
-/** The hint with the number of inheriting projects. */
+/** The hint with the number of projects that inherit tasks from the file. */
 class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
     override val id: String get() = "moon.inherited"
     override val name: String get() = MoonExplorerBundle.message("codeVision.inherited.name")

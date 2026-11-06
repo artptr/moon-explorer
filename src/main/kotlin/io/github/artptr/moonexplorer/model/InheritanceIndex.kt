@@ -27,6 +27,7 @@ data class MergingProject(val projectId: String, val localId: String, val strate
  * The inheritance of a global task in one file.
  * [inheritedBy] gives the local task ID in each project that inherits the task. The projects are in [ID_ORDER].
  * [mergedIn] contains the projects of [inheritedBy] with a local task that merges. The projects are in [ID_ORDER].
+ *
  * [dependents] gives the direct dependents of each inherited target that has dependents. The targets are in [ID_ORDER]. A dependent can be below more than one target.
  * The value is null if `moon task-graph` failed in the load.
  */
@@ -45,7 +46,7 @@ data class FileInheritance(val projects: List<String>, val tasks: Map<String, Gl
  * moon finds the files of each project. The plugin does not calculate which files apply to a project.
  * It only uses `include`, `exclude`, and `rename` of each project. Refer to [TaskConfigs.inheritedLayers].
  * The index examines [TasksState.Loaded.tasks] with `taskConfigs`, not with the task list, because the task list does not contain internal tasks.
- * The function does not start moon and does not read the disk.
+ * The index does not start moon and does not read the disk.
  */
 internal class InheritanceIndex private constructor(
     private val projects: Map<String, ProjectInheritance>,
