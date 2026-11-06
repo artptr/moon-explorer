@@ -82,6 +82,46 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
     }
 
+    fun testProjectFileHasTheNumberOfInheritedTasksAboveTheTasksKey() {
+        val hint = insights("apps/web/moon.yml").inheritedHints().first()
+        assertEquals("3 inherited tasks", hint.text)
+        assertEquals("tasks", hint.element.text)
+        val typecheck = hint.list.items.first { it.text == "tsc" }
+        assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), typecheck.target)
+        assertEquals(".moon/tasks/frontend.yml", typecheck.secondary)
+    }
+
+    fun testEntriesOfInheritedTasksHaveHints() {
+        val hints = insights("apps/web/moon.yml").inheritedHints().drop(1)
+        assertEquals(listOf("Excludes format from all.yml", "Renames typecheck from frontend.yml to tsc"), hints.map { it.text })
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), hints[0].list.items.single().target)
+        assertEquals("typecheck", hints[1].element.text)
+    }
+
+    fun testIncludeEntryHasAHint() {
+        val texts = insights("tools/scripts/moon.yml").inheritedHints().map { it.text }
+        assertEquals(listOf("1 inherited task", "Includes lint from all.yml"), texts)
+    }
+
+    fun testProjectWithoutInheritedTasksHasNoHint() {
+        assertEmpty(insights("packages/config/moon.yml").inheritedHints())
+    }
+
+    fun testLocalTaskThatMergesHasAHintAndAGutterMark() {
+        val insights = insights("apps/web/moon.yml")
+        val hint = insights.mergedHints().single()
+        assertEquals("Merged with all.yml", hint.text)
+        assertEquals("lint", hint.element.text)
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), hint.list.items.single().target)
+        val mark = insights.gutterMarks().single()
+        assertTrue(mark.local)
+        assertEquals("Merged with all.yml (args: prepend, deps: replace)", mark.tooltip)
+    }
+
+    fun testLocalTaskOfAnExcludedGlobalTaskDoesNotMerge() {
+        assertFalse(insights("apps/web/moon.yml").mergedHints().any { it.element.text == "format" })
+    }
+
     fun testStrategiesAreOnlyInTheTextIfTheyExist() {
         assertEquals("web", withStrategies("web", emptyMap()))
         assertEquals("web (args: replace)", withStrategies("web", mapOf("args" to "replace")))

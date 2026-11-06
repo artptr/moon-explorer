@@ -38,10 +38,17 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
         val tooltip = mark.tooltip
         // The handler must not keep PSI of the mark. The IDE gives the element to the handler.
         val list = mark.list
+        // A local task with one global task opens the global task. Then the user has no selection to make.
+        val single = list.items.singleOrNull()?.target?.takeIf { mark.local }
         val navigation = GutterIconNavigationHandler<PsiElement> { mouse, target ->
+            if (single != null) {
+                openConfigTarget(target.project, single)
+                return@GutterIconNavigationHandler
+            }
             val editor = FileEditorManager.getInstance(target.project).selectedTextEditor ?: return@GutterIconNavigationHandler
             showHintList(editor, list, mouse)
         }
-        return LineMarkerInfo(element, element.textRange, icon, { tooltip }, navigation, GutterIconRenderer.Alignment.RIGHT, { tooltip })
+        val markIcon = if (mark.local) AllIcons.Gutter.OverridingMethod else AllIcons.Gutter.OverridenMethod
+        return LineMarkerInfo(element, element.textRange, markIcon, { tooltip }, navigation, GutterIconRenderer.Alignment.RIGHT, { tooltip })
     }
 }
