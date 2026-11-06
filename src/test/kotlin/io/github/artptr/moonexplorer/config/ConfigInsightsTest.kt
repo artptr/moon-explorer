@@ -61,7 +61,7 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     }
 
     fun testGlobalTaskThatMergesHasAHintWithTheStrategies() {
-        val hint = insights(".moon/tasks/all.yml").mergedHints().single()
+        val hint = insights(".moon/tasks/all.yml").mergedHints().single { it.element.text == "lint" }
         assertEquals("Merged in 1 project", hint.text)
         assertEquals("lint", hint.element.text)
         val item = hint.list.items.single()
@@ -69,16 +69,17 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(SourceFile(workspacePath("apps/web/moon.yml"), "lint"), item.target)
     }
 
-    fun testExcludedTaskWithALocalTaskOfTheSameIdHasNoHint() {
-        assertFalse(insights(".moon/tasks/all.yml").mergedHints().any { it.element.text == "format" })
+    fun testExcludedTaskWithALocalTaskOfTheSameIdIsNotInTheList() {
+        // The project web excludes format and has a local task format. The internal task icons:format merges.
+        val hint = insights(".moon/tasks/all.yml").mergedHints().single { it.element.text == "format" }
+        assertEquals(listOf("icons (args: replace)"), hint.list.items.map { it.text })
     }
 
     fun testGutterMarkHasTheSameList() {
         val insights = insights(".moon/tasks/all.yml")
-        val mark = insights.gutterMarks().single()
-        assertEquals("lint", mark.element.text)
+        val mark = insights.gutterMarks().single { it.element.text == "lint" }
         assertEquals("Merged in 1 project", mark.tooltip)
-        assertEquals(insights.mergedHints().single().list, mark.list)
+        assertEquals(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
     }
 
     fun testProjectFileHasTheNumberOfInheritedTasksAboveTheTasksKey() {
@@ -136,8 +137,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val inherited = MoonInheritedCodeVisionProvider().computeForEditor(myFixture.editor, myFixture.file)
         val merged = MoonMergedCodeVisionProvider().computeForEditor(myFixture.editor, myFixture.file)
         assertEquals(listOf("Inherited by 9 projects"), inherited.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
-        assertEquals(listOf("Merged in 1 project"), merged.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
-        assertEquals("lint", myFixture.file.findElementAt(merged.single().first.startOffset)?.text)
+        assertEquals(listOf("Merged in 1 project", "Merged in 1 project"), merged.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
+        assertEquals(listOf("lint", "format"), merged.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
     }
 
     fun testExtensionsAreRegistered() {

@@ -75,7 +75,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     /**
      * Refreshes the tasks after [refreshDelay]. If the function gets a new call in this time, it starts to wait again.
-     * Thus many changes in a short time cause only one run of `moon query projects`.
+     * Thus many changes in a short time cause only one load.
      */
     @Synchronized
     fun scheduleRefresh() {
@@ -91,7 +91,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     }
 
     /**
-     * Runs `moon query projects` again. If a load runs now, the function cancels it and starts a new load.
+     * Runs `moon query projects` and `moon task-graph` again. If a load runs now, the function cancels it and starts a new load.
      * The function also cancels a refresh that [scheduleRefresh] started. Thus a manual refresh does not cause a second refresh.
      */
     @Synchronized

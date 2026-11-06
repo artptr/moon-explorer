@@ -72,7 +72,8 @@ internal class InheritanceIndex private constructor(
                 val inherited = inheritedTasks(config, state.configFiles.inherited)
                 if (inherited.isEmpty()) continue
                 val merged = inherited.filter { it.localId in config.ownTasks }.groupBy { it.localId }.mapValues { (localId, tasks) ->
-                    val strategies = config.mergeStrategies[localId] ?: state.taskGraph?.mergeStrategies?.get("$projectId:$localId").orEmpty()
+                    // The task graph has the values after the merge, also for internal tasks. If moon task-graph failed, use the values from moon query projects.
+                    val strategies = state.taskGraph?.mergeStrategies?.get("$projectId:$localId") ?: config.mergeStrategies[localId].orEmpty()
                     MergedTask(localId, tasks, strategies)
                 }
                 projects[projectId] = ProjectInheritance(inherited, merged)
