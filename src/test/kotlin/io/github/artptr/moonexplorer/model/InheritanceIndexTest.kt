@@ -46,7 +46,7 @@ class InheritanceIndexTest {
     fun excludedTaskWithLocalTaskOfTheSameIdDoesNotMerge() {
         val web = index.project("web")!!
         assertFalse("format" in web.merged)
-        assertFalse("web" in index.file(all)!!.tasks.getValue("format").inheritedBy)
+        assertTrue(web.inherited.none { it.globalId == "format" })
         assertTrue(index.file(all)!!.tasks.getValue("format").mergedIn.none { it.projectId == "web" })
     }
 
@@ -66,13 +66,11 @@ class InheritanceIndexTest {
         val file = index.file(all)!!
         assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), file.projects)
         assertEquals(setOf("lint", "format"), file.tasks.keys)
-        assertFalse("scripts" in file.tasks.getValue("format").inheritedBy)
     }
 
     @Test
     fun renamedTaskHasItsGlobalIdInTheFileAndItsLocalIdInTheTarget() {
         val typecheck = index.file(frontend)!!.tasks.getValue("typecheck")
-        assertEquals("tsc", typecheck.inheritedBy["web"])
         assertEquals(mapOf("web:tsc" to setOf("web:build")), typecheck.dependents)
     }
 
@@ -83,9 +81,9 @@ class InheritanceIndexTest {
     }
 
     @Test
-    fun dependentsAreNullWithoutTheTaskGraph() {
+    fun dependentsAreEmptyWithoutTheTaskGraph() {
         val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
-        assertNull(withoutGraph.file(all)!!.tasks.getValue("lint").dependents)
+        assertEquals(emptyMap<String, Set<String>>(), withoutGraph.file(all)!!.tasks.getValue("lint").dependents)
         assertEquals(1, withoutGraph.file(all)!!.tasks.getValue("lint").mergedIn.size)
     }
 
