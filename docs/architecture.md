@@ -41,6 +41,9 @@ The `run` package contains the run configuration for moon tasks. The configurati
 | Action **Show Refresh Error** in the group `MoonExplorer.TasksToolbar` | `ui.ShowRefreshFailureAction` | `plugin.xml` |
 | Load of the tasks and the result state. After a successful load, the loader finds the configuration files of the projects and the tasks on the disk (`model.findExistingConfigFiles`). The state keeps these files until the next successful load. After a failed load, `TasksState.Stale` keeps the files of the last successful load | `model.TasksLoader`, `model.TasksState` | None |
 | Parser of `moon query projects`. The parser also reads the configuration files of the tasks from `config.tasks` and `inherited.layers`. It reads the filter of the inherited tasks from `config.workspace.inheritedTasks` and all task IDs from `taskTargets` | `model.QueryProjectsParser` | None |
+| Parser of `moon task-graph --json`. The parser reads the dependencies and the merge strategies from the key `data` | `model.TaskGraphParser` | None |
+| Index of the task inheritance and the direct dependents, one index for each load | `model.InheritanceIndex` | None |
+| Structure of a configuration file, without the format of the file. A converter for each format makes it. Refer to ADR 0005 | `config.ConfigSyntax`, `config.ConfigConverter`, `yaml.YamlConfigConverter` | `plugin.xml` (extension point `configConverter`), `moon-explorer-yaml.xml` |
 | Category (`TaskCategory`) and main group (`TaskGrouping`) of the tree, and the action group `MoonExplorer.GroupBy` | `ui.CategoryNoneAction`, `ui.CategoryStackAction`, `ui.CategoryLayerAction`, `ui.CategoryTagAction`, `ui.GroupByProjectAction`, `ui.GroupByTaskNameAction` | `plugin.xml` |
 | Find the workspace root | `cli.MoonWorkspaceLocator` | None |
 | Find the `moon` executable | `cli.MoonExecutableLocator`, `settings.MoonExecutableService` | None (light service) |
@@ -71,11 +74,13 @@ The `run` package contains the run configuration for moon tasks. The configurati
 2. The plugin runs `moon query projects` in the workspace root. In moon v2, the output of this command is always JSON.
 3. The plugin reads the JSON with Gson. The IntelliJ Platform contains Gson. Thus the plugin has no new dependency.
 4. The service sets the new state. The tool window shows the tree or a message. If the load fails after a successful load, the tree keeps the last tasks. Refer to section 6.
-5. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.
+5. After a successful result, the plugin runs `moon task-graph --json` in the same load. The tree and the run icons do not use this output. Thus they do not wait for this command.
+6. The service adds the task graph to the state. Until the command completes, the state keeps the task graph of the last load. If the command fails, the state has no task graph. The load does not fail.
+7. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.
 
 **NOTE:** The `cli` and `model` packages give the cause of a failure as a type, for example `MoonFailure.ExitCode` or `OutputProblem.NoProjects`. `TasksLoader` changes each `CliFailure` into a `MoonFailure` of the model layer. Thus the `ui` package does not use the `cli` package. The `ui` package gets the text for each cause from `MoonExplorerBundle`. Some messages also contain an error text from moon, from the IntelliJ Platform, or from the JSON parser. The bundle message contains this text without change.
 
-The output of `moon query projects` contains the `stack` value, the `layer` value, the tags (`config.tags`), and the tasks of each project. Thus the plugin starts only one moon process for each load.
+The output of `moon query projects` contains the `stack` value, the `layer` value, the tags (`config.tags`), and the tasks of each project. Thus the plugin does not start a moon process for each project.
 The key `tasks` in the output does not contain internal tasks. moon writes internal tasks only in `taskTargets` and in the configuration of the project. The output of `moon query tasks` also does not contain internal tasks.
 moon does not write the key `tasks` for a project without tasks. The tree does not show these projects.
 
@@ -123,6 +128,7 @@ If the plugin cannot find `moon`, the tool window shows the examined locations a
 ## 5. Time limit to load the tasks
 
 The plugin stops `moon query projects` if it does not complete in the time limit. The tool window then shows a message and a link to the settings page.
+The time limit also applies to `moon task-graph --json`. If the plugin stops this command, it only writes a warning in the IDE log.
 `moon run` has no time limit. The task runs in the Run tool window until it stops or the user stops it.
 
 The user sets the time limit in seconds in **Settings | Tools | Moon Explorer**. The default value is 60 seconds.

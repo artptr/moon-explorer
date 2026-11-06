@@ -7,7 +7,6 @@ import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CancellationException
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -26,8 +25,10 @@ class TasksLoaderTest {
 
     private val recordedGraph = CliResult.Success(TestData.recorded("task-graph.json"))
 
-    private suspend fun loadTasks(dir: Path?, graph: suspend (Path) -> CliResult = { recordedGraph }, query: suspend (Path) -> CliResult) =
-        TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query, graph)
+    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) =
+        TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query)
+
+    private fun loadGraph(graph: suspend (Path) -> CliResult) = runBlocking { TasksLoader.loadTaskGraph(workspace, graph) }
 
     private fun load(dir: Path?, result: CliResult) = runBlocking { loadTasks(dir) { result } }
 
@@ -57,30 +58,23 @@ class TasksLoaderTest {
 
     @Test
     fun successGivesLoaded() {
-        assertEquals(TestData.recordedState(), load(workspace, recorded))
+        assertEquals(TestData.loadedState(TestData.recordedTasks(), taskGraph = null), load(workspace, recorded))
     }
 
     @Test
-    fun runsTheTaskGraphAfterTheQueryInTheWorkspaceRoot() {
-        val calls = mutableListOf<String>()
-        var dir: Path? = null
-        runBlocking {
-            loadTasks(workspace.resolve("apps/web"), { calls += "graph"; dir = it; recordedGraph }) { calls += "query"; recorded }
-        }
-        assertEquals(listOf("query", "graph"), calls)
-        assertEquals(workspace.toAbsolutePath().normalize(), dir)
+    fun stateKeepsTheLastTaskGraph() {
+        val graph = TaskGraph(mapOf("a:b" to setOf("c:d")))
+        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, graph) } as TasksState.Loaded
+        assertEquals(graph, state.taskGraph)
     }
 
     @Test
-    fun failedQueryDoesNotRunTheTaskGraph() {
-        var calls = 0
-        runBlocking { loadTasks(workspace, { calls++; recordedGraph }) { CliResult.Failed("bad config") } }
-        assertEquals(0, calls)
+    fun loadTaskGraphReadsTheOutput() {
+        assertEquals(TestData.recordedTaskGraph(), loadGraph { recordedGraph })
     }
 
     @Test
-    fun taskGraphFailureKeepsTheOtherData() {
-        val expected = TestData.loadedState(TestData.recordedTasks(), taskGraph = null)
+    fun loadTaskGraphGivesNullForAFailure() {
         val results = listOf<suspend (Path) -> CliResult>(
             { CliResult.Failed("moon cannot make the graph") },
             { CliResult.TimedOut },
@@ -88,19 +82,12 @@ class TasksLoaderTest {
             { CliResult.Success("{}") },
             { throw IllegalStateException("unexpected") },
         )
-        results.forEach { graph ->
-            val state = runBlocking { loadTasks(workspace, graph) { recorded } } as TasksState.Loaded
-            assertEquals(expected, state)
-            assertNull(state.taskGraph)
-            // The tree and the run icons continue to operate.
-            assertTrue(state.tasks.projects.isNotEmpty())
-            assertNotNull(state.taskKeyIndex.targets(state.configFiles.projects.getValue("web"), "build"))
-        }
+        results.forEach { assertNull(loadGraph(it)) }
     }
 
     @Test(expected = CancellationException::class)
     fun cancellationOfTheTaskGraphStopsTheLoad() {
-        runBlocking { loadTasks(workspace, { throw CancellationException("cancelled") }) { recorded } }
+        loadGraph { throw CancellationException("cancelled") }
     }
 
     @Test
