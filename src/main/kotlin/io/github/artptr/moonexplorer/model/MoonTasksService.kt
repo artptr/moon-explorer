@@ -145,24 +145,18 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         configWatch = ConfigWatch(root, projectDir, last?.tasks?.sources.orEmpty())
     }
 
-    /**
-     * Runs `moon query projects` in [root] with the executable of [MoonExecutableService].
-     * Each call gets the current time limit from [timeoutMillis].
-     */
-    private suspend fun queryProjects(root: Path): CliResult {
-        val search = project.service<MoonExecutableService>().findInWorkspace(root)
-        val executable = search.executable ?: return CliResult.NotFound(search.examined)
-        return MoonCli.queryProjects(executable, root, timeoutMillis())
-    }
+    private suspend fun queryProjects(root: Path): CliResult = runMoon(root, MoonCli::queryProjects)
+
+    private suspend fun taskGraph(root: Path): CliResult = runMoon(root, MoonCli::taskGraph)
 
     /**
-     * Runs `moon task-graph --json` in [root] with the executable of [MoonExecutableService].
+     * Runs [command] in [root] with the executable of [MoonExecutableService].
      * Each call gets the current time limit from [timeoutMillis].
      */
-    private suspend fun taskGraph(root: Path): CliResult {
+    private suspend fun runMoon(root: Path, command: suspend (Path, Path, Int) -> CliResult): CliResult {
         val search = project.service<MoonExecutableService>().findInWorkspace(root)
         val executable = search.executable ?: return CliResult.NotFound(search.examined)
-        return MoonCli.taskGraph(executable, root, timeoutMillis())
+        return command(executable, root, timeoutMillis())
     }
 
     /** Gives the time limit from [MoonSettings] in milliseconds. */

@@ -52,8 +52,4 @@ class YamlConfigConverter : ConfigConverter {
         while (leaf != null && leaf.text.isBlank()) leaf = PsiTreeUtil.nextLeaf(leaf)
         return leaf
     }
-
-    private companion object {
-        const val TASKS_KEY = "tasks"
-    }
 }
