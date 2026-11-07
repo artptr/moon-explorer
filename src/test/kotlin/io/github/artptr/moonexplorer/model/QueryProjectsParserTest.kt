@@ -88,9 +88,12 @@ class QueryProjectsParserTest {
     }
 
     @Test
-    fun recordedOutputHasNoTaskConfigsForAProjectWithoutTasks() {
+    fun recordedProjectWithoutTasksInheritsNoTask() {
         // The layers of the project config contain format and lint. moon does not write its taskTargets. Thus it inherits no task.
-        assertNull(recorded.taskConfigs["config"])
+        // The hints on the entries of workspace.inheritedTasks use the layers. Thus the plugin keeps them.
+        val config = recorded.taskConfigs.getValue("config")
+        assertEquals(emptyMap<String, List<InheritedLayer>>(), config.inheritedLayers)
+        assertEquals(setOf("format", "lint"), config.layers.keys)
     }
 
     /** Gives the task IDs of [InheritedTasksFilter.inheritedLayers] of each project in [json]. */
