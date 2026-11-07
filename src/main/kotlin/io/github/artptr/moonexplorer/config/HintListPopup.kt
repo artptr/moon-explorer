@@ -24,7 +24,7 @@ import java.awt.event.MouseEvent
 import java.util.Collections
 import java.util.IdentityHashMap
 
-/** The list of a hint or of a gutter icon. The IDE calls [choose] with the target of the item that the user selects. */
+/** The list of a hint or of a gutter icon. The IDE calls [choose] with the [SourceFile] of the item that the user selects. */
 internal class HintListStep(list: HintList, private val choose: (SourceFile) -> Unit) :
     BaseListPopupStep<HintItem>(list.title, list.items), ListPopupStepEx<HintItem> {
 

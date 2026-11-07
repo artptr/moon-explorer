@@ -9,7 +9,7 @@ import com.intellij.psi.util.CachedValuesManager
 
 /**
  * Reads the PSI of a moon configuration file in one format and gives a [ConfigSyntax].
- * To support one more format, add a converter and register it in the descriptor file of the format. Refer to ADR 0005.
+ * To support one more format, add a converter. Then register the converter in the descriptor file of the format. Refer to ADR 0005.
  */
 interface ConfigConverter {
     /** Gives the structure of [file], or null if the converter cannot read the file. Call this function in a read action. */

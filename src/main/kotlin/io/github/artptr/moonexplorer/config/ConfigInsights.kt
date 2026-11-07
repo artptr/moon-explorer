@@ -12,6 +12,8 @@ import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.sourceFile
+import io.github.artptr.moonexplorer.model.targetProjectId
+import io.github.artptr.moonexplorer.model.targetTaskId
 import io.github.artptr.moonexplorer.model.workspacePath
 import java.nio.file.Path
 
@@ -36,7 +38,7 @@ class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: H
 /**
  * Joins the syntax of the configuration file [file] with the loaded data. The function finds the data with the task IDs.
  * Thus the hints stay on the correct lines while the user types. The numbers change after the next load.
- * [syntax] contains PSI. Use this class only in a read action, and do not keep it.
+ * [syntax] contains PSI. Use this class only in a read action. Do not keep it.
  */
 class ConfigInsights internal constructor(private val syntax: ConfigSyntax, private val state: TasksState.Loaded, private val file: Path) {
 
@@ -135,6 +137,26 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
             val items = merged.map { HintItem(withStrategies(it.projectId, it.strategies), projectFile(it.projectId, it.localId)) }
             key to HintList(MoonExplorerBundle.message("hint.mergedIn.title", key.id), items)
         }
+    }
+
+    /**
+     * The hint above each global task with one or more direct dependents. The hint counts each dependent one time.
+     * The list has one group for each inherited target. If `moon task-graph` failed in the load, the file has no hints of this kind.
+     */
+    fun dependentsHints(): List<ConfigHint> {
+        val inheritance = global ?: return emptyList()
+        return syntax.taskKeys.mapNotNull { key ->
+            val dependents = inheritance.tasks[key.id]?.dependents.orEmpty()
+            val count = dependents.values.flatten().toSet().size
+            if (count == 0) return@mapNotNull null
+            val items = dependents.flatMap { (target, tasks) -> tasks.map { dependentItem(target, it) } }
+            ConfigHint(key.element, MoonExplorerBundle.message("hint.dependents", count), HintList(MoonExplorerBundle.message("hint.dependents.title", key.id), items))
+        }
+    }
+
+    private fun dependentItem(group: String, target: String): HintItem {
+        val configFile = state.configFiles.projects[targetProjectId(target)]
+        return HintItem(target, configFile?.let { sourceFile(it, targetTaskId(target)) }, group, configFile?.let(state::workspacePath))
     }
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */

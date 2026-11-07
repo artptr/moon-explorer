@@ -48,7 +48,7 @@ data class FileInheritance(val projects: Map<String, List<String>>, val tasks: M
  * moon finds the files of each project. The plugin does not calculate which files apply to a project.
  * It only uses `include`, `exclude`, and `rename` of each project. Refer to [TaskConfigs.inheritedLayers].
  * The index examines [TasksState.Loaded.tasks] with `taskConfigs`, not with the task list, because the task list does not contain internal tasks.
- * The function does not start moon and does not read the disk.
+ * The index does not start moon and does not read the disk.
  */
 internal class InheritanceIndex private constructor(
     private val projects: Map<String, ProjectInheritance>,
