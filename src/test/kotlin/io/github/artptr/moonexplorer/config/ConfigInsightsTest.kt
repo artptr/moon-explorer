@@ -8,6 +8,7 @@ import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.loadRecorded
@@ -120,6 +121,20 @@ class ConfigInsightsTest : BasePlatformTestCase() {
 
     fun testLocalTaskOfAnExcludedGlobalTaskDoesNotMerge() {
         assertFalse(insights("apps/web/moon.yml").mergedHints().any { it.element.text == "format" })
+    }
+
+    fun testHintTextsHavePluralForms() {
+        assertEquals("Merged in 1 project", MoonExplorerBundle.message("hint.mergedIn", 1))
+        assertEquals("Merged in 2 projects", MoonExplorerBundle.message("hint.mergedIn", 2))
+        assertEquals("Inherited by 0 projects", MoonExplorerBundle.message("hint.inheritedBy", 0))
+        assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))
+    }
+
+    fun testHintWithAnEmptyListHasNoClickAction() {
+        val empty = codeVisionEntry("Inherited by 0 projects", HintList("title", emptyList()), "moon.inherited")
+        assertFalse(empty is ClickableTextCodeVisionEntry)
+        val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), "moon.inherited")
+        assertTrue(one is ClickableTextCodeVisionEntry)
     }
 
     fun testStrategiesAreOnlyInTheTextIfTheyExist() {
