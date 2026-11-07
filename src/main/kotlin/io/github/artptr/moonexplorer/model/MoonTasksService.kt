@@ -47,6 +47,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     private val defaultProjectDir: () -> Path? = { project.service<MoonExecutableService>().projectDir() }
     private val defaultQueryProjects: suspend (Path) -> CliResult = ::queryProjects
+    private val defaultTaskGraph: suspend (Path) -> CliResult = ::taskGraph
 
     /**
      * Gives the IDE project directory. Tests change this value.
@@ -61,6 +62,12 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     internal var queryProjects: suspend (Path) -> CliResult = defaultQueryProjects
 
     /**
+     * Runs `moon task-graph --json`. Tests change this value to a fake.
+     * Change it only on the test thread, before you call [refresh]. Each load uses the value from its call.
+     */
+    internal var taskGraph: suspend (Path) -> CliResult = defaultTaskGraph
+
+    /**
      * The time that [scheduleRefresh] waits before the refresh. Tests change this value.
      * Change it only on the test thread, before you call [scheduleRefresh].
      */
@@ -68,7 +75,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
 
     /**
      * Refreshes the tasks after [refreshDelay]. If the function gets a new call in this time, it starts to wait again.
-     * Thus many changes in a short time cause only one run of `moon query projects`.
+     * Thus many changes in a short time cause only one load.
      */
     @Synchronized
     fun scheduleRefresh() {
@@ -84,7 +91,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     }
 
     /**
-     * Runs `moon query projects` again. If a load runs now, the function cancels it and starts a new load.
+     * Runs `moon query projects` and `moon task-graph` again. If a load runs now, the function cancels it and starts a new load.
      * The function also cancels a refresh that [scheduleRefresh] started. Thus a manual refresh does not cause a second refresh.
      */
     @Synchronized
@@ -107,16 +114,17 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
         val queryProjectsFn = queryProjects
+        val taskGraphFn = taskGraph
         job = scope.launch {
             previous?.join()
-            _state.value = withContext(Dispatchers.IO) {
+            val published = withContext(Dispatchers.IO) {
                 val dir = projectDirFn()
                 val root = project.service<MoonExecutableService>().workspaceRoot(dir)
                 // The code gets the last successful load after the old load stops. The old load can set its result before it stops.
                 val last = _state.value.lastLoaded
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
                 watchConfig(root, dir, last)
-                val result = TasksLoader.loadTasksIn(root, queryProjectsFn)
+                val result = TasksLoader.loadTasksIn(root, queryProjectsFn, last?.taskGraph)
                 // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
                 // NoWorkspace does not keep the last load, because the old tasks are not correct.
                 // A load with the same result keeps the last instance. Thus the users of the state do not repeat their work for it.
@@ -129,7 +137,22 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
                 if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
                 state
             }
+            _state.value = published
+            // The tree and the run icons do not use the task graph. Thus the service shows the tasks before this command completes.
+            if (published is TasksState.Loaded) updateTaskGraph(published, taskGraphFn)
         }
+    }
+
+    /**
+     * Runs [taskGraph] and adds the result to [loaded]. A new load cancels this function. If the task graph did not change, the state does not change.
+     * The state makes its indexes again. Thus the function does this work on a background thread.
+     */
+    private suspend fun updateTaskGraph(loaded: TasksState.Loaded, taskGraph: suspend (Path) -> CliResult) {
+        val updated = withContext(Dispatchers.IO) {
+            val graph = TasksLoader.loadTaskGraph(loaded.root, taskGraph)
+            if (graph == loaded.taskGraph) null else loaded.copy(taskGraph = graph)
+        }
+        if (updated != null) _state.value = updated
     }
 
     /** Sets [configWatch] for [root] and [projectDir]. The sources come from [last], the result of the last successful load. */
@@ -137,14 +160,18 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         configWatch = ConfigWatch(root, projectDir, last?.tasks?.sources.orEmpty())
     }
 
+    private suspend fun queryProjects(root: Path): CliResult = runMoon(root, MoonCli::queryProjects)
+
+    private suspend fun taskGraph(root: Path): CliResult = runMoon(root, MoonCli::taskGraph)
+
     /**
-     * Runs `moon query projects` in [root] with the executable of [MoonExecutableService].
+     * Runs [command] in [root] with the executable of [MoonExecutableService].
      * Each call gets the current time limit from [timeoutMillis].
      */
-    private suspend fun queryProjects(root: Path): CliResult {
+    private suspend fun runMoon(root: Path, command: suspend (Path, Path, Int) -> CliResult): CliResult {
         val search = project.service<MoonExecutableService>().findInWorkspace(root)
         val executable = search.executable ?: return CliResult.NotFound(search.examined)
-        return MoonCli.queryProjects(executable, root, timeoutMillis())
+        return command(executable, root, timeoutMillis())
     }
 
     /** Gives the time limit from [MoonSettings] in milliseconds. */
@@ -153,7 +180,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
     /**
      * Cancels the load, waits until it stops, and sets the state to [TasksState.Loading] without the last successful load.
      * Also cancels the refresh that waits, removes the data of the last successful load from [configWatch],
-     * and sets [projectDir], [queryProjects], and [refreshDelay] to their default values. Only tests use this function.
+     * and sets [projectDir], [queryProjects], [taskGraph], and [refreshDelay] to their default values. Only tests use this function.
      * Call it only on the test thread.
      */
     @TestOnly
@@ -161,6 +188,7 @@ class MoonTasksService(private val project: Project, val scope: CoroutineScope) 
         val previous = synchronized(this) {
             projectDir = defaultProjectDir
             queryProjects = defaultQueryProjects
+            taskGraph = defaultTaskGraph
             refreshDelay = REFRESH_DELAY
             pending?.cancel()
             pending = null

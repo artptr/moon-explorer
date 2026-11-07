@@ -25,6 +25,9 @@ npx moon --version > "$tmp/moon-version.txt"
 # Replace the path of the workspace with /workspace. Thus the file does not contain paths of this computer.
 npx moon query projects | sed "s|$workspace|/workspace|g" > "$tmp/query-projects.json"
 
+# The output of moon task-graph contains all tasks and their dependencies. This includes the internal tasks.
+npx moon task-graph --json | sed "s|$workspace|/workspace|g" > "$tmp/task-graph.json"
+
 # Record one inherited task, one inherited task that a project changes, and one local task.
 for target in api:audit web:lint web:build; do
   npx moon task "$target" --json > "$tmp/task-${target/:/-}.json"

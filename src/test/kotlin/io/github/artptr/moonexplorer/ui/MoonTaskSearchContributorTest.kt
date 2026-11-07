@@ -54,7 +54,7 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
     }
 
     fun testSearchFindsTheTasksOfAProject() {
-        assertContainsElements(targets("worker"), "worker:audit", "worker:build", "worker:start", "worker:test")
+        assertContainsElements(targets("worker"), "worker:audit", "worker:build", "worker:check", "worker:start")
     }
 
     fun testSearchFindsATaskByItsDescription() {

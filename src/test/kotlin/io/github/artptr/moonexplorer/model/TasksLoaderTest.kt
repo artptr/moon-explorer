@@ -5,7 +5,9 @@ import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -21,7 +23,12 @@ class TasksLoaderTest {
 
     private val recorded = CliResult.Success(TestData.recorded("query-projects.json"))
 
-    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) = TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query)
+    private val recordedGraph = CliResult.Success(TestData.recorded("task-graph.json"))
+
+    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) =
+        TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query)
+
+    private fun loadGraph(graph: suspend (Path) -> CliResult) = runBlocking { TasksLoader.loadTaskGraph(workspace, graph) }
 
     private fun load(dir: Path?, result: CliResult) = runBlocking { loadTasks(dir) { result } }
 
@@ -51,7 +58,36 @@ class TasksLoaderTest {
 
     @Test
     fun successGivesLoaded() {
-        assertEquals(TestData.recordedState(), load(workspace, recorded))
+        assertEquals(TestData.loadedState(TestData.recordedTasks(), taskGraph = null), load(workspace, recorded))
+    }
+
+    @Test
+    fun stateKeepsTheLastTaskGraph() {
+        val graph = TaskGraph(mapOf("a:b" to setOf("c:d")))
+        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, graph) } as TasksState.Loaded
+        assertEquals(graph, state.taskGraph)
+    }
+
+    @Test
+    fun loadTaskGraphReadsTheOutput() {
+        assertEquals(TestData.recordedTaskGraph(), loadGraph { recordedGraph })
+    }
+
+    @Test
+    fun loadTaskGraphGivesNullForAFailure() {
+        val results = listOf<suspend (Path) -> CliResult>(
+            { CliResult.Failed("moon cannot make the graph") },
+            { CliResult.TimedOut },
+            { CliResult.Success("not JSON") },
+            { CliResult.Success("{}") },
+            { throw IllegalStateException("unexpected") },
+        )
+        results.forEach { assertNull(loadGraph(it)) }
+    }
+
+    @Test(expected = CancellationException::class)
+    fun cancellationOfTheTaskGraphStopsTheLoad() {
+        loadGraph { throw CancellationException("cancelled") }
     }
 
     @Test

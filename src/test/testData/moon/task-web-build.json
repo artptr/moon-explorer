@@ -16,6 +16,12 @@
       "env": {},
       "target": "utils:build",
       "cacheStrategy": "hash"
+    },
+    {
+      "args": [],
+      "env": {},
+      "target": "web:tsc",
+      "cacheStrategy": "ignored"
     }
   ],
   "description": "Make the production bundle.",

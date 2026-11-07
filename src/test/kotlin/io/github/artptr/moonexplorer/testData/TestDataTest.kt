@@ -28,6 +28,16 @@ class TestDataTest {
     }
 
     @Test
+    fun recordedTaskGraphContainsInternalTasks() {
+        val graph = JsonParser.parseString(TestData.recorded("task-graph.json")).asJsonObject
+        val targets = graph.getAsJsonObject("data").entrySet().map { it.value.asJsonObject.get("target").asString }
+        assertTrue("ui:generate-icons" in targets)
+        // The parser reads only the dependencies of the tasks. They must give the same number of items as the edges of the graph.
+        val dependencies = graph.getAsJsonObject("data").entrySet().sumOf { it.value.asJsonObject.getAsJsonArray("deps")?.size() ?: 0 }
+        assertEquals(graph.getAsJsonObject("graph").getAsJsonArray("edges").size(), dependencies)
+    }
+
+    @Test
     fun workspaceHasMoonConfiguration() {
         assertTrue(TestData.workspace.resolve(".moon/workspace.yml").isFile)
     }
@@ -75,7 +85,8 @@ class TestDataTest {
     @Test
     fun projectChangesAnInheritedTask() {
         val args = tasks.getValue("web").getAsJsonObject("lint").getAsJsonArray("args").map { it.asString }
-        assertEquals(listOf("lint", "--max-warnings", "0"), args)
+        // The value of mergeArgs is prepend. Thus the arguments of the project are before the arguments of the global task.
+        assertEquals(listOf("--max-warnings", "0", "lint"), args)
     }
 
     @Test

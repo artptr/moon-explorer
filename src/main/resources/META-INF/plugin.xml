@@ -16,6 +16,13 @@
 
     <resource-bundle>messages.MoonExplorerBundle</resource-bundle>
 
+    <extensionPoints>
+        <!-- A converter gives the structure of a configuration file in one format. Refer to docs/adr/0005-yaml-file-type-and-task-hints.md. -->
+        <extensionPoint name="configConverter" beanClass="com.intellij.lang.LanguageExtensionPoint" dynamic="true">
+            <with attribute="implementationClass" implements="io.github.artptr.moonexplorer.config.ConfigConverter"/>
+        </extensionPoint>
+    </extensionPoints>
+
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Moon"
                     anchor="right"

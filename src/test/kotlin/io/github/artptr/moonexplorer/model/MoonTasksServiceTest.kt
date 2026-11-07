@@ -48,8 +48,14 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // The fake moon is a shell script. Thus this test does not run on Windows.
         if (SystemInfo.isWindows) return
         // The script writes one project. The ID of the project is the first two arguments.
+        // For the task graph, the script writes one task. The target of the task is the first two arguments.
         val moon = fakeMoonExecutable(
-            content = "#!/bin/sh\nprintf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n",
+            content = "#!/bin/sh\n" +
+                "if [ \"\$1\" = task-graph ]; then\n" +
+                "  printf '{\"data\": {\"0\": {\"target\": \"%s-%s\", \"deps\": [{\"target\": \"a:b\"}]}}}' \"\$1\" \"\$2\"\n" +
+                "else\n" +
+                "  printf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n" +
+                "fi\n",
         )
         val settings = project.service<MoonSettings>()
         try {
@@ -59,10 +65,61 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             service.projectDir = { TestData.workspace.toPath() }
             service.refresh()
             val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
-            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected))))
+            val graph = TaskGraph(mapOf("a:b" to setOf("task-graph---json")))
+            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected)), taskGraph = graph))
         } finally {
             settings.executablePath = ""
         }
+    }
+
+    fun testServiceShowsTheTasksBeforeTheTaskGraphCompletes() {
+        val started = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        service.taskGraph = {
+            started.complete(Unit)
+            finish.await()
+            CliResult.Success(TestData.recorded("task-graph.json"))
+        }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+        runBlocking { withTimeout(10_000) { started.await() } }
+        finish.complete(Unit)
+        service.awaitState(TestData.recordedState())
+    }
+
+    fun testRefreshKeepsTheLastTaskGraphUntilTheCommandCompletes() {
+        service.loadRecorded()
+        val last = service.state.value
+        val started = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        service.taskGraph = {
+            started.complete(Unit)
+            finish.await()
+            CliResult.Success("""{"data": {}}""")
+        }
+        service.refresh()
+        runBlocking { withTimeout(10_000) { started.await() } }
+        // The result of moon query projects did not change. Thus the state is the same instance, with the last task graph.
+        assertSame(last, service.state.value)
+        finish.complete(Unit)
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = TaskGraph()))
+    }
+
+    fun testTaskGraphFailureRemovesOnlyTheTaskGraph() {
+        service.loadRecorded()
+        service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+    }
+
+    fun testNewLoadCancelsTheTaskGraphOfTheLastLoad() {
+        val started = CompletableDeferred<Unit>()
+        service.taskGraph = { started.complete(Unit); awaitCancellation() }
+        service.refresh()
+        runBlocking { withTimeout(10_000) { started.await() } }
+        service.taskGraph = { CliResult.Success(TestData.recorded("task-graph.json")) }
+        service.refresh()
+        service.awaitState(TestData.recordedState())
     }
 
     fun testTimeoutComesFromTheSettings() {

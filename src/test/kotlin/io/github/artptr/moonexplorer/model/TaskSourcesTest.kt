@@ -43,7 +43,7 @@ class TaskSourcesTest {
             TaskKeyTargets.Shared(listOf("admin:test", "icons:test", "ui:test", "utils:test", "web:test")),
             keyTargets(".moon/tasks/frontend.yml", "test"),
         )
-        assertEquals(TaskKeyTargets.Shared(listOf("api:test", "db:test", "worker:test")), keyTargets(".moon/tasks/backend.yml", "test"))
+        assertEquals(TaskKeyTargets.Shared(listOf("api:test", "db:unit", "worker:check")), keyTargets(".moon/tasks/backend.yml", "test"))
         val lint = keyTargets(".moon/tasks/all.yml", "lint") as TaskKeyTargets.Shared
         assertEquals(state.tasks.projects.map { "${it.id}:lint" }, lint.targets)
         // The layers of the project "config" contain lint, but moon gives no tasks for this project. Thus it has no target.
@@ -86,9 +86,9 @@ class TaskSourcesTest {
 
     @Test
     fun renamedTaskKeyInAnInheritedFileRunsTheTaskWithTheNewId() {
-        // The project web renames the global task typecheck to tsc.
+        // The project web renames the global task typecheck to tsc. The task icons:typecheck is internal. Thus it has no run icon.
         assertEquals(
-            TaskKeyTargets.Shared(listOf("admin:typecheck", "icons:typecheck", "ui:typecheck", "utils:typecheck", "web:tsc")),
+            TaskKeyTargets.Shared(listOf("admin:typecheck", "ui:typecheck", "utils:typecheck", "web:tsc")),
             keyTargets(".moon/tasks/frontend.yml", "typecheck"),
         )
         assertNull(keyTargets(".moon/tasks/frontend.yml", "tsc"))
@@ -98,7 +98,8 @@ class TaskSourcesTest {
     fun excludedTaskKeyInAnInheritedFileDoesNotRunTheLocalTaskWithTheSameId() {
         // The project web excludes the global task format and has a local task format.
         val format = keyTargets(".moon/tasks/all.yml", "format") as TaskKeyTargets.Shared
-        assertEquals(state.tasks.projects.map { "${it.id}:format" } - "scripts:format" - "web:format", format.targets)
+        // The task icons:format is internal. Thus it has no run icon. The project worker renames the global task format to check.
+        assertEquals(listOf("admin:format", "api:format", "db:format", "ui:format", "utils:format", "worker:check"), format.targets)
         assertEquals(TaskKeyTargets.Single("web:format"), keyTargets("apps/web/moon.yml", "format"))
     }
 

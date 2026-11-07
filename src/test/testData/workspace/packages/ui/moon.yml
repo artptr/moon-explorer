@@ -8,6 +8,8 @@ project:
 tasks:
   build:
     command: 'echo build ui'
+    # This task is a dependent of the inherited task lint.
+    deps: ['lint']
     # The command does not make dist. The output is optional. Thus moon does not stop with an error.
     outputs:
       - file: 'dist'
@@ -22,5 +24,7 @@ tasks:
   generate-icons:
     command: 'echo generate icons'
     description: 'Make the icon components from the SVG files.'
+    # An internal task can also be a dependent of an inherited task.
+    deps: ['~:lint']
     options:
       internal: true

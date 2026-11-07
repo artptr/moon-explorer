@@ -10,4 +10,7 @@
                                   implementationClass="io.github.artptr.moonexplorer.yaml.MoonTaskRunLineMarkerContributor"/>
         <runConfigurationProducer implementation="io.github.artptr.moonexplorer.yaml.MoonTaskRunConfigurationProducer"/>
     </extensions>
+    <extensions defaultExtensionNs="io.github.artptr.moonexplorer">
+        <configConverter language="yaml" implementationClass="io.github.artptr.moonexplorer.yaml.YamlConfigConverter"/>
+    </extensions>
 </idea-plugin>
