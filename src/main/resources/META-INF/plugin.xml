@@ -40,6 +40,9 @@
         <searchEverywhereContributor implementation="io.github.artptr.moonexplorer.ui.MoonTaskSearchContributor$Factory"/>
         <runAnything.executionProvider implementation="io.github.artptr.moonexplorer.ui.MoonRunAnythingProvider"/>
         <dependencySupport kind="javascript" coordinate="npm:@moonrepo/cli" displayName="moon"/>
+        <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonInheritedCodeVisionProvider"/>
+        <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider"/>
+        <config.codeVisionGroupSettingProvider implementation="io.github.artptr.moonexplorer.config.MoonCodeVisionGroupSettingProvider"/>
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
 

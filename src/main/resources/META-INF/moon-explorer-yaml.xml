@@ -8,6 +8,8 @@
                   fileNames="moon.yml;moon.yaml"/>
         <runLineMarkerContributor language="yaml"
                                   implementationClass="io.github.artptr.moonexplorer.yaml.MoonTaskRunLineMarkerContributor"/>
+        <codeInsight.lineMarkerProvider language="yaml"
+                                        implementationClass="io.github.artptr.moonexplorer.config.MoonInheritanceLineMarkerProvider"/>
         <runConfigurationProducer implementation="io.github.artptr.moonexplorer.yaml.MoonTaskRunConfigurationProducer"/>
     </extensions>
     <extensions defaultExtensionNs="io.github.artptr.moonexplorer">

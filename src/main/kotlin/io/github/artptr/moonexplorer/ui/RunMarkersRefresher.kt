@@ -1,11 +1,13 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.hints.codeVision.ModificationStampUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -23,12 +25,15 @@ import kotlinx.coroutines.withContext
 import java.nio.file.Path
 
 /**
- * Updates the run icons in the gutter of the open moon configuration files after a load.
- * The run icons use only the loaded data. The IDE does not update them when the data changes. Thus the refresher starts the analysis of
+ * Updates the run icons, the inheritance icons, and the Code Vision hints of the open moon configuration files after a load.
+ * These items use only the loaded data. The IDE does not update them when the data changes. Thus the refresher starts the analysis of
  * these files again.
  *
+ * The IDE does not calculate the Code Vision hints again if the PSI did not change. A load does not change the PSI.
+ * Thus the refresher also clears the modification stamp of each editor of the file.
+ *
  * The refresher examines the configuration files of the old data and of the new data. Thus the refresher also removes the icon of a removed task.
- * Only YAML files have run icons. Thus the refresher examines only the YAML files. The refresher does not use YAML classes.
+ * Only YAML files have these items. Thus the refresher examines only the YAML files. The refresher does not use YAML classes.
  * If a later contributor adds run icons for a different file format, add this format to [runMarkerPaths].
  */
 @Service(Service.Level.PROJECT)
@@ -61,11 +66,20 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
         }
         if (files.isEmpty()) return
         withContext(Dispatchers.EDT) {
-            files.filter { it.isValid }.forEach { restart(it) }
+            val editorManager = FileEditorManager.getInstance(project)
+            files.filter { it.isValid }.forEach { file ->
+                editorManager.getEditors(file.virtualFile).filterIsInstance<TextEditor>().forEach {
+                    ModificationStampUtil.clearModificationStamp(it.editor)
+                }
+                restart(file)
+            }
         }
     }
 }
 
-/** Gives the YAML configuration files of the projects and the inherited YAML files of [state]. Only these files have run icons. */
+/**
+ * Gives the YAML configuration files of the projects and the inherited YAML files of [state].
+ * Only these files have run icons, inheritance icons, and Code Vision hints.
+ */
 internal fun runMarkerPaths(state: TasksState.Loaded?): Set<Path> =
     state?.configFiles?.let { it.projects.values + it.inherited.values }?.filterTo(HashSet(), ::isYamlFile).orEmpty()

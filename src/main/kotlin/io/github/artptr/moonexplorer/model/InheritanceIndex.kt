@@ -36,8 +36,11 @@ data class GlobalTaskInheritance(
     val dependents: Map<String, Set<String>>,
 )
 
-/** The inheritance of one file in `.moon/tasks/`. [projects] contains the projects that inherit one or more tasks of the file, in [ID_ORDER]. */
-data class FileInheritance(val projects: List<String>, val tasks: Map<String, GlobalTaskInheritance>)
+/**
+ * The inheritance of one file in `.moon/tasks/`. [projects] gives the projects that inherit one or more tasks of the file, in [ID_ORDER].
+ * The value of each project gives the local IDs of the inherited tasks, in [ID_ORDER].
+ */
+data class FileInheritance(val projects: Map<String, List<String>>, val tasks: Map<String, GlobalTaskInheritance>)
 
 /**
  * The task inheritance and the dependents of one [TasksState.Loaded]. The keys with paths are absolute and normalized.
@@ -100,7 +103,7 @@ internal class InheritanceIndex private constructor(
 
         /** Gives the inheritance of one file from its [rows]. The rows are in [ID_ORDER] of the projects. */
         private fun fileInheritance(rows: List<FileRow>, graph: TaskGraph?) = FileInheritance(
-            rows.map { it.projectId }.distinct(),
+            rows.groupBy({ it.projectId }, { it.task.localId }).mapValues { (_, ids) -> ids.distinct().sortedWith(ID_ORDER) },
             rows.groupBy { it.task.globalId }.mapValues { (_, tasks) ->
                 val mergedIn = tasks.mapNotNull { row -> row.merged?.let { MergingProject(row.projectId, row.task.localId, it.strategies) } }
                 val targets = tasks.map { taskTarget(it.projectId, it.task.localId) }
