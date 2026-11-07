@@ -50,6 +50,10 @@ internal fun codeVisionEntry(text: String, list: HintList, providerId: String): 
 class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
     override val id: String get() = "moon.inherited"
     override val name: String get() = MoonExplorerBundle.message("codeVision.inherited.name")
+
+    /** In a flow mapping, the hint at the top of the file and a hint of a task can be on one line. This hint is the first. */
+    override val relativeOrderings: List<CodeVisionRelativeOrdering>
+        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst)
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.inheritedHints()
 }
 
@@ -57,6 +61,8 @@ class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
 class MoonMergedCodeVisionProvider : MoonCodeVisionProvider() {
     override val id: String get() = "moon.merged"
     override val name: String get() = MoonExplorerBundle.message("codeVision.merged.name")
+    override val relativeOrderings: List<CodeVisionRelativeOrdering>
+        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter("moon.inherited"))
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.mergedHints()
 }
 
