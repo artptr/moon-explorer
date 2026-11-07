@@ -187,6 +187,18 @@ class TaskSourcesTest {
     }
 
     @Test
+    fun projectWithOnlyInternalTasksHasItsConfigFile() {
+        // The project ui is not in the tree here, because the test gives it only task configurations.
+        val tasks = WorkspaceTasks(
+            projects = emptyList(),
+            sources = listOf(ProjectSource("ui", "packages/ui")),
+            taskConfigs = mapOf("ui" to TaskConfigs(ownTasks = setOf("generate-icons"))),
+        )
+        val files = TestData.loadedState(tasks, taskGraph = null).configFiles
+        assertEquals(mapOf("ui" to TestData.workspaceRoot.resolve("packages/ui/moon.yml")), files.projects)
+    }
+
+    @Test
     fun loadFindsTheConfigFilesOfTheRecordedWorkspace() {
         val files = state.configFiles
         // The project config has no tasks. Its configuration file can have hints. Thus the file is also in the map.
