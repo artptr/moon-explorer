@@ -80,6 +80,10 @@ The test workspace contains these items:
 - Tasks with a description and tasks without a description
 - The project `ui` has the internal task `generate-icons`. moon does not write internal tasks in the key `tasks` in the output of `moon query projects`.
 - The project `icons` has the internal task `format`, which merges with the global task `format`. The value of `mergeArgs` is `replace`.
+- The project `icons` also has the internal task `typecheck`, with the setting `merge` and the setting `mergeArgs`. The setting for one field has priority.
+- The project `db` renames the global task `test` to `unit`. It also has a local task `unit`. Thus the local task merges with the global task.
+- The project `worker` renames the global tasks `format` and `test` to `check`. Thus one task inherits from two global tasks.
+- The global task `lint` is in `all.yml` and in `backend.yml`. Thus backend projects inherit it from two files.
 - The project `config` has no tasks.
 - The project `icons` in `packages/ui/icons` is a nested project in the project `ui`. The key `sources` in `.moon/workspace.yml` adds it.
 - `build` tasks with the optional output `dist`. The commands do not make output files. Thus `moon run` completes for each task.

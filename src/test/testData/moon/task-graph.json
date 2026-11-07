@@ -49,8 +49,7 @@
       45,
       46,
       47,
-      48,
-      49
+      48
     ],
     "node_holes": [],
     "edge_property": "directed",
@@ -364,7 +363,9 @@
     "47": {
       "command": "echo",
       "args": [
-        "lint"
+        "lint",
+        "lint",
+        "backend"
       ],
       "description": "Do a check of the source code with the linter.",
       "id": "lint",
@@ -379,6 +380,9 @@
         },
         {
           "file": "/.moon/tasks/all.yml"
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
         }
       ],
       "options": {
@@ -475,7 +479,9 @@
     "28": {
       "command": "echo",
       "args": [
-        "lint"
+        "lint",
+        "lint",
+        "backend"
       ],
       "description": "Do a check of the source code with the linter.",
       "id": "lint",
@@ -490,6 +496,9 @@
         },
         {
           "file": "/.moon/tasks/all.yml"
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
         }
       ],
       "options": {
@@ -529,7 +538,9 @@
     "22": {
       "command": "echo",
       "args": [
-        "lint"
+        "lint",
+        "lint",
+        "backend"
       ],
       "description": "Do a check of the source code with the linter.",
       "id": "lint",
@@ -544,6 +555,9 @@
         },
         {
           "file": "/.moon/tasks/all.yml"
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
         }
       ],
       "options": {
@@ -769,16 +783,16 @@
         "envOverride": false,
         "expectFailure": false,
         "inferInputs": false,
-        "internal": false,
+        "internal": true,
         "interactive": false,
-        "mergeArgs": "append",
-        "mergeChecks": "append",
-        "mergeDeps": "append",
-        "mergeEnv": "append",
-        "mergeInputs": "append",
-        "mergeOutputs": "append",
-        "mergeTags": "append",
-        "mergeToolchains": "append",
+        "mergeArgs": "prepend",
+        "mergeChecks": "replace",
+        "mergeDeps": "replace",
+        "mergeEnv": "replace",
+        "mergeInputs": "replace",
+        "mergeOutputs": "replace",
+        "mergeTags": "replace",
+        "mergeToolchains": "replace",
         "persistent": false,
         "priority": "normal",
         "retryCount": 0,
@@ -1208,9 +1222,12 @@
     "46": {
       "command": "echo",
       "args": [
-        "format"
+        "format",
+        "test",
+        "backend"
       ],
-      "id": "format",
+      "description": "Run the unit tests in Node.js.",
+      "id": "check",
       "inputs": [
         {
           "glob": "src/**/*",
@@ -1222,6 +1239,9 @@
         },
         {
           "file": "/.moon/tasks/all.yml"
+        },
+        {
+          "file": "/.moon/tasks/backend.yml"
         }
       ],
       "options": {
@@ -1252,7 +1272,7 @@
         "windowsShell": "pwsh"
       },
       "state": {},
-      "target": "worker:format",
+      "target": "worker:check",
       "toolchains": [
         "system"
       ],
@@ -1367,63 +1387,6 @@
       },
       "state": {},
       "target": "admin:lint",
-      "toolchains": [
-        "system"
-      ],
-      "type": "test"
-    },
-    "49": {
-      "command": "echo",
-      "args": [
-        "test",
-        "backend"
-      ],
-      "description": "Run the unit tests in Node.js.",
-      "id": "test",
-      "inputs": [
-        {
-          "glob": "**/*",
-          "cache": true
-        },
-        {
-          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
-          "cache": true
-        },
-        {
-          "file": "/.moon/tasks/backend.yml"
-        }
-      ],
-      "options": {
-        "allowFailure": false,
-        "cache": true,
-        "envOverride": false,
-        "expectFailure": false,
-        "inferInputs": false,
-        "internal": false,
-        "interactive": false,
-        "mergeArgs": "append",
-        "mergeChecks": "append",
-        "mergeDeps": "append",
-        "mergeEnv": "append",
-        "mergeInputs": "append",
-        "mergeOutputs": "append",
-        "mergeTags": "append",
-        "mergeToolchains": "append",
-        "persistent": false,
-        "priority": "normal",
-        "retryCount": 0,
-        "runDepsInParallel": true,
-        "runInCI": true,
-        "runInSyncPhase": false,
-        "runFromWorkspaceRoot": false,
-        "shell": true,
-        "unixShell": "bash",
-        "windowsShell": "pwsh"
-      },
-      "state": {
-        "defaultInputs": true
-      },
-      "target": "worker:test",
       "toolchains": [
         "system"
       ],
@@ -2105,71 +2068,6 @@
       ],
       "type": "build"
     },
-    "23": {
-      "command": "echo",
-      "args": [
-        "start",
-        "api"
-      ],
-      "deps": [
-        {
-          "args": [],
-          "env": {},
-          "target": "db:migrate",
-          "cacheStrategy": "ignored"
-        }
-      ],
-      "description": "Start the API server.",
-      "id": "start",
-      "inputs": [
-        {
-          "glob": "**/*",
-          "cache": true
-        },
-        {
-          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
-          "cache": true
-        }
-      ],
-      "options": {
-        "allowFailure": false,
-        "cache": false,
-        "envOverride": false,
-        "expectFailure": false,
-        "inferInputs": false,
-        "internal": false,
-        "interactive": false,
-        "mergeArgs": "append",
-        "mergeChecks": "append",
-        "mergeDeps": "append",
-        "mergeEnv": "append",
-        "mergeInputs": "append",
-        "mergeOutputs": "append",
-        "mergeTags": "append",
-        "mergeToolchains": "append",
-        "outputStyle": "stream",
-        "persistent": true,
-        "priority": "low",
-        "retryCount": 0,
-        "runDepsInParallel": true,
-        "runInCI": false,
-        "runInSyncPhase": false,
-        "runFromWorkspaceRoot": false,
-        "shell": true,
-        "unixShell": "bash",
-        "windowsShell": "pwsh"
-      },
-      "preset": "server",
-      "state": {
-        "defaultInputs": true,
-        "setRunInCi": true
-      },
-      "target": "api:start",
-      "toolchains": [
-        "system"
-      ],
-      "type": "run"
-    },
     "45": {
       "command": "echo",
       "args": [
@@ -2237,6 +2135,71 @@
         "system"
       ],
       "type": "build"
+    },
+    "23": {
+      "command": "echo",
+      "args": [
+        "start",
+        "api"
+      ],
+      "deps": [
+        {
+          "args": [],
+          "env": {},
+          "target": "db:migrate",
+          "cacheStrategy": "ignored"
+        }
+      ],
+      "description": "Start the API server.",
+      "id": "start",
+      "inputs": [
+        {
+          "glob": "**/*",
+          "cache": true
+        },
+        {
+          "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
+          "cache": true
+        }
+      ],
+      "options": {
+        "allowFailure": false,
+        "cache": false,
+        "envOverride": false,
+        "expectFailure": false,
+        "inferInputs": false,
+        "internal": false,
+        "interactive": false,
+        "mergeArgs": "append",
+        "mergeChecks": "append",
+        "mergeDeps": "append",
+        "mergeEnv": "append",
+        "mergeInputs": "append",
+        "mergeOutputs": "append",
+        "mergeTags": "append",
+        "mergeToolchains": "append",
+        "outputStyle": "stream",
+        "persistent": true,
+        "priority": "low",
+        "retryCount": 0,
+        "runDepsInParallel": true,
+        "runInCI": false,
+        "runInSyncPhase": false,
+        "runFromWorkspaceRoot": false,
+        "shell": true,
+        "unixShell": "bash",
+        "windowsShell": "pwsh"
+      },
+      "preset": "server",
+      "state": {
+        "defaultInputs": true,
+        "setRunInCi": true
+      },
+      "target": "api:start",
+      "toolchains": [
+        "system"
+      ],
+      "type": "run"
     },
     "4": {
       "command": "echo",
@@ -2462,10 +2425,11 @@
       "command": "echo",
       "args": [
         "test",
-        "backend"
+        "backend",
+        "--strict"
       ],
       "description": "Run the unit tests in Node.js.",
-      "id": "test",
+      "id": "unit",
       "inputs": [
         {
           "glob": "**/*",
@@ -2509,7 +2473,7 @@
       "state": {
         "defaultInputs": true
       },
-      "target": "db:test",
+      "target": "db:unit",
       "toolchains": [
         "system"
       ],

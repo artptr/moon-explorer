@@ -5,7 +5,14 @@ tags: ['node', 'shared']
 project:
   title: 'Database'
   description: 'The database schema and the database client.'
+# This project renames the global task test to the ID of a local task. Thus the local task merges with the global task.
+workspace:
+  inheritedTasks:
+    rename:
+      test: 'unit'
 tasks:
+  unit:
+    args: ['--strict']
   build:
     command: 'echo build db'
     # The command does not make dist. The output is optional. Thus moon does not stop with an error.

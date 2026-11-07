@@ -5,6 +5,12 @@ tags: ['node', 'internal']
 project:
   title: 'Job worker'
   description: 'The worker that runs background jobs.'
+# This project renames two global tasks to one ID. Thus the task check inherits from the two global tasks.
+workspace:
+  inheritedTasks:
+    rename:
+      format: 'check'
+      test: 'check'
 tasks:
   start:
     command: 'echo start worker'

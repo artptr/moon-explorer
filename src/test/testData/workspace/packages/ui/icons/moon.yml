@@ -14,3 +14,9 @@ tasks:
     options:
       internal: true
       mergeArgs: 'replace'
+  # An internal task with the setting merge. The setting for one field has priority over it.
+  typecheck:
+    options:
+      internal: true
+      merge: 'replace'
+      mergeArgs: 'prepend'
