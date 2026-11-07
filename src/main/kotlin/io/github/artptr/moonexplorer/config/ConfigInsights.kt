@@ -10,6 +10,7 @@ import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
+import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.targetProjectId
 import io.github.artptr.moonexplorer.model.targetTaskId
@@ -48,8 +49,10 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     private val projectId: String? get() = index.projectOfFile(file)
 
     /**
-     * The hint at the top of a file in `.moon/tasks/`. In the configuration file of a project, the hint above the key `tasks` and the hints on
-     * the entries of `workspace.inheritedTasks`. A project without the key `tasks` has the hint at the top of the file.
+     * The hint at the top of a file in `.moon/tasks/`. An item opens the configuration file of the project at the first line.
+     * A project can inherit many tasks of the file, and the inherited tasks are not in its configuration file. Thus the item has no task key.
+     * In the configuration file of a project, the hint above the key `tasks` and the hints on the entries of `workspace.inheritedTasks`.
+     * A project without the key `tasks` has the hint at the top of the file.
      */
     fun inheritedHints(): List<ConfigHint> {
         val project = projectId
@@ -156,7 +159,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */
     private fun projectFile(projectId: String, taskId: String?): SourceFile? =
-        state.configFiles.projects[projectId]?.let { SourceFile(it, taskId) }
+        state.configFiles.projects[projectId]?.let { SourceFile(it, taskId?.takeIf { _ -> isYamlFile(it) }) }
 }
 
 /** Gives [text] and the [strategies], for example `web (args: prepend, deps: replace)`. If the map is empty, the function gives only [text]. */

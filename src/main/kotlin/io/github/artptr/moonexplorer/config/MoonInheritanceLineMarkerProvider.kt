@@ -5,9 +5,9 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.markup.GutterIconRenderer
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiEditorUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import javax.swing.Icon
 
@@ -45,7 +45,8 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
                 openConfigTarget(target.project, single)
                 return@GutterIconNavigationHandler
             }
-            val editor = FileEditorManager.getInstance(target.project).selectedTextEditor ?: return@GutterIconNavigationHandler
+            // Use the editor of the file of the icon. The selected editor can show a different file.
+            val editor = PsiEditorUtil.findEditor(target) ?: return@GutterIconNavigationHandler
             showHintList(editor, list, mouse)
         }
         val markIcon = if (mark.local) AllIcons.Gutter.OverridingMethod else AllIcons.Gutter.OverridenMethod
