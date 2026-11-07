@@ -5,6 +5,7 @@ import com.intellij.codeInsight.codeVision.CodeVisionEntry
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
 import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
+import com.intellij.codeInsight.codeVision.ui.model.TextCodeVisionEntry
 import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
@@ -19,7 +20,8 @@ internal const val MOON_CODE_VISION_GROUP = "moon.inheritance"
  * Shows the hints of [ConfigInsights] in the configuration files. The provider uses only the loaded data. It does not start moon.
  * After a load, [io.github.artptr.moonexplorer.ui.RunMarkersRefresher] updates the hints.
  *
- * Each kind of hint that can be on the same line as an other kind has its own provider. Thus [relativeOrderings] sets the sequence of the hints.
+ * Each kind of hint has its own provider. Thus a provider can set the sequence of its hints on a line with [relativeOrderings].
+ * A hint with an empty list has no click action. Thus the user cannot open an empty list.
  */
 abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware {
 
@@ -33,11 +35,7 @@ abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware
     protected abstract fun hints(insights: ConfigInsights): List<ConfigHint>
 
     override fun computeForEditor(editor: Editor, file: PsiFile): List<Pair<TextRange, CodeVisionEntry>> =
-        configInsights(file)?.let(::hints).orEmpty().map { hint ->
-            // The click handler must not keep PSI. HintList contains no PSI.
-            val list = hint.list
-            hint.element.textRange to ClickableTextCodeVisionEntry(hint.text, id, { mouse, clicked -> showHintList(clicked, list, mouse) })
-        }
+        configInsights(file)?.let(::hints).orEmpty().map { hint -> hint.element.textRange to codeVisionEntry(hint.text, hint.list, id) }
 }
 
 /** The hint with the number of inheriting projects. */

@@ -9,6 +9,7 @@ import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
+import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
 import java.nio.file.Path
 
@@ -38,7 +39,10 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     private val global: FileInheritance? get() = index.file(file)
 
-    /** The hint at the top of a file in `.moon/tasks/`. */
+    /**
+     * The hint at the top of a file in `.moon/tasks/`. An item opens the configuration file of the project at the first line.
+     * A project can inherit many tasks of the file, and the inherited tasks are not in its configuration file. Thus the item has no task key.
+     */
     fun inheritedHints(): List<ConfigHint> {
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
@@ -70,7 +74,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */
     private fun projectFile(projectId: String, taskId: String?): SourceFile? =
-        state.configFiles.projects[projectId]?.let { SourceFile(it, taskId) }
+        state.configFiles.projects[projectId]?.let { SourceFile(it, taskId?.takeIf { _ -> isYamlFile(it) }) }
 }
 
 /** Gives [text] and the [strategies], for example `web (args: prepend, deps: replace)`. If the map is empty, the function gives only [text]. */
@@ -86,6 +90,7 @@ internal fun withStrategies(text: String, strategies: Map<String, String>): Stri
 fun configInsights(file: PsiFile): ConfigInsights? {
     val state = file.project.service<MoonTasksService>().state.value.lastLoaded ?: return null
     val path = file.originalFile.virtualFile?.configFilePath() ?: return null
-    if (state.inheritanceIndex.file(path) == null && state.inheritanceIndex.projectOfFile(path) == null) return null
+    // This part has hints only in the files in .moon/tasks/. Issue #161 adds the hints in the configuration file of a project.
+    if (state.inheritanceIndex.file(path) == null) return null
     return configSyntax(file)?.let { ConfigInsights(it, state, path) }
 }

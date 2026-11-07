@@ -77,6 +77,9 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
     }
 }
 
-/** Gives the YAML configuration files of the projects and the inherited YAML files of [state]. Only these files have run icons. */
+/**
+ * Gives the YAML configuration files of the projects and the inherited YAML files of [state].
+ * Only these files have run icons, inheritance icons, and Code Vision hints.
+ */
 internal fun runMarkerPaths(state: TasksState.Loaded?): Set<Path> =
     state?.configFiles?.let { it.projects.values + it.inherited.values }?.filterTo(HashSet(), ::isYamlFile).orEmpty()

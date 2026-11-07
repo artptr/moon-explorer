@@ -8,6 +8,9 @@ import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.TaskConfigs
+import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.loadRecorded
@@ -80,6 +83,27 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val mark = insights.gutterMarks().single { it.element.text == "lint" }
         assertEquals("Merged in 1 project", mark.tooltip)
         assertEquals(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
+    }
+
+    fun testHintTextsHavePluralForms() {
+        assertEquals("Merged in 1 project", MoonExplorerBundle.message("hint.mergedIn", 1))
+        assertEquals("Merged in 2 projects", MoonExplorerBundle.message("hint.mergedIn", 2))
+        assertEquals("Inherited by 0 projects", MoonExplorerBundle.message("hint.inheritedBy", 0))
+        assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))
+    }
+
+    fun testHintWithAnEmptyListHasNoClickAction() {
+        val tasks = WorkspaceTasks(emptyList(), taskConfigs = mapOf("a" to TaskConfigs(layers = mapOf("lint" to listOf(".moon/tasks/all.yml")))))
+        val state = TestData.loadedState(tasks, taskGraph = null)
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile(".moon/tasks/all.yml"))
+        val hint = ConfigInsights(configSyntax(myFixture.file)!!, state, workspacePath(".moon/tasks/all.yml")).inheritedHints().single()
+        assertEquals("Inherited by 0 projects", hint.text)
+        assertEmpty(hint.list.items)
+    }
+
+    fun testProjectFileHasNoInsightsInThisPart() {
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        assertNull(configInsights(myFixture.file))
     }
 
     fun testStrategiesAreOnlyInTheTextIfTheyExist() {
