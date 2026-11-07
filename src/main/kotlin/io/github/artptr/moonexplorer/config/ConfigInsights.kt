@@ -6,14 +6,13 @@ import com.intellij.psi.PsiFile
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.FileInheritance
 import io.github.artptr.moonexplorer.model.MergedTask
-import io.github.artptr.moonexplorer.model.workspacePath
-import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
-import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
+import io.github.artptr.moonexplorer.model.sourceFile
+import io.github.artptr.moonexplorer.model.workspacePath
 import java.nio.file.Path
 
 /**
@@ -59,8 +58,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         if (project != null) return listOfNotNull(inheritedTasksHint(project)) + entryHints(project)
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
-        val items = inheritance.projects.map { project ->
-            val localIds = inheritance.tasks.values.mapNotNull { it.inheritedBy[project] }.distinct().sortedWith(ID_ORDER)
+        val items = inheritance.projects.map { (project, localIds) ->
             HintItem(project, projectFile(project, null), secondary = localIds.joinToString(", "))
         }
         val list = HintList(MoonExplorerBundle.message("hint.inheritedBy.title", state.workspacePath(file)), items)
@@ -72,7 +70,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val element = syntax.tasksKey ?: syntax.firstElement
         if (inherited.isEmpty() || element == null) return null
         val items = inherited.flatMap { task ->
-            task.files.map { HintItem(task.localId, SourceFile(it, task.globalId), secondary = state.workspacePath(it)) }
+            task.files.map { HintItem(task.localId, sourceFile(it, task.globalId), secondary = state.workspacePath(it)) }
         }
         val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), items)
         val count = inherited.mapTo(HashSet()) { it.localId }.size
@@ -91,7 +89,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
                 is InheritedTasksEntry.Exclude -> MoonExplorerBundle.message("hint.entry.exclude", entry.globalId, names)
                 is InheritedTasksEntry.Rename -> MoonExplorerBundle.message("hint.entry.rename", entry.globalId, names, entry.localId)
             }
-            val items = files.map { HintItem(state.workspacePath(it), SourceFile(it, entry.globalId)) }
+            val items = files.map { HintItem(state.workspacePath(it), sourceFile(it, entry.globalId)) }
             ConfigHint(entry.element, text, HintList(MoonExplorerBundle.message("hint.globalTask.title", entry.globalId), items))
         }
     }
@@ -123,7 +121,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         MoonExplorerBundle.message("hint.mergedWith", fileNames(task.globalTasks.flatMap { it.files }.distinct()))
 
     private fun globalTaskList(key: ConfigKey, task: MergedTask): HintList {
-        val items = task.globalTasks.flatMap { global -> global.files.map { HintItem(state.workspacePath(it), SourceFile(it, global.globalId)) } }
+        val items = task.globalTasks.flatMap { global -> global.files.map { HintItem(state.workspacePath(it), sourceFile(it, global.globalId)) } }
         return HintList(MoonExplorerBundle.message("hint.globalTask.title", key.id), items)
     }
 
@@ -141,7 +139,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */
     private fun projectFile(projectId: String, taskId: String?): SourceFile? =
-        state.configFiles.projects[projectId]?.let { SourceFile(it, taskId?.takeIf { _ -> isYamlFile(it) }) }
+        state.configFiles.projects[projectId]?.let { sourceFile(it, taskId) }
 }
 
 /** Gives [text] and the [strategies], for example `web (args: prepend, deps: replace)`. If the map is empty, the function gives only [text]. */

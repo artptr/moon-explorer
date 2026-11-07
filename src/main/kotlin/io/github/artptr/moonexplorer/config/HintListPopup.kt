@@ -21,10 +21,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.awt.event.MouseEvent
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /** The list of a hint or of a gutter icon. The IDE calls [choose] with the target of the item that the user selects. */
 internal class HintListStep(list: HintList, private val choose: (SourceFile) -> Unit) :
     BaseListPopupStep<HintItem>(list.title, list.items), ListPopupStepEx<HintItem> {
+
+    /** The first item of each group. The set compares the items by identity, because two items can be equal. */
+    private val groupStarts: MutableSet<HintItem> = Collections.newSetFromMap(IdentityHashMap())
+
+    init {
+        list.items.forEachIndexed { i, item -> if (item.group != null && (i == 0 || list.items[i - 1].group != item.group)) groupStarts += item }
+    }
 
     override fun getTextFor(value: HintItem): String = value.text
 
@@ -39,8 +48,7 @@ internal class HintListStep(list: HintList, private val choose: (SourceFile) -> 
     /** The first item of each group has a separator with the text of the group. */
     override fun getSeparatorAbove(value: HintItem): ListSeparator? {
         val group = value.group ?: return null
-        val position = values.indexOf(value)
-        return if (position == 0 || values[position - 1].group != group) ListSeparator(group) else null
+        return if (value in groupStarts) ListSeparator(group) else null
     }
 
     override fun onChosen(selectedValue: HintItem, finalChoice: Boolean): PopupStep<*>? {

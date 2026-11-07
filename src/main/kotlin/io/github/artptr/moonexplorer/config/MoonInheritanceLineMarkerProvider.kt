@@ -27,7 +27,6 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
     override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
         val file = elements.firstOrNull()?.containingFile ?: return
         val marks = configInsights(file)?.gutterMarks().orEmpty().associateBy { it.element }
-        if (marks.isEmpty()) return
         for (element in elements) {
             val mark = marks[element] ?: continue
             result += lineMarker(element, mark)
