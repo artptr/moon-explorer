@@ -25,17 +25,22 @@ data class MergingProject(val projectId: String, val localId: String, val strate
 
 /**
  * The inheritance of a global task in one file.
+ * [inheritedBy] gives the local task ID in each project that inherits the task. The projects are in [ID_ORDER].
  * [mergedIn] contains the projects with a local task that merges. The projects are in [ID_ORDER].
  * [dependents] gives the direct dependents of each inherited target that has dependents. The targets are in [ID_ORDER].
  * A dependent can be below more than one target. The map is empty if `moon task-graph` failed in the load.
  */
-data class GlobalTaskInheritance(val mergedIn: List<MergingProject>, val dependents: Map<String, Set<String>>)
+data class GlobalTaskInheritance(
+    val inheritedBy: Map<String, String>,
+    val mergedIn: List<MergingProject>,
+    val dependents: Map<String, Set<String>>,
+)
 
 /** The inheritance of one file in `.moon/tasks/`. [projects] contains the projects that inherit one or more tasks of the file, in [ID_ORDER]. */
 data class FileInheritance(val projects: List<String>, val tasks: Map<String, GlobalTaskInheritance>)
 
 /**
- * The task inheritance and the dependents of one load. The keys with paths are absolute and normalized.
+ * The task inheritance and the dependents of one [TasksState.Loaded]. The keys with paths are absolute and normalized.
  *
  * moon finds the files of each project. The plugin does not calculate which files apply to a project.
  * It only uses `include`, `exclude`, and `rename` of each project. Refer to [TaskConfigs.inheritedLayers].
@@ -100,7 +105,8 @@ internal class InheritanceIndex private constructor(
                 val mergedIn = tasks.mapNotNull { row -> row.merged?.let { MergingProject(row.projectId, row.task.localId, it.strategies) } }
                 val targets = tasks.map { taskTarget(it.projectId, it.task.localId) }
                 val dependents = targets.mapNotNull { target -> graph?.dependents?.get(target)?.let { target to it } }
-                GlobalTaskInheritance(mergedIn, dependents.toMap().toSortedMap(ID_ORDER))
+                val inheritedBy = tasks.associate { it.projectId to it.task.localId }
+                GlobalTaskInheritance(inheritedBy, mergedIn, dependents.toMap().toSortedMap(ID_ORDER))
             },
         )
     }

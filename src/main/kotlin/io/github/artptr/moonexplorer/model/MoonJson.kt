@@ -48,6 +48,20 @@ internal fun mergeStrategies(task: JsonObject): Map<String, String> = buildMap {
     }
 }
 
+/**
+ * Gives the merge strategies in the configuration of [task], from `config.tasks`. The output of moon has the setting `merge` without change in this location.
+ * This setting applies to all fields. A setting for one field, for example `mergeArgs`, has priority over it.
+ */
+internal fun configuredMergeStrategies(task: JsonObject): Map<String, String> {
+    val options = task.obj("options") ?: return emptyMap()
+    val shorthand = options.string(MERGE_PREFIX)?.takeUnless { it == DEFAULT_MERGE_STRATEGY } ?: return mergeStrategies(task)
+    val fields = MERGE_FIELDS.filter { options.string(MERGE_PREFIX + it.replaceFirstChar(Char::uppercase)) == null }
+    return (fields.associateWith { shorthand } + mergeStrategies(task)).toSortedMap()
+}
+
+/** The fields that the setting `merge` of moon 2.6.4 applies to. */
+private val MERGE_FIELDS = listOf("args", "checks", "deps", "env", "inputs", "outputs", "tags", "toolchains")
+
 private const val MERGE_PREFIX = "merge"
 private const val DEFAULT_MERGE_STRATEGY = "append"
 
