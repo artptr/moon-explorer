@@ -1,5 +1,6 @@
 package io.github.artptr.moonexplorer.config
 
+import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
@@ -55,13 +56,26 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val hint = insights(".moon/tasks/all.yml").inheritedHints().single()
         assertEquals("Inherited by 9 projects", hint.text)
         assertEquals(0, hint.element.textOffset)
-        assertEquals("Projects That Inherit all.yml", hint.list.title)
+        assertEquals("Projects That Inherit .moon/tasks/all.yml", hint.list.title)
         assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), hint.list.items.map { it.text })
     }
 
     fun testItemOfTheInheritedByListOpensTheFileOfTheProject() {
         val item = insights(".moon/tasks/all.yml").inheritedHints().single().list.items.first { it.text == "web" }
         assertEquals(SourceFile(workspacePath("apps/web/moon.yml"), null), item.target)
+    }
+
+    fun testItemOfTheInheritedByListShowsTheTaskIdsInTheProject() {
+        val items = insights(".moon/tasks/frontend.yml").inheritedHints().single().list.items.associate { it.text to it.secondary }
+        // The project web renames typecheck to tsc. The task icons:typecheck is internal, but icons inherits it.
+        assertEquals("test, tsc", items["web"])
+        assertEquals("test, typecheck", items["icons"])
+    }
+
+    fun testOrderOfTheProvidersOnOneLine() {
+        assertEquals(listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst), MoonInheritedCodeVisionProvider().relativeOrderings)
+        val merged = MoonMergedCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
+        assertEquals(MoonInheritedCodeVisionProvider().id, merged.id)
     }
 
     fun testCountUsesTheFiltersOfTheProjects() {

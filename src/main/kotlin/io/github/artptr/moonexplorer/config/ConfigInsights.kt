@@ -6,6 +6,8 @@ import com.intellij.psi.PsiFile
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.FileInheritance
 import io.github.artptr.moonexplorer.model.MergedTask
+import io.github.artptr.moonexplorer.model.workspacePath
+import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
@@ -14,7 +16,6 @@ import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.targetProjectId
 import io.github.artptr.moonexplorer.model.targetTaskId
-import io.github.artptr.moonexplorer.model.workspacePath
 import java.nio.file.Path
 
 /**
@@ -51,6 +52,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     /**
      * The hint at the top of a file in `.moon/tasks/`. An item opens the configuration file of the project at the first line.
      * A project can inherit many tasks of the file, and the inherited tasks are not in its configuration file. Thus the item has no task key.
+     * The secondary text of an item gives the task IDs in the project. The title gives the path from the workspace root, because two files can have the same name.
      * In the configuration file of a project, the hint above the key `tasks` and the hints on the entries of `workspace.inheritedTasks`.
      * A project without the key `tasks` has the hint at the top of the file.
      */
@@ -59,9 +61,11 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         if (project != null) return listOfNotNull(inheritedTasksHint(project)) + entryHints(project)
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
-        val fileName = file.fileName.toString()
-        val items = inheritance.projects.map { HintItem(it, projectFile(it, null)) }
-        val list = HintList(MoonExplorerBundle.message("hint.inheritedBy.title", fileName), items)
+        val items = inheritance.projects.map { project ->
+            val localIds = inheritance.tasks.values.mapNotNull { it.inheritedBy[project] }.distinct().sortedWith(ID_ORDER)
+            HintItem(project, projectFile(project, null), secondary = localIds.joinToString(", "))
+        }
+        val list = HintList(MoonExplorerBundle.message("hint.inheritedBy.title", state.workspacePath(file)), items)
         return listOf(ConfigHint(element, MoonExplorerBundle.message("hint.inheritedBy", items.size), list))
     }
 
