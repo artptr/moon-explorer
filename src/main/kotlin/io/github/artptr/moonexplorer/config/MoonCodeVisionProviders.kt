@@ -38,7 +38,15 @@ abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware
         configInsights(file)?.let(::hints).orEmpty().map { hint -> hint.element.textRange to codeVisionEntry(hint.text, hint.list, id) }
 }
 
-/** The hint with the number of inheriting projects. */
+/** Gives the entry of a hint with [text] and [list]. The click handler must not keep PSI. [HintList] contains no PSI. */
+internal fun codeVisionEntry(text: String, list: HintList, providerId: String): CodeVisionEntry =
+    if (list.items.isEmpty()) {
+        TextCodeVisionEntry(text, providerId)
+    } else {
+        ClickableTextCodeVisionEntry(text, providerId, { mouse, clicked -> showHintList(clicked, list, mouse) })
+    }
+
+/** The hint with the number of projects that inherit tasks from the file. */
 class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
     override val id: String get() = "moon.inherited"
     override val name: String get() = MoonExplorerBundle.message("codeVision.inherited.name")

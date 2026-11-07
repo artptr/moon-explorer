@@ -9,8 +9,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.model.TaskConfigs
-import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.loadRecorded
@@ -93,12 +91,10 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     }
 
     fun testHintWithAnEmptyListHasNoClickAction() {
-        val tasks = WorkspaceTasks(emptyList(), taskConfigs = mapOf("a" to TaskConfigs(layers = mapOf("lint" to listOf(".moon/tasks/all.yml")))))
-        val state = TestData.loadedState(tasks, taskGraph = null)
-        myFixture.openFileInEditor(TestData.workspaceVirtualFile(".moon/tasks/all.yml"))
-        val hint = ConfigInsights(configSyntax(myFixture.file)!!, state, workspacePath(".moon/tasks/all.yml")).inheritedHints().single()
-        assertEquals("Inherited by 0 projects", hint.text)
-        assertEmpty(hint.list.items)
+        val empty = codeVisionEntry("Inherited by 0 projects", HintList("title", emptyList()), "moon.inherited")
+        assertFalse(empty is ClickableTextCodeVisionEntry)
+        val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), "moon.inherited")
+        assertTrue(one is ClickableTextCodeVisionEntry)
     }
 
     fun testProjectFileHasNoInsightsInThisPart() {
