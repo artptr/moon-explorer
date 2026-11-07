@@ -65,7 +65,7 @@ class InheritanceIndexTest {
     @Test
     fun fileHasTheProjectsThatInheritOneOrMoreTasks() {
         val file = index.file(all)!!
-        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), file.projects)
+        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), file.projects.keys.toList())
         assertEquals(setOf("lint", "format"), file.tasks.keys)
     }
 
