@@ -756,6 +756,18 @@
                   "runInSyncPhase": null
                 }
               },
+              "lint": {
+                "command": "echo lint backend",
+                "args": null,
+                "globalInputs": [
+                  {
+                    "file": "/.moon/tasks/backend.yml"
+                  }
+                ],
+                "options": {
+                  "runInSyncPhase": null
+                }
+              },
               "test": {
                 "description": "Run the unit tests in Node.js.",
                 "command": "echo test backend",
@@ -783,7 +795,8 @@
             ".moon/tasks/backend.yml"
           ],
           "lint": [
-            ".moon/tasks/all.yml"
+            ".moon/tasks/all.yml",
+            ".moon/tasks/backend.yml"
           ]
         }
       },
@@ -1017,7 +1030,9 @@
         "lint": {
           "command": "echo",
           "args": [
-            "lint"
+            "lint",
+            "lint",
+            "backend"
           ],
           "description": "Do a check of the source code with the linter.",
           "id": "lint",
@@ -1032,9 +1047,13 @@
             },
             {
               "file": "/.moon/tasks/all.yml"
+            },
+            {
+              "file": "/.moon/tasks/backend.yml"
             }
           ],
           "inputFiles": {
+            ".moon/tasks/backend.yml": {},
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
@@ -1378,13 +1397,27 @@
               "cache": false,
               "runInSyncPhase": null
             }
+          },
+          "unit": {
+            "command": null,
+            "args": [
+              "--strict"
+            ],
+            "globalInputs": [],
+            "options": {
+              "runInSyncPhase": null
+            }
           }
         },
         "toolchains": {
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {},
+          "inheritedTasks": {
+            "rename": {
+              "test": "unit"
+            }
+          },
           "mergeStrategies": {}
         }
       },
@@ -1454,6 +1487,18 @@
                   "runInSyncPhase": null
                 }
               },
+              "lint": {
+                "command": "echo lint backend",
+                "args": null,
+                "globalInputs": [
+                  {
+                    "file": "/.moon/tasks/backend.yml"
+                  }
+                ],
+                "options": {
+                  "runInSyncPhase": null
+                }
+              },
               "test": {
                 "description": "Run the unit tests in Node.js.",
                 "command": "echo test backend",
@@ -1481,7 +1526,8 @@
             ".moon/tasks/backend.yml"
           ],
           "lint": [
-            ".moon/tasks/all.yml"
+            ".moon/tasks/all.yml",
+            ".moon/tasks/backend.yml"
           ]
         }
       },
@@ -1701,7 +1747,9 @@
         "lint": {
           "command": "echo",
           "args": [
-            "lint"
+            "lint",
+            "lint",
+            "backend"
           ],
           "description": "Do a check of the source code with the linter.",
           "id": "lint",
@@ -1716,9 +1764,13 @@
             },
             {
               "file": "/.moon/tasks/all.yml"
+            },
+            {
+              "file": "/.moon/tasks/backend.yml"
             }
           ],
           "inputFiles": {
+            ".moon/tasks/backend.yml": {},
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
@@ -1827,14 +1879,15 @@
           ],
           "type": "test"
         },
-        "test": {
+        "unit": {
           "command": "echo",
           "args": [
             "test",
-            "backend"
+            "backend",
+            "--strict"
           ],
           "description": "Run the unit tests in Node.js.",
-          "id": "test",
+          "id": "unit",
           "inputs": [
             {
               "glob": "**/*",
@@ -1890,7 +1943,7 @@
             "defaultInputs": true,
             "expanded": true
           },
-          "target": "db:test",
+          "target": "db:unit",
           "toolchains": [
             "system"
           ],
@@ -1903,7 +1956,7 @@
         "db:format",
         "db:lint",
         "db:migrate",
-        "db:test"
+        "db:unit"
       ],
       "toolchains": [
         "system"
@@ -1944,6 +1997,17 @@
             "args": null,
             "globalInputs": [],
             "options": {
+              "runInSyncPhase": null
+            }
+          },
+          "typecheck": {
+            "command": null,
+            "args": null,
+            "globalInputs": [],
+            "options": {
+              "internal": true,
+              "merge": "replace",
+              "mergeArgs": "prepend",
               "runInSyncPhase": null
             }
           }
@@ -2252,73 +2316,6 @@
             "expanded": true
           },
           "target": "icons:test",
-          "toolchains": [
-            "system"
-          ],
-          "type": "test"
-        },
-        "typecheck": {
-          "command": "echo",
-          "args": [
-            "typecheck"
-          ],
-          "id": "typecheck",
-          "inputs": [
-            {
-              "glob": "**/*",
-              "cache": true
-            },
-            {
-              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
-              "cache": true
-            },
-            {
-              "file": "/.moon/tasks/frontend.yml"
-            }
-          ],
-          "inputFiles": {
-            ".moon/tasks/frontend.yml": {}
-          },
-          "inputGlobs": {
-            "packages/ui/icons/**/*": {
-              "cache": true
-            },
-            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
-              "cache": true
-            }
-          },
-          "options": {
-            "allowFailure": false,
-            "cache": true,
-            "envOverride": false,
-            "expectFailure": false,
-            "inferInputs": false,
-            "internal": false,
-            "interactive": false,
-            "mergeArgs": "append",
-            "mergeChecks": "append",
-            "mergeDeps": "append",
-            "mergeEnv": "append",
-            "mergeInputs": "append",
-            "mergeOutputs": "append",
-            "mergeTags": "append",
-            "mergeToolchains": "append",
-            "persistent": false,
-            "priority": "normal",
-            "retryCount": 0,
-            "runDepsInParallel": true,
-            "runInCI": true,
-            "runInSyncPhase": false,
-            "runFromWorkspaceRoot": false,
-            "shell": true,
-            "unixShell": "bash",
-            "windowsShell": "pwsh"
-          },
-          "state": {
-            "defaultInputs": true,
-            "expanded": true
-          },
-          "target": "icons:typecheck",
           "toolchains": [
             "system"
           ],
@@ -4465,7 +4462,12 @@
           "plugins": {}
         },
         "workspace": {
-          "inheritedTasks": {},
+          "inheritedTasks": {
+            "rename": {
+              "format": "check",
+              "test": "check"
+            }
+          },
           "mergeStrategies": {}
         }
       },
@@ -4543,6 +4545,18 @@
                   "runInSyncPhase": null
                 }
               },
+              "lint": {
+                "command": "echo lint backend",
+                "args": null,
+                "globalInputs": [
+                  {
+                    "file": "/.moon/tasks/backend.yml"
+                  }
+                ],
+                "options": {
+                  "runInSyncPhase": null
+                }
+              },
               "test": {
                 "description": "Run the unit tests in Node.js.",
                 "command": "echo test backend",
@@ -4570,7 +4584,8 @@
             ".moon/tasks/backend.yml"
           ],
           "lint": [
-            ".moon/tasks/all.yml"
+            ".moon/tasks/all.yml",
+            ".moon/tasks/backend.yml"
           ]
         }
       },
@@ -4730,12 +4745,15 @@
           ],
           "type": "build"
         },
-        "format": {
+        "check": {
           "command": "echo",
           "args": [
-            "format"
+            "format",
+            "test",
+            "backend"
           ],
-          "id": "format",
+          "description": "Run the unit tests in Node.js.",
+          "id": "check",
           "inputs": [
             {
               "glob": "src/**/*",
@@ -4747,9 +4765,13 @@
             },
             {
               "file": "/.moon/tasks/all.yml"
+            },
+            {
+              "file": "/.moon/tasks/backend.yml"
             }
           ],
           "inputFiles": {
+            ".moon/tasks/backend.yml": {},
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
@@ -4790,7 +4812,7 @@
           "state": {
             "expanded": true
           },
-          "target": "worker:format",
+          "target": "worker:check",
           "toolchains": [
             "system"
           ],
@@ -4799,7 +4821,9 @@
         "lint": {
           "command": "echo",
           "args": [
-            "lint"
+            "lint",
+            "lint",
+            "backend"
           ],
           "description": "Do a check of the source code with the linter.",
           "id": "lint",
@@ -4814,9 +4838,13 @@
             },
             {
               "file": "/.moon/tasks/all.yml"
+            },
+            {
+              "file": "/.moon/tasks/backend.yml"
             }
           ],
           "inputFiles": {
+            ".moon/tasks/backend.yml": {},
             ".moon/tasks/all.yml": {}
           },
           "inputGlobs": {
@@ -4927,84 +4955,14 @@
             "system"
           ],
           "type": "run"
-        },
-        "test": {
-          "command": "echo",
-          "args": [
-            "test",
-            "backend"
-          ],
-          "description": "Run the unit tests in Node.js.",
-          "id": "test",
-          "inputs": [
-            {
-              "glob": "**/*",
-              "cache": true
-            },
-            {
-              "glob": "/.moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}",
-              "cache": true
-            },
-            {
-              "file": "/.moon/tasks/backend.yml"
-            }
-          ],
-          "inputFiles": {
-            ".moon/tasks/backend.yml": {}
-          },
-          "inputGlobs": {
-            ".moon/{extensions,toolchains}.{yml,yaml,jsonc,json,pkl,hcl,toml}": {
-              "cache": true
-            },
-            "apps/worker/**/*": {
-              "cache": true
-            }
-          },
-          "options": {
-            "allowFailure": false,
-            "cache": true,
-            "envOverride": false,
-            "expectFailure": false,
-            "inferInputs": false,
-            "internal": false,
-            "interactive": false,
-            "mergeArgs": "append",
-            "mergeChecks": "append",
-            "mergeDeps": "append",
-            "mergeEnv": "append",
-            "mergeInputs": "append",
-            "mergeOutputs": "append",
-            "mergeTags": "append",
-            "mergeToolchains": "append",
-            "persistent": false,
-            "priority": "normal",
-            "retryCount": 0,
-            "runDepsInParallel": true,
-            "runInCI": true,
-            "runInSyncPhase": false,
-            "runFromWorkspaceRoot": false,
-            "shell": true,
-            "unixShell": "bash",
-            "windowsShell": "pwsh"
-          },
-          "state": {
-            "defaultInputs": true,
-            "expanded": true
-          },
-          "target": "worker:test",
-          "toolchains": [
-            "system"
-          ],
-          "type": "test"
         }
       },
       "taskTargets": [
         "worker:audit",
         "worker:build",
-        "worker:format",
+        "worker:check",
         "worker:lint",
-        "worker:start",
-        "worker:test"
+        "worker:start"
       ],
       "toolchains": [
         "system"

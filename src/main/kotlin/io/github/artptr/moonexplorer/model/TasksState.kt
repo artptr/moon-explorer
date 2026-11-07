@@ -49,10 +49,13 @@ sealed interface TasksState {
         val configFiles: ExistingConfigFiles,
         val taskGraph: TaskGraph? = null,
     ) : TasksState {
-        /** The targets of the task keys in the configuration files, one index for each load. The index is not a part of [equals]. */
+        /** The targets of the task keys in the configuration files. The index is not a part of [equals]. Each state has its own index. */
         internal val taskKeyIndex: TaskKeyIndex = TaskKeyIndex.of(this)
 
-        /** The task inheritance and the dependents, one index for each load. The index is not a part of [equals]. */
+        /**
+         * The task inheritance and the dependents. The index is not a part of [equals]. Each state has its own index.
+         * A load with a new task graph makes two states. Thus it makes the indexes two times.
+         */
         internal val inheritanceIndex: InheritanceIndex = InheritanceIndex.of(this)
     }
 

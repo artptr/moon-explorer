@@ -70,8 +70,8 @@ object QueryProjectsParser {
         // The key "tasks" has the values after the merge, but it does not contain internal tasks. For these tasks, "config.tasks" has the values of the project.
         val tasks = project.obj("tasks")
         val strategies = configTasks?.entrySet().orEmpty().mapNotNull { (id, own) ->
-            val task = tasks?.obj(id) ?: own.objectOrNull() ?: return@mapNotNull null
-            mergeStrategies(task).takeIf { it.isNotEmpty() }?.let { id to it }
+            val strategies = tasks?.obj(id)?.let(::mergeStrategies) ?: own.objectOrNull()?.let(::configuredMergeStrategies) ?: return@mapNotNull null
+            strategies.takeIf { it.isNotEmpty() }?.let { id to it }
         }.toMap()
         // Copy the key set. The key set of a JsonObject keeps all the JSON of the project in memory.
         val ownTasks = configTasks?.keySet().orEmpty().toSet()

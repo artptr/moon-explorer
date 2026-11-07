@@ -17,6 +17,7 @@ class InheritanceIndexTest {
 
     private val all = path(".moon/tasks/all.yml")
     private val frontend = path(".moon/tasks/frontend.yml")
+    private val backend = path(".moon/tasks/backend.yml")
 
     @Test
     fun projectHasItsInheritedTasks() {
@@ -94,6 +95,49 @@ class InheritanceIndexTest {
         val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
         assertEquals(expected, withoutGraph.project("icons")!!.merged.getValue("format").strategies)
         assertEquals(listOf("icons", "web"), withoutGraph.file(all)!!.tasks.values.flatMap { it.mergedIn }.map { it.projectId }.sorted())
+    }
+
+    @Test
+    fun internalTaskUsesTheSettingMergeWithoutTheTaskGraph() {
+        val expected = mapOf(
+            "args" to "prepend", "checks" to "replace", "deps" to "replace", "env" to "replace",
+            "inputs" to "replace", "outputs" to "replace", "tags" to "replace", "toolchains" to "replace",
+        )
+        assertEquals(expected, index.project("icons")!!.merged.getValue("typecheck").strategies)
+        val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
+        assertEquals(expected, withoutGraph.project("icons")!!.merged.getValue("typecheck").strategies)
+    }
+
+    @Test
+    fun globalTaskHasTheProjectsThatInheritIt() {
+        val format = index.file(all)!!.tasks.getValue("format").inheritedBy
+        assertFalse("scripts" in format)
+        assertFalse("web" in format)
+        assertEquals("format", format["api"])
+        assertEquals("tsc", index.file(frontend)!!.tasks.getValue("typecheck").inheritedBy["web"])
+    }
+
+    @Test
+    fun globalTaskRenamedToALocalIdMerges() {
+        val merged = index.project("db")!!.merged.getValue("unit")
+        assertEquals(listOf(InheritedTask("test", "unit", listOf(backend))), merged.globalTasks)
+        assertEquals(listOf(MergingProject("db", "unit", emptyMap())), index.file(backend)!!.tasks.getValue("test").mergedIn)
+    }
+
+    @Test
+    fun twoGlobalTasksRenamedToOneIdAreTwoInheritedTasks() {
+        val check = index.project("worker")!!.inherited.filter { it.localId == "check" }
+        assertEquals(listOf("format", "test"), check.map { it.globalId })
+        assertEquals("check", index.file(all)!!.tasks.getValue("format").inheritedBy["worker"])
+        assertEquals("check", index.file(backend)!!.tasks.getValue("test").inheritedBy["worker"])
+    }
+
+    @Test
+    fun globalTaskInTwoFilesHasBothFiles() {
+        assertEquals(listOf(all, backend), index.project("api")!!.inherited.single { it.globalId == "lint" }.files)
+        assertTrue("api" in index.file(all)!!.tasks.getValue("lint").inheritedBy)
+        assertTrue("api" in index.file(backend)!!.tasks.getValue("lint").inheritedBy)
+        assertFalse("web" in index.file(backend)!!.tasks.getValue("lint").inheritedBy)
     }
 
     @Test
