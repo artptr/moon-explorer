@@ -64,11 +64,10 @@ fun TasksState.Loaded.workspacePath(path: Path): String =
 fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> {
     val projectId = targetProjectId(task.target)
     val configs = state.tasks.taskConfigs[projectId] ?: return emptyList()
-    fun source(path: Path, taskId: String) = SourceFile(path, taskId.takeIf { isYamlFile(path) })
-    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId]?.let { source(it, task.id) } else null
+    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId]?.let { sourceFile(it, task.id) } else null
     // The task key in an inherited file is the global task ID. It is different from the task ID if the project renames the task.
     val layers = configs.inheritedLayers[task.id].orEmpty().mapNotNull { layer ->
-        state.configFiles.inherited[layer.file]?.let { source(it, layer.globalId) }
+        state.configFiles.inherited[layer.file]?.let { sourceFile(it, layer.globalId) }
     }
     return (listOfNotNull(own) + layers).distinctBy { it.path }
 }
@@ -78,7 +77,10 @@ fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> 
  * Gives null if the project had no configuration file at the time of the load. The function does not read the disk.
  */
 fun projectSourceFile(state: TasksState.Loaded, projectId: String): SourceFile? =
-    state.configFiles.projects[projectId]?.let { SourceFile(it, null) }
+    state.configFiles.projects[projectId]?.let { sourceFile(it, null) }
+
+/** Gives [path] with the task key [taskId]. Only a YAML file has task keys. Thus the function ignores [taskId] for a file in a different format. */
+internal fun sourceFile(path: Path, taskId: String?): SourceFile = SourceFile(path, taskId?.takeIf { isYamlFile(path) })
 
 /** The targets that a task key in a configuration file runs. Refer to [TaskKeyIndex.targets]. */
 sealed interface TaskKeyTargets {

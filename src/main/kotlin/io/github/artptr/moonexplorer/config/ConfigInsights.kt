@@ -5,14 +5,13 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.FileInheritance
-import io.github.artptr.moonexplorer.model.workspacePath
-import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
-import io.github.artptr.moonexplorer.model.isYamlFile
 import io.github.artptr.moonexplorer.model.lastLoaded
+import io.github.artptr.moonexplorer.model.sourceFile
+import io.github.artptr.moonexplorer.model.workspacePath
 import java.nio.file.Path
 
 /**
@@ -49,8 +48,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     fun inheritedHints(): List<ConfigHint> {
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
-        val items = inheritance.projects.map { project ->
-            val localIds = inheritance.tasks.values.mapNotNull { it.inheritedBy[project] }.distinct().sortedWith(ID_ORDER)
+        val items = inheritance.projects.map { (project, localIds) ->
             HintItem(project, projectFile(project, null), secondary = localIds.joinToString(", "))
         }
         val list = HintList(MoonExplorerBundle.message("hint.inheritedBy.title", state.workspacePath(file)), items)
@@ -79,7 +77,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */
     private fun projectFile(projectId: String, taskId: String?): SourceFile? =
-        state.configFiles.projects[projectId]?.let { SourceFile(it, taskId?.takeIf { _ -> isYamlFile(it) }) }
+        state.configFiles.projects[projectId]?.let { sourceFile(it, taskId) }
 }
 
 /** Gives [text] and the [strategies], for example `web (args: prepend, deps: replace)`. If the map is empty, the function gives only [text]. */
