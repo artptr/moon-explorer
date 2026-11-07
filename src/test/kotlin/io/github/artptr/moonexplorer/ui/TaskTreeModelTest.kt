@@ -93,7 +93,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
     fun testStackAndTaskNameHasStackNodesWithTaskNames() {
         val tree = buildTaskTree(tasks, TaskCategory.STACK, TaskGrouping.TASK_NAME)
         assertEquals(listOf("backend", "frontend", none), tree.childNames())
-        assertEquals(listOf("audit", "build", "format", "lint", "migrate", "start", "test"), tree.child("backend").childNames())
+        assertEquals(listOf("audit", "build", "check", "format", "lint", "migrate", "start", "test", "unit"), tree.child("backend").childNames())
         assertEquals(listOf("api", "db", "worker"), tree.child("backend", "audit").childNames())
         assertTrue(tree.child("backend", "audit").childNodes().all { it is TaskNode && it.showProject && it.isLeaf })
         assertEquals(listOf("changelog", "lint"), tree.child(none).childNames())
@@ -105,7 +105,7 @@ class TaskTreeModelTest : BasePlatformTestCase() {
         assertEquals(listOf("admin", "api", "web", "worker"), tree.child("application").childNames())
         assertEquals(listOf("db", "icons", "ui", "utils"), tree.child("library").childNames())
         assertEquals(listOf("scripts"), tree.child(none).childNames())
-        assertEquals(listOf("audit", "build", "format", "lint", "migrate", "test"), tree.child("library", "db").childNames())
+        assertEquals(listOf("audit", "build", "format", "lint", "migrate", "unit"), tree.child("library", "db").childNames())
     }
 
     fun testLayerAndTaskNameHasLayerNodesWithTaskNames() {

@@ -8,3 +8,6 @@ tasks:
   audit:
     command: 'echo audit'
     description: 'Do a check of the dependencies for known vulnerabilities.'
+  # This task has the same ID as a task in all.yml. Backend projects inherit the task from the two files.
+  lint:
+    command: 'echo lint backend'

@@ -13,6 +13,10 @@
 - A local task that merges with a global task has an icon in the gutter. The icon opens the global task. The tooltip shows the merge strategies that are not `append`.
 - JetBrains Marketplace finds the file names `moon.yml` and `moon.yaml`. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
+### Changed
+
+- The plugin also runs `moon task-graph --json` when it loads the tasks. The tree does not wait for this command. The time limit in **Settings | Tools | Moon Explorer** applies to each command.
+
 ## [0.4.0] - 2026-11-02
 
 ### Added

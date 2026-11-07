@@ -111,7 +111,7 @@ class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
             action.run = { _, targets, affected -> calls += targets to affected }
             action.actionPerformed(TestActionEvent.createTestEvent(action, event))
         }
-        val targets = listOf("api:test", "db:test", "worker:test")
+        val targets = listOf("api:test", "db:unit", "worker:check")
         assertEquals(listOf(targets to false, targets to true), calls)
     }
 
