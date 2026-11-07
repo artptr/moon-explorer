@@ -83,8 +83,15 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
     }
 
+    fun testItemOfARenamedTaskOpensTheLocalTaskKey() {
+        // The project db renames the global task test to unit and has a local task unit.
+        val hint = insights(".moon/tasks/backend.yml").mergedHints().single { it.element.text == "test" }
+        assertEquals(SourceFile(workspacePath("packages/db/moon.yml"), "unit"), hint.list.items.single { it.text == "db" }.target)
+    }
+
     fun testHintTextsHavePluralForms() {
         assertEquals("Merged in 1 project", MoonExplorerBundle.message("hint.mergedIn", 1))
+        assertEquals("Merged in 0 projects", MoonExplorerBundle.message("hint.mergedIn", 0))
         assertEquals("Merged in 2 projects", MoonExplorerBundle.message("hint.mergedIn", 2))
         assertEquals("Inherited by 0 projects", MoonExplorerBundle.message("hint.inheritedBy", 0))
         assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))

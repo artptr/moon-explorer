@@ -56,7 +56,7 @@ class RunMarkersRefresherTest : BasePlatformTestCase() {
         runBlocking { activity.execute(project) }
     }
 
-    fun testOnlyYamlConfigFilesHaveRunMarkers() {
+    fun testRefresherExaminesOnlyTheYamlConfigFiles() {
         val root = TestData.workspaceRoot
         val state = TasksState.Loaded(
             WorkspaceTasks(emptyList()),
