@@ -21,6 +21,7 @@ import io.github.artptr.moonexplorer.model.TaskGraph
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.SourceFile
+import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
@@ -117,14 +118,16 @@ class ConfigInsightsTest : BasePlatformTestCase() {
 
     fun testEntriesOfInheritedTasksHaveHints() {
         val hints = insights("apps/web/moon.yml").inheritedHints().drop(1)
-        assertEquals(listOf("Excludes format from all.yml", "Renames typecheck from frontend.yml to tsc"), hints.map { it.text })
+        assertEquals(listOf("Excludes format from .moon/tasks/all.yml", "Renames typecheck from .moon/tasks/frontend.yml to tsc"), hints.map { it.text })
         assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), hints[0].list.items.single().target)
         assertEquals("typecheck", hints[1].element.text)
+        // The rename opens the global task key, not the local ID.
+        assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), hints[1].list.items.single().target)
     }
 
     fun testIncludeEntryHasAHint() {
         val texts = insights("tools/scripts/moon.yml").inheritedHints().map { it.text }
-        assertEquals(listOf("1 inherited task", "Includes lint from all.yml"), texts)
+        assertEquals(listOf("1 inherited task", "Includes lint from .moon/tasks/all.yml"), texts)
     }
 
     fun testProjectWithoutInheritedTasksHasNoHint() {
@@ -134,12 +137,50 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     fun testLocalTaskThatMergesHasAHintAndAGutterMark() {
         val insights = insights("apps/web/moon.yml")
         val hint = insights.mergedHints().single()
-        assertEquals("Merged with all.yml", hint.text)
+        assertEquals("Merged with .moon/tasks/all.yml", hint.text)
         assertEquals("lint", hint.element.text)
         assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), hint.list.items.single().target)
         val mark = insights.gutterMarks().single()
         assertTrue(mark.local)
-        assertEquals("Merged with all.yml (args: prepend, deps: replace)", mark.tooltip)
+        assertEquals("Merged with .moon/tasks/all.yml (args: prepend, deps: replace)", mark.tooltip)
+        // The list of the icon has one target. Thus a click on the icon opens the global task directly.
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint")), mark.list.items.map { it.target })
+    }
+
+    fun testListOfARenamedLocalTaskHasTheGlobalId() {
+        // The project db renames the global task test to unit and has a local task unit.
+        val hint = insights("packages/db/moon.yml").mergedHints().single()
+        assertEquals("unit", hint.element.text)
+        assertEquals("Global Task 'test'", hint.list.title)
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/backend.yml"), "test")), hint.list.items.map { it.target })
+    }
+
+    fun testCountOfInheritedTasksIsTheNumberOfItems() {
+        // The project api inherits lint from all.yml and from backend.yml. The project worker renames format and test to check.
+        val api = insights("apps/api/moon.yml").inheritedHints().first()
+        assertEquals("${api.list.items.size} inherited tasks", api.text)
+        val lint = api.list.items.single { it.text == "lint" }
+        assertEquals(".moon/tasks/all.yml, .moon/tasks/backend.yml", lint.secondary)
+        val worker = insights("apps/worker/moon.yml").inheritedHints().first()
+        assertEquals("${worker.list.items.size} inherited tasks", worker.text)
+        assertEquals(1, worker.list.items.count { it.text == "check" })
+    }
+
+    fun testProjectWithoutTheTasksKeyHasTheHintAtTheTop() {
+        // The syntax comes from a file without the key tasks. The data comes from the project web.
+        val file = myFixture.configureByText("moon.yml", "language: 'typescript'\n")
+        val insights = ConfigInsights(configSyntax(file)!!, service.state.value.lastLoaded!!, workspacePath("apps/web/moon.yml"))
+        val hint = insights.inheritedHints().single()
+        assertEquals("3 inherited tasks", hint.text)
+        assertEquals(0, hint.element.textOffset)
+    }
+
+    fun testEntryThatMatchesNoGlobalTaskHasAHintWithoutAList() {
+        val file = myFixture.configureByText("moon.yml", "workspace:\n  inheritedTasks:\n    exclude: ['nothing']\n")
+        val insights = ConfigInsights(configSyntax(file)!!, service.state.value.lastLoaded!!, workspacePath("apps/web/moon.yml"))
+        val hint = insights.inheritedHints().last()
+        assertEquals("No inherited file has nothing", hint.text)
+        assertEmpty(hint.list.items)
     }
 
     fun testLocalTaskOfAnExcludedGlobalTaskDoesNotMerge() {
@@ -211,6 +252,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals("Merged in 2 projects", MoonExplorerBundle.message("hint.mergedIn", 2))
         assertEquals("Inherited by 0 projects", MoonExplorerBundle.message("hint.inheritedBy", 0))
         assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))
+        assertEquals("1 inherited task", MoonExplorerBundle.message("hint.inheritedTasks", 1))
+        assertEquals("2 inherited tasks", MoonExplorerBundle.message("hint.inheritedTasks", 2))
     }
 
     fun testHintWithAnEmptyListHasNoClickAction() {
