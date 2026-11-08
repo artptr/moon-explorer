@@ -9,6 +9,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiEditorUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.model.SourceFile
 import javax.swing.Icon
 
 /**
@@ -37,8 +38,7 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
         val tooltip = mark.tooltip
         // The handler must not keep PSI of the mark. The IDE gives the element to the handler.
         val list = mark.list
-        // A local task with one global task opens the global task. Then the user has no selection to make.
-        val single = list.items.singleOrNull()?.target?.takeIf { mark.local }
+        val single = directTarget(mark)
         val navigation = GutterIconNavigationHandler<PsiElement> { mouse, target ->
             if (single != null) {
                 openConfigTarget(target.project, single)
@@ -52,3 +52,9 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
         return LineMarkerInfo(element, element.textRange, markIcon, { tooltip }, navigation, GutterIconRenderer.Alignment.RIGHT, { tooltip })
     }
 }
+
+/**
+ * Gives the target that a click on [mark] opens without a list, or null if the click shows the list.
+ * A local task with one global task in one file opens the global task. Then the user has no selection to make.
+ */
+internal fun directTarget(mark: ConfigGutterMark): SourceFile? = mark.list.items.singleOrNull()?.target?.takeIf { mark.local }

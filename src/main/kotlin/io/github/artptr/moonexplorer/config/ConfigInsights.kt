@@ -77,26 +77,30 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val inherited = index.project(project)?.inherited.orEmpty()
         val element = syntax.tasksKey ?: syntax.firstElement
         if (inherited.isEmpty() || element == null) return null
-        // One item for each local task. A task can come from more than one file. The item opens the first file, and the secondary text gives all files.
-        val items = inherited.groupBy { it.localId }.toSortedMap(ID_ORDER).map { (localId, tasks) ->
-            val first = tasks.first()
-            val files = tasks.flatMap { it.files }.distinct()
-            HintItem(localId, sourceFile(first.files.first(), first.globalId), secondary = paths(files))
+        // One group for each local task. A task can come from more than one global task and more than one file.
+        // Thus the group has one item for each global task in each file. The secondary text gives the global ID if the project renames the task.
+        val groups = inherited.groupBy { it.localId }.toSortedMap(ID_ORDER)
+        val items = groups.flatMap { (localId, tasks) ->
+            tasks.flatMap { task ->
+                task.files.map { HintItem(state.workspacePath(it), sourceFile(it, task.globalId), localId, task.globalId.takeIf { id -> id != localId }) }
+            }
         }
         val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), items)
-        return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", items.size), list)
+        return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", groups.size), list)
     }
 
     /**
-     * The hints on the entries of `workspace.inheritedTasks`. An entry that matches no global task of the project has a hint without a list.
-     * Thus the user can see an incorrect task ID.
+     * The hints on the entries of `workspace.inheritedTasks`. An entry without a file to open has a hint without a list. There are two causes:
+     * no file that applies to the project has the global task (for example, an incorrect task ID), or the files of the task are not on the disk.
      */
     private fun entryHints(project: String): List<ConfigHint> {
         val layers = state.tasks.taskConfigs[project]?.layers.orEmpty()
         return syntax.inheritedTasks.map { entry ->
-            val files = layers[entry.globalId].orEmpty().mapNotNull { state.configFiles.inherited[it] }.distinct()
+            val layerFiles = layers[entry.globalId].orEmpty()
+            val files = layerFiles.mapNotNull { state.configFiles.inherited[it] }.distinct()
             if (files.isEmpty()) {
-                val text = MoonExplorerBundle.message("hint.entry.noMatch", entry.globalId)
+                val key = if (layerFiles.isEmpty()) "hint.entry.noMatch" else "hint.entry.missingFile"
+                val text = MoonExplorerBundle.message(key, entry.globalId)
                 return@map ConfigHint(entry.element, text, HintList(text, emptyList()))
             }
             val names = paths(files)
