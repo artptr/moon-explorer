@@ -102,9 +102,11 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val hint = insights("apps/web/moon.yml").inheritedHints().first()
         assertEquals("3 inherited tasks", hint.text)
         assertEquals("tasks", hint.element.text)
-        val typecheck = hint.list.items.first { it.text == "tsc" }
+        // The group is the local ID. The secondary text gives the global ID, because web renames typecheck to tsc.
+        val typecheck = hint.list.items.single { it.group == "tsc" }
+        assertEquals(".moon/tasks/frontend.yml", typecheck.text)
+        assertEquals("typecheck", typecheck.secondary)
         assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), typecheck.target)
-        assertEquals(".moon/tasks/frontend.yml", typecheck.secondary)
     }
 
     fun testEntriesOfInheritedTasksHaveHints() {
@@ -146,15 +148,52 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/backend.yml"), "test")), hint.list.items.map { it.target })
     }
 
-    fun testCountOfInheritedTasksIsTheNumberOfItems() {
-        // The project api inherits lint from all.yml and from backend.yml. The project worker renames format and test to check.
+    fun testListHasAGroupForEachInheritedTask() {
+        // The project api inherits lint from all.yml and from backend.yml. The list opens the two files.
         val api = insights("apps/api/moon.yml").inheritedHints().first()
-        assertEquals("${api.list.items.size} inherited tasks", api.text)
-        val lint = api.list.items.single { it.text == "lint" }
-        assertEquals(".moon/tasks/all.yml, .moon/tasks/backend.yml", lint.secondary)
+        assertEquals("${api.list.items.mapTo(HashSet()) { it.group }.size} inherited tasks", api.text)
+        val lint = api.list.items.filter { it.group == "lint" }.map { it.target }
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), SourceFile(workspacePath(".moon/tasks/backend.yml"), "lint")), lint)
+    }
+
+    fun testGroupOfATaskFromTwoGlobalTasksOpensEachGlobalTask() {
+        // The project worker renames format and test to check.
         val worker = insights("apps/worker/moon.yml").inheritedHints().first()
-        assertEquals("${worker.list.items.size} inherited tasks", worker.text)
-        assertEquals(1, worker.list.items.count { it.text == "check" })
+        assertEquals("${worker.list.items.mapTo(HashSet()) { it.group }.size} inherited tasks", worker.text)
+        val check = worker.list.items.filter { it.group == "check" }
+        assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.target?.taskId })
+        assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.secondary })
+    }
+
+    fun testListOfALocalTaskThatMergesWithTwoGlobalTasksHasGroups() {
+        // The data gives worker a local task check. Then check merges with the global tasks format and test.
+        val loaded = service.state.value.lastLoaded!!
+        val configs = loaded.tasks.taskConfigs.getValue("worker")
+        val state = loaded.copy(tasks = loaded.tasks.copy(taskConfigs = loaded.tasks.taskConfigs + ("worker" to configs.copy(ownTasks = configs.ownTasks + "check"))))
+        val file = myFixture.configureByText("moon.yml", "tasks:\n  check:\n    command: 'check'\n")
+        val insights = ConfigInsights(configSyntax(file)!!, state, workspacePath("apps/worker/moon.yml"))
+        val list = insights.mergedHints().single().list
+        assertEquals("Global Tasks That Merge with 'check'", list.title)
+        assertEquals(setOf("format", "test"), list.items.mapTo(HashSet()) { it.group })
+        assertNull("A click on the icon shows the list", directTarget(insights.gutterMarks().single()))
+    }
+
+    fun testClickOnTheIconOfALocalTaskWithOneGlobalTaskOpensTheGlobalTask() {
+        val local = insights("apps/web/moon.yml").gutterMarks().single()
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), directTarget(local))
+        val global = insights(".moon/tasks/all.yml").gutterMarks().first { it.element.text == "lint" }
+        assertNull("The icon of a global task shows the list", directTarget(global))
+    }
+
+    fun testEntryWithAMissingFileHasADifferentHint() {
+        // The load has the layer all.yml for format, but the file is not on the disk.
+        val loaded = service.state.value.lastLoaded!!
+        val files = loaded.configFiles.copy(inherited = loaded.configFiles.inherited.filterValues { !it.endsWith(".moon/tasks/all.yml") })
+        val file = myFixture.configureByText("moon.yml", "workspace:\n  inheritedTasks:\n    exclude: ['format']\n")
+        val insights = ConfigInsights(configSyntax(file)!!, loaded.copy(configFiles = files), workspacePath("apps/web/moon.yml"))
+        val hint = insights.inheritedHints().last()
+        assertEquals("Cannot find the inherited file of format", hint.text)
+        assertEmpty(hint.list.items)
     }
 
     fun testProjectWithoutTheTasksKeyHasTheHintAtTheTop() {
@@ -170,7 +209,7 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val file = myFixture.configureByText("moon.yml", "workspace:\n  inheritedTasks:\n    exclude: ['nothing']\n")
         val insights = ConfigInsights(configSyntax(file)!!, service.state.value.lastLoaded!!, workspacePath("apps/web/moon.yml"))
         val hint = insights.inheritedHints().last()
-        assertEquals("No inherited file has nothing", hint.text)
+        assertEquals("No inherited file of this project has nothing", hint.text)
         assertEmpty(hint.list.items)
     }
 
