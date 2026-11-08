@@ -5,6 +5,7 @@ import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.RunConfigurationProducer
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.util.io.FileUtil
@@ -125,6 +126,19 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         myFixture.type("# A line above lint.\n")
         PsiDocumentManager.getInstance(project).commitAllDocuments()
         assertEquals(expected, all())
+    }
+
+    fun testProviderGivesOneHintForTheEntriesOnOneLine() {
+        load(listOf("build", "lint"))
+        open("app/moon.yaml")
+        WriteCommandAction.runWriteCommandAction(project) {
+            myFixture.editor.document.insertString(0, "workspace: {inheritedTasks: {exclude: [check, nope]}}\n")
+        }
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+        assertEquals(
+            listOf("1 inherited task @ tasks", "Excludes check from .moon/tasks/one.yml; No inherited file of this project contains nope @ check"),
+            hints(MoonInheritedCodeVisionProvider()),
+        )
     }
 
     fun testLocalTaskThatMergesHasTheInheritanceIconInTheGutter() {

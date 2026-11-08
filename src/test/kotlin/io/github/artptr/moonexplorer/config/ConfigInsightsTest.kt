@@ -289,6 +289,41 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("Merged with .moon/tasks/all.yml @ lint"), insights.mergedHints().map { it.text + " @ " + it.element.text })
     }
 
+    fun testHintsOnOneLineAreJoinedIntoOneHint() {
+        val insights = insightsOf("workspace:\n  inheritedTasks:\n    exclude: ['format', 'nope', 'lint']\n    rename: {typecheck: tsc}\n", "apps/web/moon.yml")
+        val document = myFixture.editor.document
+        val hints = joinHintsOnOneLine(insights.inheritedHints().drop(1)) { document.getLineNumber(it.element.textRange.startOffset) }
+        assertEquals(2, hints.size)
+        val joined = hints[0]
+        assertEquals(
+            "Excludes format from .moon/tasks/all.yml; No inherited file of this project contains nope; Excludes lint from .moon/tasks/all.yml",
+            joined.text,
+        )
+        assertEquals("'format'", joined.element.text)
+        assertEquals("Hints on This Line", joined.list.title)
+        // Each hint is a group. The hint without a list gives an item that the user cannot select.
+        assertEquals(
+            listOf(
+                Triple("Excludes format from .moon/tasks/all.yml", ".moon/tasks/all.yml", "format"),
+                Triple(null, "No inherited file of this project contains nope", null),
+                Triple("Excludes lint from .moon/tasks/all.yml", ".moon/tasks/all.yml", "lint"),
+            ),
+            joined.list.items.map { Triple(it.group, it.text, it.target?.taskId) },
+        )
+        // A line with one hint keeps its hint.
+        assertEquals("Renames typecheck from .moon/tasks/frontend.yml to tsc", hints[1].text)
+        assertEquals("Global Task 'typecheck'", hints[1].list.title)
+    }
+
+    fun testJoinedHintKeepsTheGroupsOfTheItems() {
+        // In a flow mapping on one line, the hint of the key tasks and the hint of an entry are on one line.
+        val insights = insightsOf("{workspace: {inheritedTasks: {exclude: [format]}}, tasks: {}}\n", "apps/web/moon.yml")
+        val joined = joinHintsOnOneLine(insights.inheritedHints()) { 0 }.single()
+        assertEquals("3 inherited tasks; Excludes format from .moon/tasks/all.yml", joined.text)
+        val groups = joined.list.items.map { it.group }.distinct()
+        assertEquals(listOf("3 inherited tasks: lint", "3 inherited tasks: test", "3 inherited tasks: tsc", "Excludes format from .moon/tasks/all.yml"), groups)
+    }
+
     fun testExcludeOfATaskFromTwoFilesGivesTheTwoFiles() {
         // The project api inherits lint from all.yml and from backend.yml.
         val hint = insightsOf("workspace:\n  inheritedTasks:\n    exclude: [lint]\n", "apps/api/moon.yml").inheritedHints().last()
