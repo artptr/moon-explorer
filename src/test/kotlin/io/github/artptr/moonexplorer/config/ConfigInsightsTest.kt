@@ -21,6 +21,7 @@ import io.github.artptr.moonexplorer.model.TaskGraph
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.SourceFile
+import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
@@ -52,6 +53,12 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     }
 
     private fun workspacePath(path: String) = TestData.workspaceRoot.resolve(path)
+
+    private val loaded get() = service.state.value.lastLoaded!!
+
+    /** Gives the insights of a file with [text], with the data of the configuration file [path] in [state]. */
+    private fun insightsOf(text: String, path: String, state: TasksState.Loaded = loaded): ConfigInsights =
+        ConfigInsights(configSyntax(myFixture.configureByText("moon.yml", text))!!, state, workspacePath(path))
 
     fun testFileHasTheInheritedByHintAtTheTop() {
         val hint = insights(".moon/tasks/all.yml").inheritedHints().single()
@@ -178,11 +185,9 @@ class ConfigInsightsTest : BasePlatformTestCase() {
 
     fun testListOfALocalTaskThatMergesWithTwoGlobalTasksHasGroups() {
         // The data gives worker a local task check. Then check merges with the global tasks format and test.
-        val loaded = service.state.value.lastLoaded!!
         val configs = loaded.tasks.taskConfigs.getValue("worker")
         val state = loaded.copy(tasks = loaded.tasks.copy(taskConfigs = loaded.tasks.taskConfigs + ("worker" to configs.copy(ownTasks = configs.ownTasks + "check"))))
-        val file = myFixture.configureByText("moon.yml", "tasks:\n  check:\n    command: 'check'\n")
-        val insights = ConfigInsights(configSyntax(file)!!, state, workspacePath("apps/worker/moon.yml"))
+        val insights = insightsOf("tasks:\n  check:\n    command: 'check'\n", "apps/worker/moon.yml", state)
         val list = insights.mergedHints().single().list
         assertEquals("Global Tasks That Merge with 'check'", list.title)
         assertEquals(setOf("format", "test"), list.items.mapTo(HashSet()) { it.group })
@@ -198,10 +203,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
 
     fun testEntryWithAMissingFileHasADifferentHint() {
         // The load has the layer all.yml for format, but the file is not on the disk.
-        val loaded = service.state.value.lastLoaded!!
         val files = loaded.configFiles.copy(inherited = loaded.configFiles.inherited.filterValues { !it.endsWith(".moon/tasks/all.yml") })
-        val file = myFixture.configureByText("moon.yml", "workspace:\n  inheritedTasks:\n    exclude: ['format']\n")
-        val insights = ConfigInsights(configSyntax(file)!!, loaded.copy(configFiles = files), workspacePath("apps/web/moon.yml"))
+        val insights = insightsOf("workspace:\n  inheritedTasks:\n    exclude: ['format']\n", "apps/web/moon.yml", loaded.copy(configFiles = files))
         val hint = insights.inheritedHints().last()
         assertEquals("Cannot find the inherited file of format", hint.text)
         assertEmpty(hint.list.items)
@@ -209,16 +212,14 @@ class ConfigInsightsTest : BasePlatformTestCase() {
 
     fun testProjectWithoutTheTasksKeyHasTheHintAtTheTop() {
         // The syntax comes from a file without the key tasks. The data comes from the project web.
-        val file = myFixture.configureByText("moon.yml", "language: 'typescript'\n")
-        val insights = ConfigInsights(configSyntax(file)!!, service.state.value.lastLoaded!!, workspacePath("apps/web/moon.yml"))
+        val insights = insightsOf("language: 'typescript'\n", "apps/web/moon.yml")
         val hint = insights.inheritedHints().single()
         assertEquals("3 inherited tasks", hint.text)
         assertEquals(0, hint.element.textOffset)
     }
 
     fun testEntryThatMatchesNoGlobalTaskHasAHintWithoutAList() {
-        val file = myFixture.configureByText("moon.yml", "workspace:\n  inheritedTasks:\n    exclude: ['nothing']\n")
-        val insights = ConfigInsights(configSyntax(file)!!, service.state.value.lastLoaded!!, workspacePath("apps/web/moon.yml"))
+        val insights = insightsOf("workspace:\n  inheritedTasks:\n    exclude: ['nothing']\n", "apps/web/moon.yml")
         val hint = insights.inheritedHints().last()
         assertEquals("No inherited file of this project contains nothing", hint.text)
         assertEmpty(hint.list.items)

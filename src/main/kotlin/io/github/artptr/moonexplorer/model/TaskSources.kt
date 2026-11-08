@@ -22,7 +22,10 @@ data class SourceFile(val path: Path, val taskId: String?)
  * [inherited] gives the path of each file of [TaskConfigs.layers] and [TaskConfigs.inheritedLayers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
  * When a configuration file changes, the plugin loads the tasks again. After a successful load, the plugin finds the files again.
  */
-data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>)
+data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>) {
+    /** Gives the paths of the [layers] that exist, without duplicates. [layers] contains values from moon, for example `.moon/tasks/all.yml`. */
+    fun inheritedFiles(layers: List<String>): List<Path> = layers.mapNotNull { inherited[it] }.distinct()
+}
 
 /**
  * Finds the configuration files of the projects and the tasks of [tasks] in the workspace [root]. [root] must be absolute and normalized.

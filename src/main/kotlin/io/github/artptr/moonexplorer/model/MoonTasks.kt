@@ -103,8 +103,7 @@ data class TaskConfigs(
 /**
  * All projects of a workspace that have tasks, sorted by ID.
  * [sources] contains the location of each project, sorted by ID. This list also contains the projects without tasks.
- * [taskConfigs] gives the task configuration of each project ID. A project is in the map if it has own tasks or an entry in `inherited.layers`.
- * Thus the map also contains projects without tasks in [projects].
+ * [taskConfigs] gives the task configuration of each project ID in the output of moon. Thus the map also contains projects without tasks in [projects].
  */
 data class WorkspaceTasks(
     val projects: List<MoonProject>,

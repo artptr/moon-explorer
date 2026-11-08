@@ -141,7 +141,7 @@ class QueryProjectsParserTest {
         """
         val configs = QueryProjectsParser.parse(json).taskConfigs
         assertEquals(TaskConfigs(setOf("build"), mapOf("lint" to listOf(".moon/tasks/all.yml"))), configs["a"])
-        assertNull(configs["b"])
+        assertEquals("A project without tasks and layers has an empty configuration", TaskConfigs(), configs["b"])
     }
 
     @Test
