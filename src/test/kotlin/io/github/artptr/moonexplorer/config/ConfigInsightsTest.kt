@@ -262,6 +262,43 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("lint", "format"), merged.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
     }
 
+    fun testProvidersGiveTheHintsInTheProjectFile() {
+        myFixture.configureFromExistingVirtualFile(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        fun hints(provider: MoonCodeVisionProvider) = provider.computeForEditor(myFixture.editor, myFixture.file).map { (range, entry) ->
+            (entry as ClickableTextCodeVisionEntry).longPresentation + " @ " + myFixture.editor.document.getText(range)
+        }
+        assertEquals(
+            listOf("3 inherited tasks @ tasks", "Excludes format from .moon/tasks/all.yml @ 'format'", "Renames typecheck from .moon/tasks/frontend.yml to tsc @ typecheck"),
+            hints(MoonInheritedCodeVisionProvider()),
+        )
+        assertEquals(listOf("Merged with .moon/tasks/all.yml @ lint"), hints(MoonMergedCodeVisionProvider()))
+    }
+
+    fun testLocalTaskThatMergesHasTheIconWithTheStrategiesInTheGutter() {
+        myFixture.configureFromExistingVirtualFile(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        val tooltips = myFixture.findAllGutters().mapNotNull { it.tooltipText }.filter { it.startsWith("Merged ") }
+        assertEquals(listOf("Merged with .moon/tasks/all.yml (args: prepend, deps: replace)"), tooltips)
+    }
+
+    fun testEntriesInFlowFormHaveHints() {
+        val insights = insightsOf("workspace: {inheritedTasks: {exclude: [format], rename: {'typecheck': tsc}}}\ntasks: {lint: {}}\n", "apps/web/moon.yml")
+        assertEquals(
+            listOf("3 inherited tasks @ tasks", "Excludes format from .moon/tasks/all.yml @ format", "Renames typecheck from .moon/tasks/frontend.yml to tsc @ 'typecheck'"),
+            insights.inheritedHints().map { it.text + " @ " + it.element.text },
+        )
+        assertEquals(listOf("Merged with .moon/tasks/all.yml @ lint"), insights.mergedHints().map { it.text + " @ " + it.element.text })
+    }
+
+    fun testExcludeOfATaskFromTwoFilesGivesTheTwoFiles() {
+        // The project api inherits lint from all.yml and from backend.yml.
+        val hint = insightsOf("workspace:\n  inheritedTasks:\n    exclude: [lint]\n", "apps/api/moon.yml").inheritedHints().last()
+        assertEquals("Excludes lint from .moon/tasks/all.yml, .moon/tasks/backend.yml", hint.text)
+        assertEquals(
+            listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), SourceFile(workspacePath(".moon/tasks/backend.yml"), "lint")),
+            hint.list.items.map { it.target },
+        )
+    }
+
     fun testExtensionsAreRegistered() {
         val providers = ExtensionPointName<DaemonBoundCodeVisionProvider>(DaemonBoundCodeVisionProvider.EP_NAME).extensionList
         assertTrue(providers.any { it is MoonInheritedCodeVisionProvider })
