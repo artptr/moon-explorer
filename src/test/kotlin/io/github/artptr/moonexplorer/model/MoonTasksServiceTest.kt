@@ -66,7 +66,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             service.refresh()
             val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
             val graph = TaskGraph(mapOf("a:b" to setOf("task-graph---json")))
-            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected), taskConfigs = mapOf("query-projects" to TaskConfigs())), taskGraph = graph))
+            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected)), taskGraph = graph))
         } finally {
             settings.executablePath = ""
         }

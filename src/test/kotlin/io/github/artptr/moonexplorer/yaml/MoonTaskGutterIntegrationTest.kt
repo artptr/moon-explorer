@@ -5,7 +5,6 @@ import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.RunConfigurationProducer
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionPlaces
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.util.io.FileUtil
@@ -117,7 +116,7 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         load(listOf("build", "lint"), listOf("check", "lint"))
         open("app/moon.yaml")
         fun all() = hints(MoonInheritedCodeVisionProvider()) + hints(MoonMergedCodeVisionProvider())
-        val expected = listOf("2 inherited tasks @ tasks", "Merged with .moon/tasks/one.yml @ lint")
+        val expected = listOf("2 inherited tasks @ tasks", "Merged with one.yml @ lint")
         assertEquals(expected, all())
         myFixture.editor.caretModel.moveToOffset(0)
         myFixture.type("# A new line.\n")
@@ -128,23 +127,10 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         assertEquals(expected, all())
     }
 
-    fun testProviderGivesOneHintForTheEntriesOnOneLine() {
-        load(listOf("build", "lint"))
-        open("app/moon.yaml")
-        WriteCommandAction.runWriteCommandAction(project) {
-            myFixture.editor.document.insertString(0, "workspace: {inheritedTasks: {exclude: [check, nope]}}\n")
-        }
-        PsiDocumentManager.getInstance(project).commitAllDocuments()
-        assertEquals(
-            listOf("1 inherited task @ tasks", "Excludes check from .moon/tasks/one.yml; No inherited file of this project contains nope @ check"),
-            hints(MoonInheritedCodeVisionProvider()),
-        )
-    }
-
     fun testLocalTaskThatMergesHasTheInheritanceIconInTheGutter() {
         load(listOf("build", "lint"), listOf("check", "lint"))
         open("app/moon.yaml")
-        assertTrue(myFixture.findAllGutters().any { it.tooltipText == "Merged with .moon/tasks/one.yml" })
+        assertTrue(myFixture.findAllGutters().any { it.tooltipText == "Merged with one.yml" })
     }
 
     private fun open(path: String) {

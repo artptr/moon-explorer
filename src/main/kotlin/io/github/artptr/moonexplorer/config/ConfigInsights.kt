@@ -54,14 +54,11 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
      * A project can inherit many tasks of the file, and the inherited tasks are not in its configuration file. Thus the item has no task key.
      * The secondary text of an item gives the task IDs in the project.
      *
-     * The configuration file of a project has a hint above the key `tasks` and a hint on each entry of `workspace.inheritedTasks`.
-     * A project without the key `tasks` has the hint at the top of the file.
-     *
-     * The texts give the paths from the workspace root, because two files can have the same name.
+     * The configuration file of a project has a hint above the key `tasks`. A project without the key `tasks` has the hint at the top of the file.
      */
     fun inheritedHints(): List<ConfigHint> {
         val project = projectId
-        if (project != null) return listOfNotNull(inheritedTasksHint(project)) + entryHints(project)
+        if (project != null) return listOfNotNull(inheritedTasksHint(project))
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
         val items = inheritance.projects.map { (project, localIds) ->
@@ -87,31 +84,6 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", groups.size), list)
     }
 
-    /**
-     * The hints on the entries of `workspace.inheritedTasks`. An entry without a file to open has a hint without a list. There are two causes:
-     * no file that applies to the project has the global task (for example, an incorrect task ID), or the files of the task are not on the disk.
-     */
-    private fun entryHints(project: String): List<ConfigHint> {
-        val layers = state.tasks.taskConfigs[project]?.layers.orEmpty()
-        return syntax.inheritedTasks.map { entry ->
-            val layerFiles = layers[entry.globalId].orEmpty()
-            val files = state.configFiles.inheritedFiles(layerFiles)
-            if (files.isEmpty()) {
-                val key = if (layerFiles.isEmpty()) "hint.entry.noMatch" else "hint.entry.missingFile"
-                val text = MoonExplorerBundle.message(key, entry.globalId)
-                return@map ConfigHint(entry.element, text, HintList(text, emptyList()))
-            }
-            val names = paths(files)
-            val text = when (entry) {
-                is InheritedTasksEntry.Include -> MoonExplorerBundle.message("hint.entry.include", entry.globalId, names)
-                is InheritedTasksEntry.Exclude -> MoonExplorerBundle.message("hint.entry.exclude", entry.globalId, names)
-                is InheritedTasksEntry.Rename -> MoonExplorerBundle.message("hint.entry.rename", entry.globalId, names, entry.localId)
-            }
-            val items = files.map { globalFileItem(it, entry.globalId) }
-            ConfigHint(entry.element, text, HintList(MoonExplorerBundle.message("hint.globalTask.title", entry.globalId), items))
-        }
-    }
-
     /** The hint above each global task that merges with one or more local tasks, or above each local task that merges with a global task. */
     fun mergedHints(): List<ConfigHint> = merges().map { ConfigHint(it.key.element, it.text, it.list) }
 
@@ -133,8 +105,9 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         return localMerges + mergedInLists().map { (key, list) -> Merge(key, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list, null) }
     }
 
+    /** The text gives only the file names. The list gives the paths from the workspace root. */
     private fun mergedWithText(task: MergedTask): String =
-        MoonExplorerBundle.message("hint.mergedWith", paths(task.globalTasks.flatMap { it.files }.distinct()))
+        MoonExplorerBundle.message("hint.mergedWith", task.globalTasks.flatMap { it.files }.distinct().joinToString(", ") { it.fileName.toString() })
 
     /**
      * The list of the global tasks that merge with the local task [key]. The title gives the global ID, because a project can rename the task.
@@ -149,8 +122,6 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val title = if (group) MoonExplorerBundle.message("hint.globalTasks.title", key.id) else MoonExplorerBundle.message("hint.globalTask.title", globalIds.single())
         return HintList(title, items)
     }
-
-    private fun paths(files: List<Path>): String = files.joinToString(", ") { state.workspacePath(it) }
 
     /** An item that opens the global task [globalId] in the inherited file [file]. The text is the path from the workspace root. */
     private fun globalFileItem(file: Path, globalId: String, group: String? = null, secondary: String? = null) =

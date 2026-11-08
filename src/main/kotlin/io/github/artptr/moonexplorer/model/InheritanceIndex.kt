@@ -82,7 +82,7 @@ internal class InheritanceIndex private constructor(
 
         /** Gives the inheritance of a project, or null if the project has no inherited tasks. */
         private fun projectInheritance(projectId: String, config: TaskConfigs, state: TasksState.Loaded): ProjectInheritance? {
-            val inherited = inheritedTasks(config, state.configFiles)
+            val inherited = inheritedTasks(config, state.configFiles.inherited)
             if (inherited.isEmpty()) return null
             val merged = inherited.filter { it.localId in config.ownTasks }.groupBy { it.localId }.mapValues { (localId, tasks) ->
                 // The task graph has the values after the merge, also for internal tasks. If moon task-graph failed, use the values from moon query projects.
@@ -93,10 +93,10 @@ internal class InheritanceIndex private constructor(
         }
 
         /** Gives the inherited tasks of a project. The function ignores the files that are not on the disk. */
-        private fun inheritedTasks(config: TaskConfigs, existing: ExistingConfigFiles): List<InheritedTask> =
+        private fun inheritedTasks(config: TaskConfigs, existing: Map<String, Path>): List<InheritedTask> =
             config.inheritedLayers.flatMap { (localId, layers) ->
                 layers.groupBy { it.globalId }.mapNotNull { (globalId, sameTask) ->
-                    val files = existing.inheritedFiles(sameTask.map { it.file })
+                    val files = sameTask.mapNotNull { existing[it.file] }.distinct()
                     if (files.isEmpty()) null else InheritedTask(globalId, localId, files)
                 }
             }.sortedById { it.globalId }
