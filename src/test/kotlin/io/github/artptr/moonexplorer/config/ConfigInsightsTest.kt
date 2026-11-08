@@ -151,7 +151,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     fun testListHasAGroupForEachInheritedTask() {
         // The project api inherits lint from all.yml and from backend.yml. The list opens the two files.
         val api = insights("apps/api/moon.yml").inheritedHints().first()
-        assertEquals("${api.list.items.mapTo(HashSet()) { it.group }.size} inherited tasks", api.text)
+        assertEquals("4 inherited tasks", api.text)
+        assertEquals(4, api.list.items.mapTo(HashSet()) { it.group }.size)
         val lint = api.list.items.filter { it.group == "lint" }.map { it.target }
         assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), SourceFile(workspacePath(".moon/tasks/backend.yml"), "lint")), lint)
     }
@@ -159,7 +160,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     fun testGroupOfATaskFromTwoGlobalTasksOpensEachGlobalTask() {
         // The project worker renames format and test to check.
         val worker = insights("apps/worker/moon.yml").inheritedHints().first()
-        assertEquals("${worker.list.items.mapTo(HashSet()) { it.group }.size} inherited tasks", worker.text)
+        assertEquals("3 inherited tasks", worker.text)
+        assertEquals(3, worker.list.items.mapTo(HashSet()) { it.group }.size)
         val check = worker.list.items.filter { it.group == "check" }
         assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.target?.taskId })
         assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.secondary })
@@ -209,7 +211,7 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val file = myFixture.configureByText("moon.yml", "workspace:\n  inheritedTasks:\n    exclude: ['nothing']\n")
         val insights = ConfigInsights(configSyntax(file)!!, service.state.value.lastLoaded!!, workspacePath("apps/web/moon.yml"))
         val hint = insights.inheritedHints().last()
-        assertEquals("No inherited file of this project has nothing", hint.text)
+        assertEquals("No inherited file of this project contains nothing", hint.text)
         assertEmpty(hint.list.items)
     }
 
