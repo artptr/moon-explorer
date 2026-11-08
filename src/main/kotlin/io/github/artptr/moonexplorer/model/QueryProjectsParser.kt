@@ -25,8 +25,8 @@ object QueryProjectsParser {
         val result = projects.mapNotNull { it.objectOrNull() }.mapNotNull { project ->
             val projectId = project.string("id") ?: return@mapNotNull null
             project.string("source")?.let { sources += ProjectSource(projectId, it) }
-            // Keep a project with only layers. The project has no own tasks, but its configuration file can have hints, for example on the entries of workspace.inheritedTasks.
-            taskConfigs(project).takeUnless { it.ownTasks.isEmpty() && it.layers.isEmpty() }?.let { configsByProject[projectId] = it }
+            // Keep the configuration of each project, also without tasks. Its configuration file can have hints, for example on the entries of workspace.inheritedTasks.
+            configsByProject[projectId] = taskConfigs(project)
             // moon does not write the key "tasks" if the project has no tasks.
             val tasks = project.obj("tasks")?.entrySet().orEmpty().mapNotNull { (key, value) ->
                 val task = value.objectOrNull() ?: return@mapNotNull null

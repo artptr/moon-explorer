@@ -40,8 +40,8 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
         val list = mark.list
         val single = directTarget(mark)
         val navigation = GutterIconNavigationHandler<PsiElement> { mouse, target ->
-            if (single != null) {
-                openConfigTarget(target.project, single)
+            single?.let {
+                openConfigTarget(target.project, it)
                 return@GutterIconNavigationHandler
             }
             // Use the editor of the file of the icon. The selected editor can show a different file.

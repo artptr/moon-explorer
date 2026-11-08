@@ -41,11 +41,11 @@ class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: H
  */
 class ConfigInsights internal constructor(private val syntax: ConfigSyntax, private val state: TasksState.Loaded, private val file: Path) {
 
-    private val index get() = state.inheritanceIndex
+    private val index = state.inheritanceIndex
 
-    private val global: FileInheritance? get() = index.file(file)
+    private val global: FileInheritance? = index.file(file)
 
-    private val projectId: String? get() = index.projectOfFile(file)
+    private val projectId: String? = index.projectOfFile(file)
 
     /**
      * Gives the hints of the inherited tasks.
@@ -80,7 +80,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val groups = inherited.groupBy { it.localId }.toSortedMap(ID_ORDER)
         val items = groups.flatMap { (localId, tasks) ->
             tasks.flatMap { task ->
-                task.files.map { HintItem(state.workspacePath(it), sourceFile(it, task.globalId), localId, task.globalId.takeIf { id -> id != localId }) }
+                task.files.map { globalFileItem(it, task.globalId, localId, task.globalId.takeIf { id -> id != localId }) }
             }
         }
         val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), items)
@@ -95,7 +95,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val layers = state.tasks.taskConfigs[project]?.layers.orEmpty()
         return syntax.inheritedTasks.map { entry ->
             val layerFiles = layers[entry.globalId].orEmpty()
-            val files = layerFiles.mapNotNull { state.configFiles.inherited[it] }.distinct()
+            val files = state.configFiles.inheritedFiles(layerFiles)
             if (files.isEmpty()) {
                 val key = if (layerFiles.isEmpty()) "hint.entry.noMatch" else "hint.entry.missingFile"
                 val text = MoonExplorerBundle.message(key, entry.globalId)
@@ -107,32 +107,30 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
                 is InheritedTasksEntry.Exclude -> MoonExplorerBundle.message("hint.entry.exclude", entry.globalId, names)
                 is InheritedTasksEntry.Rename -> MoonExplorerBundle.message("hint.entry.rename", entry.globalId, names, entry.localId)
             }
-            val items = files.map { HintItem(state.workspacePath(it), sourceFile(it, entry.globalId)) }
+            val items = files.map { globalFileItem(it, entry.globalId) }
             ConfigHint(entry.element, text, HintList(MoonExplorerBundle.message("hint.globalTask.title", entry.globalId), items))
         }
     }
 
     /** The hint above each global task that merges with one or more local tasks, or above each local task that merges with a global task. */
-    fun mergedHints(): List<ConfigHint> {
-        val merged = localMerges().map { (key, task) -> ConfigHint(key.element, mergedWithText(task), globalTaskList(key, task)) }
-        return merged + mergedInLists().map { (key, list) ->
-            ConfigHint(key.element, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list)
-        }
+    fun mergedHints(): List<ConfigHint> = merges().map { ConfigHint(it.key.element, it.text, it.list) }
+
+    /** The gutter icons of the file. The tooltip of a local task also gives the merge strategies. */
+    fun gutterMarks(): List<ConfigGutterMark> = merges().map { merge ->
+        val tooltip = merge.strategies?.let { withStrategies(merge.text, it) } ?: merge.text
+        ConfigGutterMark(merge.key.element, tooltip, merge.list, local = merge.strategies != null)
     }
 
-    /** The gutter icons of the file. */
-    fun gutterMarks(): List<ConfigGutterMark> {
-        val local = localMerges().map { (key, task) ->
-            ConfigGutterMark(key.element, withStrategies(mergedWithText(task), task.strategies), globalTaskList(key, task), local = true)
-        }
-        return local + mergedInLists().map { (key, list) ->
-            ConfigGutterMark(key.element, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list, local = false)
-        }
-    }
+    /** A task key that merges. [strategies] is not null only for a local task. */
+    private class Merge(val key: ConfigKey, val text: String, val list: HintList, val strategies: Map<String, String>?)
 
-    private fun localMerges(): List<Pair<ConfigKey, MergedTask>> {
-        val merged = projectId?.let(index::project)?.merged.orEmpty()
-        return syntax.taskKeys.mapNotNull { key -> merged[key.id]?.let { key to it } }
+    private fun merges(): List<Merge> {
+        val local = projectId?.let(index::project)?.merged.orEmpty()
+        val localMerges = syntax.taskKeys.mapNotNull { key ->
+            val task = local[key.id] ?: return@mapNotNull null
+            Merge(key, mergedWithText(task), globalTaskList(key, task), task.strategies)
+        }
+        return localMerges + mergedInLists().map { (key, list) -> Merge(key, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list, null) }
     }
 
     private fun mergedWithText(task: MergedTask): String =
@@ -146,13 +144,17 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val globalIds = task.globalTasks.map { it.globalId }.distinct()
         val group = globalIds.size > 1
         val items = task.globalTasks.flatMap { global ->
-            global.files.map { HintItem(state.workspacePath(it), sourceFile(it, global.globalId), global.globalId.takeIf { group }) }
+            global.files.map { globalFileItem(it, global.globalId, global.globalId.takeIf { group }) }
         }
         val title = if (group) MoonExplorerBundle.message("hint.globalTasks.title", key.id) else MoonExplorerBundle.message("hint.globalTask.title", globalIds.single())
         return HintList(title, items)
     }
 
     private fun paths(files: List<Path>): String = files.joinToString(", ") { state.workspacePath(it) }
+
+    /** An item that opens the global task [globalId] in the inherited file [file]. The text is the path from the workspace root. */
+    private fun globalFileItem(file: Path, globalId: String, group: String? = null, secondary: String? = null) =
+        HintItem(state.workspacePath(file), sourceFile(file, globalId), group, secondary)
 
     private fun mergedInLists(): List<Pair<ConfigKey, HintList>> {
         val inheritance = global ?: return emptyList()
