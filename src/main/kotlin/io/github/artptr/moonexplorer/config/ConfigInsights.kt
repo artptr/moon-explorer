@@ -7,6 +7,7 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.FileInheritance
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MergedTask
+import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
@@ -15,6 +16,7 @@ import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.sourceFile
 import io.github.artptr.moonexplorer.model.targetProjectId
 import io.github.artptr.moonexplorer.model.targetTaskId
+import io.github.artptr.moonexplorer.model.taskSourceFiles
 import io.github.artptr.moonexplorer.model.workspacePath
 import java.nio.file.Path
 
@@ -154,9 +156,15 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         }
     }
 
+    /**
+     * The item of the dependent [target] in the group [group]. The item opens the first file of [taskSourceFiles].
+     * Thus a local task opens its key in the configuration file of the project. An inherited task opens its key in the file in `.moon/tasks/`.
+     * If the plugin does not know the files of the task, the item opens the configuration file of the project.
+     */
     private fun dependentItem(group: String, target: String): HintItem {
-        val configFile = state.configFiles.projects[targetProjectId(target)]
-        return HintItem(target, configFile?.let { sourceFile(it, targetTaskId(target)) }, group, configFile?.let(state::workspacePath))
+        val taskId = targetTaskId(target)
+        val file = taskSourceFiles(state, MoonTask(taskId, target, null)).firstOrNull() ?: projectFile(targetProjectId(target), taskId)
+        return HintItem(target, file, group, file?.path?.let(state::workspacePath))
     }
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */

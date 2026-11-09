@@ -244,6 +244,34 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("a:lint" to "c:x", "b:lint" to "c:x", "b:lint" to "c:y"), hint.list.items.map { it.group to it.text })
     }
 
+    /** Gives the items of the dependents hint of `lint` in `all.yml`. The project `a` in [root] inherits `lint`, and its task `fmt` is `format` of `all.yml`. */
+    private fun inheritedDependentItems(root: String): List<HintItem> {
+        val all = ".moon/tasks/all.yml"
+        val tasks = WorkspaceTasks(
+            projects = listOf(MoonProject("a", listOf(MoonTask("lint", "a:lint", null), MoonTask("fmt", "a:fmt", null)))),
+            sources = listOf(ProjectSource("a", root)),
+            taskConfigs = mapOf(
+                "a" to TaskConfigs(inheritedLayers = mapOf("lint" to listOf(InheritedLayer("lint", all)), "fmt" to listOf(InheritedLayer("format", all)))),
+            ),
+        )
+        val state = TestData.loadedState(tasks, taskGraph = TaskGraph(mapOf("a:lint" to setOf("a:fmt"))))
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile(all))
+        return ConfigInsights(configSyntax(myFixture.file)!!, state, workspacePath(all)).dependentsHints().single().list.items
+    }
+
+    fun testInheritedDependentOpensItsGlobalTaskKey() {
+        // The project file apps/web/moon.yml has no key fmt. The item opens the key format in all.yml.
+        val item = inheritedDependentItems("apps/web").single()
+        assertEquals("a:fmt", item.text)
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), item.target)
+        assertEquals(".moon/tasks/all.yml", item.secondary)
+    }
+
+    fun testInheritedDependentOfAProjectWithoutAFileOpensItsGlobalTaskKey() {
+        val item = inheritedDependentItems("apps/missing").single()
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), item.target)
+    }
+
     fun testNoHintAndOtherHintsStayIfTheTaskGraphFails() {
         service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
         service.refresh()
