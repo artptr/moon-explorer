@@ -125,33 +125,21 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), typecheck.target)
     }
 
-    fun testEntriesOfInheritedTasksHaveHints() {
-        val hints = insights("apps/web/moon.yml").inheritedHints().drop(1)
-        assertEquals(listOf("Excludes format from .moon/tasks/all.yml", "Renames typecheck from .moon/tasks/frontend.yml to tsc"), hints.map { it.text })
-        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), hints[0].list.items.single().target)
-        assertEquals("typecheck", hints[1].element.text)
-        // The rename opens the global task key, not the local ID.
-        assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), hints[1].list.items.single().target)
-    }
-
-    fun testIncludeEntryHasAHint() {
-        val texts = insights("tools/scripts/moon.yml").inheritedHints().map { it.text }
-        assertEquals(listOf("1 inherited task", "Includes lint from .moon/tasks/all.yml"), texts)
-    }
-
-    fun testProjectWithoutInheritedTasksHasNoHint() {
-        assertEmpty(insights("packages/config/moon.yml").inheritedHints())
+    fun testProjectWithoutInheritedTasksHasNoInsights() {
+        // The project config has no tasks and inherits no task.
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile("packages/config/moon.yml"))
+        assertNull(configInsights(myFixture.file))
     }
 
     fun testLocalTaskThatMergesHasAHintAndAGutterMark() {
         val insights = insights("apps/web/moon.yml")
         val hint = insights.mergedHints().single()
-        assertEquals("Merged with .moon/tasks/all.yml", hint.text)
+        assertEquals("Merged with all.yml", hint.text)
         assertEquals("lint", hint.element.text)
         assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), hint.list.items.single().target)
         val mark = insights.gutterMarks().single()
         assertTrue(mark.local)
-        assertEquals("Merged with .moon/tasks/all.yml (args: prepend, deps: replace)", mark.tooltip)
+        assertEquals("Merged with all.yml (args: prepend, deps: replace)", mark.tooltip)
         // The list of the icon has one target. Thus a click on the icon opens the global task directly.
         assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint")), mark.list.items.map { it.target })
     }
@@ -201,28 +189,12 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertNull("The icon of a global task shows the list", directTarget(global))
     }
 
-    fun testEntryWithAMissingFileHasADifferentHint() {
-        // The load has the layer all.yml for format, but the file is not on the disk.
-        val files = loaded.configFiles.copy(inherited = loaded.configFiles.inherited.filterValues { !it.endsWith(".moon/tasks/all.yml") })
-        val insights = insightsOf("workspace:\n  inheritedTasks:\n    exclude: ['format']\n", "apps/web/moon.yml", loaded.copy(configFiles = files))
-        val hint = insights.inheritedHints().last()
-        assertEquals("Cannot find the inherited file of format", hint.text)
-        assertEmpty(hint.list.items)
-    }
-
     fun testProjectWithoutTheTasksKeyHasTheHintAtTheTop() {
         // The syntax comes from a file without the key tasks. The data comes from the project web.
         val insights = insightsOf("language: 'typescript'\n", "apps/web/moon.yml")
         val hint = insights.inheritedHints().single()
         assertEquals("3 inherited tasks", hint.text)
         assertEquals(0, hint.element.textOffset)
-    }
-
-    fun testEntryThatMatchesNoGlobalTaskHasAHintWithoutAList() {
-        val insights = insightsOf("workspace:\n  inheritedTasks:\n    exclude: ['nothing']\n", "apps/web/moon.yml")
-        val hint = insights.inheritedHints().last()
-        assertEquals("No inherited file of this project contains nothing", hint.text)
-        assertEmpty(hint.list.items)
     }
 
     fun testLocalTaskOfAnExcludedGlobalTaskDoesNotMerge() {
@@ -322,6 +294,28 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("Inherited by 9 projects"), inherited.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("Merged in 1 project", "Merged in 1 project"), merged.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("lint", "format"), merged.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
+    }
+
+    fun testProvidersGiveTheHintsInTheProjectFile() {
+        myFixture.configureFromExistingVirtualFile(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        fun hints(provider: MoonCodeVisionProvider) = provider.computeForEditor(myFixture.editor, myFixture.file).map { (range, entry) ->
+            (entry as ClickableTextCodeVisionEntry).longPresentation + " @ " + myFixture.editor.document.getText(range)
+        }
+        // The entries of workspace.inheritedTasks have no hints.
+        assertEquals(listOf("3 inherited tasks @ tasks"), hints(MoonInheritedCodeVisionProvider()))
+        assertEquals(listOf("Merged with all.yml @ lint"), hints(MoonMergedCodeVisionProvider()))
+    }
+
+    fun testLocalTaskThatMergesHasTheIconWithTheStrategiesInTheGutter() {
+        myFixture.configureFromExistingVirtualFile(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        val tooltips = myFixture.findAllGutters().mapNotNull { it.tooltipText }.filter { it.startsWith("Merged ") }
+        assertEquals(listOf("Merged with all.yml (args: prepend, deps: replace)"), tooltips)
+    }
+
+    fun testTasksInFlowFormHaveHints() {
+        val insights = insightsOf("workspace: {inheritedTasks: {exclude: [format]}}\ntasks: {lint: {}}\n", "apps/web/moon.yml")
+        assertEquals(listOf("3 inherited tasks @ tasks"), insights.inheritedHints().map { it.text + " @ " + it.element.text })
+        assertEquals(listOf("Merged with all.yml @ lint"), insights.mergedHints().map { it.text + " @ " + it.element.text })
     }
 
     fun testExtensionsAreRegistered() {

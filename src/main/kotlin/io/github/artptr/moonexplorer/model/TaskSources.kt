@@ -18,30 +18,29 @@ data class SourceFile(val path: Path, val taskId: String?)
 
 /**
  * The configuration files that existed on the disk at the time of a load. The paths are absolute and normalized.
- * [projects] gives the configuration file of each project ID, for example `moon.yml`. A project without this file is not in the map.
- * [inherited] gives the path of each file of [TaskConfigs.layers] and [TaskConfigs.inheritedLayers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
+ * [projects] gives the configuration file of each project ID with tasks, for example `moon.yml`. A project without this file is not in the map.
+ * [inherited] gives the path of each file of [TaskConfigs.inheritedLayers] that exists. The key is the value from moon, for example `.moon/tasks/all.yml`.
  * When a configuration file changes, the plugin loads the tasks again. After a successful load, the plugin finds the files again.
  */
-data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>) {
-    /** Gives the paths of the [layers] that exist, without duplicates. [layers] contains values from moon, for example `.moon/tasks/all.yml`. */
-    fun inheritedFiles(layers: List<String>): List<Path> = layers.mapNotNull { inherited[it] }.distinct()
-}
+data class ExistingConfigFiles(val projects: Map<String, Path>, val inherited: Map<String, Path>)
 
 /**
  * Finds the configuration files of the projects and the tasks of [tasks] in the workspace [root]. [root] must be absolute and normalized.
  * The loader calls this function one time for each load. Thus the actions do not read the disk to find the files.
- * The function also examines the projects without tasks in the tree. A project with only internal tasks, or with entries in
- * `workspace.inheritedTasks`, has hints in its configuration file.
+ * The function examines the projects with tasks in the tree, and the projects with task configurations.
+ * A project with only internal tasks is not in the tree, but the hints of the inherited files can show it.
  * The function reads the disk. Call it on a background thread.
  */
 internal fun findExistingConfigFiles(tasks: WorkspaceTasks, root: Path): ExistingConfigFiles {
-    val projects = tasks.sources.mapNotNull { source ->
+    val withTasks = tasks.projects.mapTo(HashSet()) { it.id } + tasks.taskConfigs.keys
+    val projects = tasks.sources.filter { it.id in withTasks }.mapNotNull { source ->
         val file = resolveInRoot(root, source.source)?.let { MoonWorkspaceLocator.findConfigFile(it, MoonWorkspaceLocator.PROJECT_CONFIG) }
         file?.let { source.id to it }
     }.toMap()
     // Many projects inherit the same files. Thus the function examines each file only one time.
     val inherited = tasks.taskConfigs.values.asSequence()
-        .flatMap { configs -> configs.layers.values.asSequence().flatten() + configs.inheritedLayers.values.asSequence().flatten().map { it.file } }
+        .flatMap { configs -> configs.inheritedLayers.values.asSequence().flatten() }
+        .map { it.file }
         .distinct()
         .mapNotNull { layer -> resolveInRoot(root, layer)?.takeIf(Files::isRegularFile)?.let { layer to it } }
         .toMap()
