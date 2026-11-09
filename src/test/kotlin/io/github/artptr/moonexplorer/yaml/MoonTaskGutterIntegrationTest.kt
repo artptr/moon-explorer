@@ -15,6 +15,9 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
+import io.github.artptr.moonexplorer.config.MoonCodeVisionProvider
+import io.github.artptr.moonexplorer.config.MoonInheritedCodeVisionProvider
 import io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
@@ -61,18 +64,23 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         }
     }
 
-    /** Gives the output of `moon query projects` for the project `app` with the tasks [own] in `moon.yaml` and the inherited task `check`. */
-    private fun queryJson(own: List<String>): String {
-        val tasks = (own + "check").joinToString(",") { """"$it":{"id":"$it","target":"app:$it"}""" }
-        val targets = (own + "check").joinToString(",") { """"app:$it"""" }
+    /**
+     * Gives the output of `moon query projects` for the project `app` with the tasks [own] in `moon.yaml`.
+     * The project inherits each task of [global] from `.moon/tasks/one.yml`. A task in [own] and in [global] merges.
+     */
+    private fun queryJson(own: List<String>, global: List<String>): String {
+        val all = (own + global).distinct()
+        val tasks = all.joinToString(",") { """"$it":{"id":"$it","target":"app:$it"}""" }
+        val targets = all.joinToString(",") { """"app:$it"""" }
         val config = own.joinToString(",") { """"$it":{}""" }
+        val layers = global.joinToString(",") { """"$it":[".moon/tasks/one.yml"]""" }
         return """{"projects":[{"id":"app","source":"app","config":{"tasks":{$config}},""" +
-            """"inherited":{"layers":{"check":[".moon/tasks/one.yml"]}},"tasks":{$tasks},"taskTargets":[$targets]}]}"""
+            """"inherited":{"layers":{$layers}},"tasks":{$tasks},"taskTargets":[$targets]}]}"""
     }
 
     /** Loads the tasks with the output of [queryJson] and waits for the [TasksState.Loaded] state of this output. */
-    private fun load(own: List<String>) {
-        val json = queryJson(own)
+    private fun load(own: List<String>, global: List<String> = listOf("check")) {
+        val json = queryJson(own, global)
         service.queryProjects = { CliResult.Success(json) }
         service.refresh()
         service.awaitState(TestData.loadedState(QueryProjectsParser.parse(json), root))
@@ -96,6 +104,33 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         load(listOf("check"))
         open(".moon/tasks/one.yml")
         assertTrue(myFixture.findAllGutters().any { it.tooltipText == "Merged in 1 project" })
+    }
+
+    /** Gives the hints of [provider] in the open file. Each item has the text of the hint and the text of the element below the hint. */
+    private fun hints(provider: MoonCodeVisionProvider): List<String> = provider.computeForEditor(myFixture.editor, myFixture.file).map { (range, entry) ->
+        (entry as ClickableTextCodeVisionEntry).longPresentation + " @ " + myFixture.editor.document.getText(range)
+    }
+
+    fun testHintsOfTheProjectFileStayOnTheKeysWhileTheUserTypes() {
+        // The local task lint merges with the global task lint.
+        load(listOf("build", "lint"), listOf("check", "lint"))
+        open("app/moon.yaml")
+        fun all() = hints(MoonInheritedCodeVisionProvider()) + hints(MoonMergedCodeVisionProvider())
+        val expected = listOf("2 inherited tasks @ tasks", "Merged with one.yml @ lint")
+        assertEquals(expected, all())
+        myFixture.editor.caretModel.moveToOffset(0)
+        myFixture.type("# A new line.\n")
+        // Type after the indent of lint. The editor adds the indent after the line end. Thus lint stays a task key.
+        myFixture.editor.caretModel.moveToOffset(myFixture.editor.document.text.indexOf("lint:"))
+        myFixture.type("# A line above lint.\n")
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+        assertEquals(expected, all())
+    }
+
+    fun testLocalTaskThatMergesHasTheInheritanceIconInTheGutter() {
+        load(listOf("build", "lint"), listOf("check", "lint"))
+        open("app/moon.yaml")
+        assertTrue(myFixture.findAllGutters().any { it.tooltipText == "Merged with one.yml" })
     }
 
     private fun open(path: String) {

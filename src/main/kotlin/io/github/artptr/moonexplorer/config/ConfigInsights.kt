@@ -5,6 +5,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.FileInheritance
+import io.github.artptr.moonexplorer.model.ID_ORDER
+import io.github.artptr.moonexplorer.model.MergedTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
@@ -26,8 +28,11 @@ data class HintList(val title: String, val items: List<HintItem>)
 /** A Code Vision hint on the line of [element]. */
 class ConfigHint(val element: PsiElement, val text: String, val list: HintList)
 
-/** A gutter icon on [element], a leaf of a task key. */
-class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: HintList)
+/**
+ * A gutter icon on [element], a leaf of a task key. If [local] is true, the key is a local task that merges with a global task.
+ * If [local] is false, the key is a global task that merges with local tasks.
+ */
+class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: HintList, val local: Boolean)
 
 /**
  * Joins the syntax of the configuration file [file] with the loaded data. The function finds the data with the task IDs.
@@ -36,16 +41,24 @@ class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: H
  */
 class ConfigInsights internal constructor(private val syntax: ConfigSyntax, private val state: TasksState.Loaded, private val file: Path) {
 
-    private val index get() = state.inheritanceIndex
+    private val index = state.inheritanceIndex
 
-    private val global: FileInheritance? get() = index.file(file)
+    private val global: FileInheritance? = index.file(file)
+
+    private val projectId: String? = index.projectOfFile(file)
 
     /**
-     * The hint at the top of a file in `.moon/tasks/`. An item opens the configuration file of the project at the first line.
+     * Gives the hints of the inherited tasks.
+     *
+     * A file in `.moon/tasks/` has one hint at the top of the file. An item opens the configuration file of the project at the first line.
      * A project can inherit many tasks of the file, and the inherited tasks are not in its configuration file. Thus the item has no task key.
-     * The secondary text of an item gives the task IDs in the project. The title gives the path from the workspace root, because two files can have the same name.
+     * The secondary text of an item gives the task IDs in the project.
+     *
+     * The configuration file of a project has a hint above the key `tasks`. A project without the key `tasks` has the hint at the top of the file.
      */
     fun inheritedHints(): List<ConfigHint> {
+        val project = projectId
+        if (project != null) return listOfNotNull(inheritedTasksHint(project))
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
         val items = inheritance.projects.map { (project, localIds) ->
@@ -55,15 +68,64 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         return listOf(ConfigHint(element, MoonExplorerBundle.message("hint.inheritedBy", items.size), list))
     }
 
-    /** The hint above each global task that merges with one or more local tasks. */
-    fun mergedHints(): List<ConfigHint> = mergedInLists().map { (key, list) ->
-        ConfigHint(key.element, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list)
+    private fun inheritedTasksHint(project: String): ConfigHint? {
+        val inherited = index.project(project)?.inherited.orEmpty()
+        val element = syntax.tasksKey ?: syntax.firstElement
+        if (inherited.isEmpty() || element == null) return null
+        // One group for each local task. A task can come from more than one global task and more than one file.
+        // Thus the group has one item for each global task in each file. The secondary text gives the global ID if the project renames the task.
+        val groups = inherited.groupBy { it.localId }.toSortedMap(ID_ORDER)
+        val items = groups.flatMap { (localId, tasks) ->
+            tasks.flatMap { task ->
+                task.files.map { globalFileItem(it, task.globalId, localId, task.globalId.takeIf { id -> id != localId }) }
+            }
+        }
+        val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), items)
+        return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", groups.size), list)
     }
 
-    /** The gutter icons of the file. */
-    fun gutterMarks(): List<ConfigGutterMark> = mergedInLists().map { (key, list) ->
-        ConfigGutterMark(key.element, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list)
+    /** The hint above each global task that merges with one or more local tasks, or above each local task that merges with a global task. */
+    fun mergedHints(): List<ConfigHint> = merges().map { ConfigHint(it.key.element, it.text, it.list) }
+
+    /** The gutter icons of the file. The tooltip of a local task also gives the merge strategies. */
+    fun gutterMarks(): List<ConfigGutterMark> = merges().map { merge ->
+        val tooltip = merge.strategies?.let { withStrategies(merge.text, it) } ?: merge.text
+        ConfigGutterMark(merge.key.element, tooltip, merge.list, local = merge.strategies != null)
     }
+
+    /** A task key that merges. [strategies] is not null only for a local task. */
+    private class Merge(val key: ConfigKey, val text: String, val list: HintList, val strategies: Map<String, String>?)
+
+    private fun merges(): List<Merge> {
+        val local = projectId?.let(index::project)?.merged.orEmpty()
+        val localMerges = syntax.taskKeys.mapNotNull { key ->
+            val task = local[key.id] ?: return@mapNotNull null
+            Merge(key, mergedWithText(task), globalTaskList(key, task), task.strategies)
+        }
+        return localMerges + mergedInLists().map { (key, list) -> Merge(key, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list, null) }
+    }
+
+    /** The text gives only the file names. The list gives the paths from the workspace root. */
+    private fun mergedWithText(task: MergedTask): String =
+        MoonExplorerBundle.message("hint.mergedWith", task.globalTasks.flatMap { it.files }.distinct().joinToString(", ") { it.fileName.toString() })
+
+    /**
+     * The list of the global tasks that merge with the local task [key]. The title gives the global ID, because a project can rename the task.
+     * If more than one global task merges, the list has a group for each global ID.
+     */
+    private fun globalTaskList(key: ConfigKey, task: MergedTask): HintList {
+        val globalIds = task.globalTasks.map { it.globalId }.distinct()
+        val group = globalIds.size > 1
+        val items = task.globalTasks.flatMap { global ->
+            global.files.map { globalFileItem(it, global.globalId, global.globalId.takeIf { group }) }
+        }
+        val title = if (group) MoonExplorerBundle.message("hint.globalTasks.title", key.id) else MoonExplorerBundle.message("hint.globalTask.title", globalIds.single())
+        return HintList(title, items)
+    }
+
+    /** An item that opens the global task [globalId] in the inherited file [file]. The text is the path from the workspace root. */
+    private fun globalFileItem(file: Path, globalId: String, group: String? = null, secondary: String? = null) =
+        HintItem(state.workspacePath(file), sourceFile(file, globalId), group, secondary)
 
     private fun mergedInLists(): List<Pair<ConfigKey, HintList>> {
         val inheritance = global ?: return emptyList()
@@ -93,7 +155,6 @@ internal fun withStrategies(text: String, strategies: Map<String, String>): Stri
 fun configInsights(file: PsiFile): ConfigInsights? {
     val state = file.project.service<MoonTasksService>().state.value.lastLoaded ?: return null
     val path = file.originalFile.virtualFile?.configFilePath() ?: return null
-    // This part has hints only in the files in .moon/tasks/. Issue #161 adds the hints in the configuration file of a project.
-    if (state.inheritanceIndex.file(path) == null) return null
+    if (state.inheritanceIndex.file(path) == null && state.inheritanceIndex.projectOfFile(path) == null) return null
     return configSyntax(file)?.let { ConfigInsights(it, state, path) }
 }

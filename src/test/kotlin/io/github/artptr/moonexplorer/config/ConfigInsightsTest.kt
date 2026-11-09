@@ -12,6 +12,8 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.SourceFile
+import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
@@ -42,6 +44,12 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     }
 
     private fun workspacePath(path: String) = TestData.workspaceRoot.resolve(path)
+
+    private val loaded get() = service.state.value.lastLoaded!!
+
+    /** Gives the insights of a file with [text], with the data of the configuration file [path] in [state]. */
+    private fun insightsOf(text: String, path: String, state: TasksState.Loaded = loaded): ConfigInsights =
+        ConfigInsights(configSyntax(myFixture.configureByText("moon.yml", text))!!, state, workspacePath(path))
 
     fun testFileHasTheInheritedByHintAtTheTop() {
         val hint = insights(".moon/tasks/all.yml").inheritedHints().single()
@@ -97,6 +105,93 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
     }
 
+    fun testProjectFileHasTheNumberOfInheritedTasksAboveTheTasksKey() {
+        val hint = insights("apps/web/moon.yml").inheritedHints().first()
+        assertEquals("3 inherited tasks", hint.text)
+        assertEquals("tasks", hint.element.text)
+        // The group is the local ID. The secondary text gives the global ID, because web renames typecheck to tsc.
+        val typecheck = hint.list.items.single { it.group == "tsc" }
+        assertEquals(".moon/tasks/frontend.yml", typecheck.text)
+        assertEquals("typecheck", typecheck.secondary)
+        assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), typecheck.target)
+    }
+
+    fun testProjectWithoutInheritedTasksHasNoInsights() {
+        // The project config has no tasks and inherits no task.
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile("packages/config/moon.yml"))
+        assertNull(configInsights(myFixture.file))
+    }
+
+    fun testLocalTaskThatMergesHasAHintAndAGutterMark() {
+        val insights = insights("apps/web/moon.yml")
+        val hint = insights.mergedHints().single()
+        assertEquals("Merged with all.yml", hint.text)
+        assertEquals("lint", hint.element.text)
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), hint.list.items.single().target)
+        val mark = insights.gutterMarks().single()
+        assertTrue(mark.local)
+        assertEquals("Merged with all.yml (args: prepend, deps: replace)", mark.tooltip)
+        // The list of the icon has one target. Thus a click on the icon opens the global task directly.
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint")), mark.list.items.map { it.target })
+    }
+
+    fun testListOfARenamedLocalTaskHasTheGlobalId() {
+        // The project db renames the global task test to unit and has a local task unit.
+        val hint = insights("packages/db/moon.yml").mergedHints().single()
+        assertEquals("unit", hint.element.text)
+        assertEquals("Global Task 'test'", hint.list.title)
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/backend.yml"), "test")), hint.list.items.map { it.target })
+    }
+
+    fun testListHasAGroupForEachInheritedTask() {
+        // The project api inherits lint from all.yml and from backend.yml. The list opens the two files.
+        val api = insights("apps/api/moon.yml").inheritedHints().first()
+        assertEquals("4 inherited tasks", api.text)
+        assertEquals(4, api.list.items.mapTo(HashSet()) { it.group }.size)
+        val lint = api.list.items.filter { it.group == "lint" }.map { it.target }
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), SourceFile(workspacePath(".moon/tasks/backend.yml"), "lint")), lint)
+    }
+
+    fun testGroupOfATaskFromTwoGlobalTasksOpensEachGlobalTask() {
+        // The project worker renames format and test to check.
+        val worker = insights("apps/worker/moon.yml").inheritedHints().first()
+        assertEquals("3 inherited tasks", worker.text)
+        assertEquals(3, worker.list.items.mapTo(HashSet()) { it.group }.size)
+        val check = worker.list.items.filter { it.group == "check" }
+        assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.target?.taskId })
+        assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.secondary })
+    }
+
+    fun testListOfALocalTaskThatMergesWithTwoGlobalTasksHasGroups() {
+        // The data gives worker a local task check. Then check merges with the global tasks format and test.
+        val configs = loaded.tasks.taskConfigs.getValue("worker")
+        val state = loaded.copy(tasks = loaded.tasks.copy(taskConfigs = loaded.tasks.taskConfigs + ("worker" to configs.copy(ownTasks = configs.ownTasks + "check"))))
+        val insights = insightsOf("tasks:\n  check:\n    command: 'check'\n", "apps/worker/moon.yml", state)
+        val list = insights.mergedHints().single().list
+        assertEquals("Global Tasks That Merge with 'check'", list.title)
+        assertEquals(setOf("format", "test"), list.items.mapTo(HashSet()) { it.group })
+        assertNull("A click on the icon shows the list", directTarget(insights.gutterMarks().single()))
+    }
+
+    fun testClickOnTheIconOfALocalTaskWithOneGlobalTaskOpensTheGlobalTask() {
+        val local = insights("apps/web/moon.yml").gutterMarks().single()
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "lint"), directTarget(local))
+        val global = insights(".moon/tasks/all.yml").gutterMarks().first { it.element.text == "lint" }
+        assertNull("The icon of a global task shows the list", directTarget(global))
+    }
+
+    fun testProjectWithoutTheTasksKeyHasTheHintAtTheTop() {
+        // The syntax comes from a file without the key tasks. The data comes from the project web.
+        val insights = insightsOf("language: 'typescript'\n", "apps/web/moon.yml")
+        val hint = insights.inheritedHints().single()
+        assertEquals("3 inherited tasks", hint.text)
+        assertEquals(0, hint.element.textOffset)
+    }
+
+    fun testLocalTaskOfAnExcludedGlobalTaskDoesNotMerge() {
+        assertFalse(insights("apps/web/moon.yml").mergedHints().any { it.element.text == "format" })
+    }
+
     fun testItemOfARenamedTaskOpensTheLocalTaskKey() {
         // The project db renames the global task test to unit and has a local task unit.
         val hint = insights(".moon/tasks/backend.yml").mergedHints().single { it.element.text == "test" }
@@ -109,6 +204,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals("Merged in 2 projects", MoonExplorerBundle.message("hint.mergedIn", 2))
         assertEquals("Inherited by 0 projects", MoonExplorerBundle.message("hint.inheritedBy", 0))
         assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))
+        assertEquals("1 inherited task", MoonExplorerBundle.message("hint.inheritedTasks", 1))
+        assertEquals("2 inherited tasks", MoonExplorerBundle.message("hint.inheritedTasks", 2))
     }
 
     fun testHintWithAnEmptyListHasNoClickAction() {
@@ -116,11 +213,6 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertFalse(empty is ClickableTextCodeVisionEntry)
         val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), "moon.inherited")
         assertTrue(one is ClickableTextCodeVisionEntry)
-    }
-
-    fun testProjectFileHasNoInsightsInThisPart() {
-        myFixture.openFileInEditor(TestData.workspaceVirtualFile("apps/web/moon.yml"))
-        assertNull(configInsights(myFixture.file))
     }
 
     fun testStrategiesAreOnlyInTheTextIfTheyExist() {
@@ -140,6 +232,28 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("Inherited by 9 projects"), inherited.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("Merged in 1 project", "Merged in 1 project"), merged.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("lint", "format"), merged.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
+    }
+
+    fun testProvidersGiveTheHintsInTheProjectFile() {
+        myFixture.configureFromExistingVirtualFile(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        fun hints(provider: MoonCodeVisionProvider) = provider.computeForEditor(myFixture.editor, myFixture.file).map { (range, entry) ->
+            (entry as ClickableTextCodeVisionEntry).longPresentation + " @ " + myFixture.editor.document.getText(range)
+        }
+        // The entries of workspace.inheritedTasks have no hints.
+        assertEquals(listOf("3 inherited tasks @ tasks"), hints(MoonInheritedCodeVisionProvider()))
+        assertEquals(listOf("Merged with all.yml @ lint"), hints(MoonMergedCodeVisionProvider()))
+    }
+
+    fun testLocalTaskThatMergesHasTheIconWithTheStrategiesInTheGutter() {
+        myFixture.configureFromExistingVirtualFile(TestData.workspaceVirtualFile("apps/web/moon.yml"))
+        val tooltips = myFixture.findAllGutters().mapNotNull { it.tooltipText }.filter { it.startsWith("Merged ") }
+        assertEquals(listOf("Merged with all.yml (args: prepend, deps: replace)"), tooltips)
+    }
+
+    fun testTasksInFlowFormHaveHints() {
+        val insights = insightsOf("workspace: {inheritedTasks: {exclude: [format]}}\ntasks: {lint: {}}\n", "apps/web/moon.yml")
+        assertEquals(listOf("3 inherited tasks @ tasks"), insights.inheritedHints().map { it.text + " @ " + it.element.text })
+        assertEquals(listOf("Merged with all.yml @ lint"), insights.mergedHints().map { it.text + " @ " + it.element.text })
     }
 
     fun testExtensionsAreRegistered() {

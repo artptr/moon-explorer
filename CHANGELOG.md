@@ -10,6 +10,8 @@
 - A file in `.moon/tasks/` shows Code Vision hints. The hint **Inherited by N projects** is at the top of the file. A global task that merges with a local task has the hint **Merged in N projects**. Click a hint to open a list of the projects. Then click a project to open its `moon.yml` file. In the list of a merged task, the file opens at the task key.
 - To disable the Code Vision hints of the plugin, use **Settings | Editor | Inlay Hints**. The numbers in the hints change after the plugin loads the tasks again.
 - A global task that merges with a local task has an icon in the gutter. The list of the icon shows each project. It also shows the merge strategies that are not `append`, for example `web (args: prepend, deps: replace)`. The hints and the icon operate only in YAML files.
+- The `moon.yml` file of a project shows Code Vision hints. The hint **N inherited tasks** is above the key `tasks`, or at the top of the file if the file has no key `tasks`. A local task that merges with a global task has a hint with the name of the global file. Example: **Merged with all.yml**. Click a hint to open a list. Then click an item to open the global task.
+- A local task that merges with a global task has an icon in the gutter. The icon opens the global task. If the task merges with more than one global task or file, the icon opens a list. The tooltip shows the merge strategies that are not `append`.
 - JetBrains Marketplace finds the file names `moon.yml` and `moon.yaml`. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
 ### Changed
