@@ -1,18 +1,27 @@
 package io.github.artptr.moonexplorer.config
 
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
+import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
+import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
-import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
-import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
+import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.InheritedLayer
+import io.github.artptr.moonexplorer.model.MoonProject
+import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.ProjectSource
 import io.github.artptr.moonexplorer.model.SourceFile
+import io.github.artptr.moonexplorer.model.TaskConfigs
+import io.github.artptr.moonexplorer.model.TaskGraph
 import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.model.awaitState
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
@@ -38,9 +47,24 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         }
     }
 
-    private fun insights(path: String): ConfigInsights {
+    /** Gives the insights of the workspace file [path]. If [state] is not null, the insights use [state] and not the loaded data. */
+    private fun insights(path: String, state: TasksState.Loaded? = null): ConfigInsights {
         myFixture.openFileInEditor(TestData.workspaceVirtualFile(path))
+        if (state != null) return ConfigInsights(configSyntax(myFixture.file)!!, state, workspacePath(path))
         return configInsights(myFixture.file) ?: error("No insights for $path")
+    }
+
+    /**
+     * Gives a state with the projects of [sources] (ID to directory) and the task graph [graph].
+     * [inherits] gives the tasks of each project: the local ID to the global ID in `all.yml`.
+     */
+    private fun inheritingState(sources: Map<String, String>, inherits: Map<String, Map<String, String>>, graph: Map<String, Set<String>>): TasksState.Loaded {
+        val tasks = WorkspaceTasks(
+            projects = inherits.map { (id, ids) -> MoonProject(id, ids.keys.map { MoonTask(it, "$id:$it", null) }) },
+            sources = sources.map { (id, dir) -> ProjectSource(id, dir) },
+            taskConfigs = inherits.mapValues { (_, ids) -> TaskConfigs(inheritedLayers = ids.mapValues { (_, globalId) -> listOf(InheritedLayer(globalId, ALL)) }) },
+        )
+        return TestData.loadedState(tasks, taskGraph = TaskGraph(graph))
     }
 
     private fun workspacePath(path: String) = TestData.workspaceRoot.resolve(path)
@@ -74,7 +98,9 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     fun testOrderOfTheProvidersOnOneLine() {
         assertEquals(listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst), MoonInheritedCodeVisionProvider().relativeOrderings)
         val merged = MoonMergedCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
-        assertEquals(MoonInheritedCodeVisionProvider().id, merged.id)
+        assertEquals(MoonInheritedCodeVisionProvider.ID, merged.id)
+        val dependents = MoonDependentsCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
+        assertEquals(MoonMergedCodeVisionProvider.ID, dependents.id)
     }
 
     fun testCountUsesTheFiltersOfTheProjects() {
@@ -192,6 +218,115 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertFalse(insights("apps/web/moon.yml").mergedHints().any { it.element.text == "format" })
     }
 
+    fun testGlobalTaskHasTheHintWithItsDependents() {
+        val hint = insights(".moon/tasks/all.yml").dependentsHints().single()
+        assertEquals("2 dependents", hint.text)
+        assertEquals("lint", hint.element.text)
+        assertEquals(listOf("ui:build", "ui:generate-icons"), hint.list.items.map { it.text })
+        assertEquals(setOf("ui:lint"), hint.list.items.mapTo(HashSet()) { it.group })
+        val internal = hint.list.items[1]
+        assertEquals(SourceFile(workspacePath("packages/ui/moon.yml"), "generate-icons"), internal.target)
+        assertEquals("packages/ui/moon.yml", internal.secondary)
+    }
+
+    fun testGroupOfARenamedTaskIsItsTarget() {
+        val hint = insights(".moon/tasks/frontend.yml").dependentsHints().single { it.element.text == "typecheck" }
+        assertEquals("1 dependent", hint.text)
+        // The dependent web:build depends on the renamed task web:tsc. The item opens the task key build in the file of web.
+        val item = hint.list.items.single()
+        assertEquals("web:tsc", item.group)
+        assertEquals("web:build", item.text)
+        assertEquals("apps/web/moon.yml", item.secondary)
+        assertEquals(SourceFile(workspacePath("apps/web/moon.yml"), "build"), item.target)
+    }
+
+    fun testDependentIsCountedOneTime() {
+        val state = inheritingState(
+            sources = mapOf("a" to "apps/web", "b" to "apps/api"),
+            inherits = mapOf("a" to mapOf("lint" to "lint"), "b" to mapOf("lint" to "lint")),
+            graph = mapOf("a:lint" to setOf("c:x"), "b:lint" to setOf("c:x", "c:y")),
+        )
+        val hint = insights(ALL, state).dependentsHints().single()
+        assertEquals("2 dependents", hint.text)
+        assertEquals(listOf("a:lint" to "c:x", "b:lint" to "c:x", "b:lint" to "c:y"), hint.list.items.map { it.group to it.text })
+    }
+
+    /** Gives the items of the dependents hint of `lint` in `all.yml`. The project `a` in [root] inherits `lint`, and its task `fmt` is `format` of `all.yml`. */
+    private fun inheritedDependentItems(root: String): List<HintItem> {
+        val state = inheritingState(mapOf("a" to root), mapOf("a" to mapOf("lint" to "lint", "fmt" to "format")), mapOf("a:lint" to setOf("a:fmt")))
+        return insights(ALL, state).dependentsHints().single().list.items
+    }
+
+    fun testInheritedDependentOpensItsGlobalTaskKey() {
+        // The project file apps/web/moon.yml has no key fmt. The item opens the key format in all.yml.
+        val item = inheritedDependentItems("apps/web").single()
+        assertEquals("a:fmt", item.text)
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), item.target)
+        assertEquals(".moon/tasks/all.yml", item.secondary)
+    }
+
+    fun testInheritedDependentOfAProjectWithoutAFileOpensItsGlobalTaskKey() {
+        val item = inheritedDependentItems("apps/missing").single()
+        assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), item.target)
+    }
+
+    /** Gives the dependents hints of `all.yml` with [text]. The project `a` inherits `lint` and `format`. Each task has one dependent. */
+    private fun dependentsHintsOf(text: String): List<ConfigHint> {
+        val state = inheritingState(
+            sources = mapOf("a" to "apps/web"),
+            inherits = mapOf("a" to mapOf("lint" to "lint", "format" to "format")),
+            graph = mapOf("a:lint" to setOf("a:x"), "a:format" to setOf("a:y")),
+        )
+        return insightsOf(text, ALL, state).dependentsHints()
+    }
+
+    private fun joinedOnEditorLines(hints: List<ConfigHint>) = joinHintsOnOneLine(hints) { hintLine(myFixture.editor, it) }
+
+    fun testJoinedHintUsesTheTaskIdWithoutQuotes() {
+        val joined = joinedOnEditorLines(dependentsHintsOf("tasks: {'lint': {command: 'x'}, \"format\": {command: 'y'}}\n")).single()
+        assertEquals("lint: 1 dependent; format: 1 dependent", joined.text)
+    }
+
+    fun testHintsOfTasksOnOneLineAreJoined() {
+        val hints = dependentsHintsOf("tasks: {lint: {command: 'x'}, format: {command: 'y'}}\n")
+        assertEquals(2, hints.size)
+        val joined = joinedOnEditorLines(hints).single()
+        assertEquals("lint: 1 dependent; format: 1 dependent", joined.text)
+        assertEquals("lint", joined.element.text)
+        assertEquals("Hints on This Line", joined.list.title)
+        assertEquals(listOf("lint: a:lint" to "a:x", "format: a:format" to "a:y"), joined.list.items.map { it.group to it.text })
+    }
+
+    fun testHintsOnDifferentLinesAreNotJoined() {
+        val hints = dependentsHintsOf("tasks:\n  lint: {command: 'x'}\n  format: {command: 'y'}\n")
+        assertEquals(hints, joinedOnEditorLines(hints))
+    }
+
+    fun testJoinedHintWithAnEmptyListHasAnItemThatCannotBeSelected() {
+        val hints = dependentsHintsOf("tasks: {lint: {command: 'x'}, format: {command: 'y'}}\n")
+        val withEmpty = listOf(hints[0], ConfigHint(hints[1].element, hints[1].text, HintList("title", emptyList())))
+        val items = joinedOnEditorLines(withEmpty).single().list.items
+        assertEquals(HintItem("format: 1 dependent", null), items.last())
+        assertEquals("lint: a:lint", items.first().group)
+    }
+
+    fun testNoHintAndOtherHintsStayIfTheTaskGraphFails() {
+        service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+        val insights = insights(".moon/tasks/all.yml")
+        assertEmpty(insights.dependentsHints())
+        assertEquals("Inherited by 9 projects", insights.inheritedHints().single().text)
+        assertEquals(listOf("lint", "format"), insights.mergedHints().map { it.element.text })
+        // The internal task keeps its merge strategies from the output of moon query projects.
+        val format = insights.mergedHints().single { it.element.text == "format" }
+        assertEquals("icons (args: replace)", format.list.items.single().text)
+    }
+
+    fun testProjectFileHasNoDependentsHint() {
+        assertEmpty(insights("packages/ui/moon.yml").dependentsHints())
+    }
+
     fun testItemOfARenamedTaskOpensTheLocalTaskKey() {
         // The project db renames the global task test to unit and has a local task unit.
         val hint = insights(".moon/tasks/backend.yml").mergedHints().single { it.element.text == "test" }
@@ -206,12 +341,16 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))
         assertEquals("1 inherited task", MoonExplorerBundle.message("hint.inheritedTasks", 1))
         assertEquals("2 inherited tasks", MoonExplorerBundle.message("hint.inheritedTasks", 2))
+        assertEquals("0 inherited tasks", MoonExplorerBundle.message("hint.inheritedTasks", 0))
+        assertEquals("0 dependents", MoonExplorerBundle.message("hint.dependents", 0))
+        assertEquals("1 dependent", MoonExplorerBundle.message("hint.dependents", 1))
+        assertEquals("2 dependents", MoonExplorerBundle.message("hint.dependents", 2))
     }
 
     fun testHintWithAnEmptyListHasNoClickAction() {
-        val empty = codeVisionEntry("Inherited by 0 projects", HintList("title", emptyList()), "moon.inherited")
+        val empty = codeVisionEntry("Inherited by 0 projects", HintList("title", emptyList()), MoonInheritedCodeVisionProvider.ID)
         assertFalse(empty is ClickableTextCodeVisionEntry)
-        val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), "moon.inherited")
+        val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), MoonInheritedCodeVisionProvider.ID)
         assertTrue(one is ClickableTextCodeVisionEntry)
     }
 
@@ -232,6 +371,14 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("Inherited by 9 projects"), inherited.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("Merged in 1 project", "Merged in 1 project"), merged.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("lint", "format"), merged.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
+    }
+
+    fun testDependentsProviderGivesTheHintsInTheEditor() {
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile(".moon/tasks/all.yml"))
+        val entries = MoonDependentsCodeVisionProvider().computeForEditor(myFixture.editor, myFixture.file)
+        assertEquals(listOf("2 dependents"), entries.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
+        assertEquals(listOf("lint"), entries.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
+        assertEquals(MoonDependentsCodeVisionProvider.ID, entries.single().second.providerId)
     }
 
     fun testProvidersGiveTheHintsInTheProjectFile() {
@@ -260,6 +407,7 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val providers = ExtensionPointName<DaemonBoundCodeVisionProvider>(DaemonBoundCodeVisionProvider.EP_NAME).extensionList
         assertTrue(providers.any { it is MoonInheritedCodeVisionProvider })
         assertTrue(providers.any { it is MoonMergedCodeVisionProvider })
+        assertTrue(providers.any { it is MoonDependentsCodeVisionProvider })
         val settings = ExtensionPointName<CodeVisionGroupSettingProvider>("com.intellij.config.codeVisionGroupSettingProvider").extensionList
         assertEquals(MOON_CODE_VISION_GROUP, settings.first { it is MoonCodeVisionGroupSettingProvider }.groupId)
     }
@@ -294,5 +442,9 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         PlatformTestUtil.waitWithEventsDispatching("The file did not open", { job.isCompleted }, 10)
         val editor = FileEditorManager.getInstance(project).selectedTextEditor!!
         assertEquals(text.indexOf("\n  lint:") + 3, editor.caretModel.offset)
+    }
+
+    private companion object {
+        const val ALL = ".moon/tasks/all.yml"
     }
 }

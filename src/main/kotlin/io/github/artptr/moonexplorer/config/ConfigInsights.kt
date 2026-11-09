@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.FileInheritance
+import io.github.artptr.moonexplorer.model.GlobalTaskInheritance
 import io.github.artptr.moonexplorer.model.ID_ORDER
 import io.github.artptr.moonexplorer.model.MergedTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
@@ -13,6 +14,9 @@ import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.sourceFile
+import io.github.artptr.moonexplorer.model.targetProjectId
+import io.github.artptr.moonexplorer.model.targetTaskId
+import io.github.artptr.moonexplorer.model.taskSourceFiles
 import io.github.artptr.moonexplorer.model.workspacePath
 import java.nio.file.Path
 
@@ -25,8 +29,11 @@ data class HintItem(val text: String, val target: SourceFile?, val group: String
 /** The list that a hint or a gutter icon opens. The class contains no PSI. Thus the IDE can keep it after the file changes. */
 data class HintList(val title: String, val items: List<HintItem>)
 
-/** A Code Vision hint on the line of [element]. */
-class ConfigHint(val element: PsiElement, val text: String, val list: HintList)
+/**
+ * A Code Vision hint on the line of [element]. [label] is the name of the hint when the IDE joins it with other hints on one line.
+ * The label of a hint on a task key is the task ID, without the quotes of the key.
+ */
+class ConfigHint(val element: PsiElement, val text: String, val list: HintList, val label: String = element.text)
 
 /**
  * A gutter icon on [element], a leaf of a task key. If [local] is true, the key is a local task that merges with a global task.
@@ -37,7 +44,7 @@ class ConfigGutterMark(val element: PsiElement, val tooltip: String, val list: H
 /**
  * Joins the syntax of the configuration file [file] with the loaded data. The function finds the data with the task IDs.
  * Thus the hints stay on the correct lines while the user types. The numbers change after the next load.
- * [syntax] contains PSI. Use this class only in a read action, and do not keep it.
+ * [syntax] contains PSI. Use this class only in a read action. Do not keep it.
  */
 class ConfigInsights internal constructor(private val syntax: ConfigSyntax, private val state: TasksState.Loaded, private val file: Path) {
 
@@ -85,7 +92,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     }
 
     /** The hint above each global task that merges with one or more local tasks, or above each local task that merges with a global task. */
-    fun mergedHints(): List<ConfigHint> = merges().map { ConfigHint(it.key.element, it.text, it.list) }
+    fun mergedHints(): List<ConfigHint> = merges().map { ConfigHint(it.key.element, it.text, it.list, it.key.id) }
 
     /** The gutter icons of the file. The tooltip of a local task also gives the merge strategies. */
     fun gutterMarks(): List<ConfigGutterMark> = merges().map { merge ->
@@ -127,14 +134,40 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     private fun globalFileItem(file: Path, globalId: String, group: String? = null, secondary: String? = null) =
         HintItem(state.workspacePath(file), sourceFile(file, globalId), group, secondary)
 
-    private fun mergedInLists(): List<Pair<ConfigKey, HintList>> {
+    /** Gives the task keys of a file in `.moon/tasks/` with the inheritance of each global task. A key without data is not in the list. */
+    private fun globalTaskKeys(): List<Pair<ConfigKey, GlobalTaskInheritance>> {
         val inheritance = global ?: return emptyList()
-        return syntax.taskKeys.mapNotNull { key ->
-            val merged = inheritance.tasks[key.id]?.mergedIn.orEmpty()
+        return syntax.taskKeys.mapNotNull { key -> inheritance.tasks[key.id]?.let { key to it } }
+    }
+
+    private fun mergedInLists(): List<Pair<ConfigKey, HintList>> =
+        globalTaskKeys().mapNotNull { (key, task) ->
+            val merged = task.mergedIn
             if (merged.isEmpty()) return@mapNotNull null
             val items = merged.map { HintItem(withStrategies(it.projectId, it.strategies), projectFile(it.projectId, it.localId)) }
             key to HintList(MoonExplorerBundle.message("hint.mergedIn.title", key.id), items)
         }
+
+    /**
+     * The hint above each global task with one or more direct dependents. The hint counts each dependent one time.
+     * The list has one group for each inherited target. If `moon task-graph` failed in the load, the file has no hints of this kind.
+     */
+    fun dependentsHints(): List<ConfigHint> =
+        globalTaskKeys().mapNotNull { (key, task) ->
+            if (task.dependentCount == 0) return@mapNotNull null
+            val items = task.dependents.flatMap { (target, tasks) -> tasks.map { dependentItem(target, it) } }
+            val list = HintList(MoonExplorerBundle.message("hint.dependents.title", key.id), items)
+            ConfigHint(key.element, MoonExplorerBundle.message("hint.dependents", task.dependentCount), list, key.id)
+        }
+
+    /**
+     * The item of the dependent [target] in the group [group]. The item opens the first file of [taskSourceFiles].
+     * Thus a local task opens its key in the configuration file of the project. An inherited task opens its key in the file in `.moon/tasks/`.
+     * If the plugin does not know the files of the task, the item opens the configuration file of the project.
+     */
+    private fun dependentItem(group: String, target: String): HintItem {
+        val file = taskSourceFiles(state, target).firstOrNull() ?: projectFile(targetProjectId(target), targetTaskId(target))
+        return HintItem(target, file, group, file?.path?.let(state::workspacePath))
     }
 
     /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */

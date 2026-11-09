@@ -34,7 +34,10 @@ data class GlobalTaskInheritance(
     val inheritedBy: Map<String, String>,
     val mergedIn: List<MergingProject>,
     val dependents: Map<String, Set<String>>,
-)
+) {
+    /** The number of direct dependents. A dependent below more than one target counts one time. */
+    val dependentCount: Int = dependents.values.flatMapTo(HashSet()) { it }.size
+}
 
 /**
  * The inheritance of one file in `.moon/tasks/`. [projects] gives the projects that inherit one or more tasks of the file, in [ID_ORDER].
@@ -48,7 +51,7 @@ data class FileInheritance(val projects: Map<String, List<String>>, val tasks: M
  * moon finds the files of each project. The plugin does not calculate which files apply to a project.
  * It only uses `include`, `exclude`, and `rename` of each project. Refer to [TaskConfigs.inheritedLayers].
  * The index examines [TasksState.Loaded.tasks] with `taskConfigs`, not with the task list, because the task list does not contain internal tasks.
- * The function does not start moon and does not read the disk.
+ * The index does not start moon and does not read the disk.
  */
 internal class InheritanceIndex private constructor(
     private val projects: Map<String, ProjectInheritance>,

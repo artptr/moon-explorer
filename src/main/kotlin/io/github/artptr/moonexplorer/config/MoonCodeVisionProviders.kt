@@ -34,8 +34,43 @@ abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware
     /** Gives the hints of this provider. */
     protected abstract fun hints(insights: ConfigInsights): List<ConfigHint>
 
-    override fun computeForEditor(editor: Editor, file: PsiFile): List<Pair<TextRange, CodeVisionEntry>> =
-        configInsights(file)?.let(::hints).orEmpty().map { hint -> hint.element.textRange to codeVisionEntry(hint.text, hint.list, id) }
+    /**
+     * The editor shows only one entry of a provider on a line. Thus the function joins the hints on one line into one entry.
+     * Example: in a flow mapping, two tasks with dependents are on one line.
+     */
+    override fun computeForEditor(editor: Editor, file: PsiFile): List<Pair<TextRange, CodeVisionEntry>> {
+        val hints = configInsights(file)?.let(::hints).orEmpty()
+        return joinHintsOnOneLine(hints) { hintLine(editor, it) }
+            .map { hint -> hint.element.textRange to codeVisionEntry(hint.text, hint.list, id) }
+    }
+}
+
+/** Gives the line of [hint] in [editor]. */
+internal fun hintLine(editor: Editor, hint: ConfigHint): Int = editor.document.getLineNumber(hint.element.textRange.startOffset)
+
+/**
+ * Joins the hints with the same value of [lineOf] into one hint. The joined hint is on the element of the first hint.
+ * The text contains the text of each hint after its [ConfigHint.label], for example `a: 8 dependents; b: 8 dependents`.
+ * The list has a group for each hint. The text of the group starts with the label of the hint.
+ * A hint without a list has an item that the user cannot select. A line with one hint keeps the hint.
+ */
+internal fun joinHintsOnOneLine(hints: List<ConfigHint>, lineOf: (ConfigHint) -> Int): List<ConfigHint> {
+    if (hints.size <= 1) return hints
+    return hints.groupBy(lineOf).values.map { line ->
+        if (line.size == 1) return@map line.single()
+        val parts = line.map { MoonExplorerBundle.message("hint.joined.part", it.label, it.text) }
+        val text = parts.reduce { joined, next -> MoonExplorerBundle.message("hint.joined", joined, next) }
+        val items = line.zip(parts).flatMap { (hint, part) ->
+            if (hint.list.items.isEmpty()) {
+                listOf(HintItem(part, null))
+            } else {
+                hint.list.items.map { item ->
+                    item.copy(group = item.group?.let { MoonExplorerBundle.message("hint.joined.part", hint.label, it) } ?: hint.label)
+                }
+            }
+        }
+        ConfigHint(line.first().element, text, HintList(MoonExplorerBundle.message("hint.joined.title"), items))
+    }
 }
 
 /** Gives the entry of a hint with [text] and [list]. The click handler must not keep PSI. [HintList] contains no PSI. */
@@ -48,22 +83,43 @@ internal fun codeVisionEntry(text: String, list: HintList, providerId: String): 
 
 /** The hint with the number of projects that inherit tasks from the file. */
 class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
-    override val id: String get() = "moon.inherited"
+    override val id: String get() = ID
     override val name: String get() = MoonExplorerBundle.message("codeVision.inherited.name")
 
     /** In a flow mapping, the hint at the top of the file and a hint of a task can be on one line. This hint is the first. */
     override val relativeOrderings: List<CodeVisionRelativeOrdering>
         get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst)
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.inheritedHints()
+
+    internal companion object {
+        const val ID = "moon.inherited"
+    }
 }
 
 /** The hint for a global task that merges with local tasks. */
 class MoonMergedCodeVisionProvider : MoonCodeVisionProvider() {
-    override val id: String get() = "moon.merged"
+    override val id: String get() = ID
     override val name: String get() = MoonExplorerBundle.message("codeVision.merged.name")
     override val relativeOrderings: List<CodeVisionRelativeOrdering>
-        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter("moon.inherited"))
+        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter(MoonInheritedCodeVisionProvider.ID))
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.mergedHints()
+
+    internal companion object {
+        const val ID = "moon.merged"
+    }
+}
+
+/** The hint with the number of direct dependents of a global task. The hint is after the hint of [MoonMergedCodeVisionProvider]. */
+class MoonDependentsCodeVisionProvider : MoonCodeVisionProvider() {
+    override val id: String get() = ID
+    override val name: String get() = MoonExplorerBundle.message("codeVision.dependents.name")
+    override val relativeOrderings: List<CodeVisionRelativeOrdering>
+        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter(MoonMergedCodeVisionProvider.ID))
+    override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.dependentsHints()
+
+    internal companion object {
+        const val ID = "moon.dependents"
+    }
 }
 
 /** Adds the hints of the plugin to **Settings | Editor | Inlay Hints**. */
