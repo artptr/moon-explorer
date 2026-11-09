@@ -61,12 +61,16 @@ fun TasksState.Loaded.workspacePath(path: Path): String =
  * The inherited files from `.moon/tasks/` follow, in the sequence that moon uses.
  * The list contains only the files in [TasksState.Loaded.configFiles]. Thus the function does not read the disk.
  */
-fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> {
-    val projectId = targetProjectId(task.target)
+fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> = taskSourceFiles(state, task.target)
+
+/** Gives the files that contain the configuration of the task [target], for example `web:build`. Refer to the function with a [MoonTask]. */
+fun taskSourceFiles(state: TasksState.Loaded, target: String): List<SourceFile> {
+    val projectId = targetProjectId(target)
+    val taskId = targetTaskId(target)
     val configs = state.tasks.taskConfigs[projectId] ?: return emptyList()
-    val own = if (task.id in configs.ownTasks) state.configFiles.projects[projectId]?.let { sourceFile(it, task.id) } else null
+    val own = if (taskId in configs.ownTasks) state.configFiles.projects[projectId]?.let { sourceFile(it, taskId) } else null
     // The task key in an inherited file is the global task ID. It is different from the task ID if the project renames the task.
-    val layers = configs.inheritedLayers[task.id].orEmpty().mapNotNull { layer ->
+    val layers = configs.inheritedLayers[taskId].orEmpty().mapNotNull { layer ->
         state.configFiles.inherited[layer.file]?.let { sourceFile(it, layer.globalId) }
     }
     return (listOfNotNull(own) + layers).distinctBy { it.path }

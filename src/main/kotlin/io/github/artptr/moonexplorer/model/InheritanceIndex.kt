@@ -34,7 +34,10 @@ data class GlobalTaskInheritance(
     val inheritedBy: Map<String, String>,
     val mergedIn: List<MergingProject>,
     val dependents: Map<String, Set<String>>,
-)
+) {
+    /** The number of direct dependents. A dependent below more than one target counts one time. */
+    val dependentCount: Int = dependents.values.flatMapTo(HashSet()) { it }.size
+}
 
 /**
  * The inheritance of one file in `.moon/tasks/`. [projects] gives the projects that inherit one or more tasks of the file, in [ID_ORDER].

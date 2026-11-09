@@ -40,34 +40,38 @@ abstract class MoonCodeVisionProvider : DaemonBoundCodeVisionProvider, DumbAware
      */
     override fun computeForEditor(editor: Editor, file: PsiFile): List<Pair<TextRange, CodeVisionEntry>> {
         val hints = configInsights(file)?.let(::hints).orEmpty()
-        return joinHintsOnOneLine(hints) { editor.document.getLineNumber(it.element.textRange.startOffset) }
+        return joinHintsOnOneLine(hints) { hintLine(editor, it) }
             .map { hint -> hint.element.textRange to codeVisionEntry(hint.text, hint.list, id) }
     }
 }
 
+/** Gives the line of [hint] in [editor]. */
+internal fun hintLine(editor: Editor, hint: ConfigHint): Int = editor.document.getLineNumber(hint.element.textRange.startOffset)
+
 /**
  * Joins the hints with the same value of [lineOf] into one hint. The joined hint is on the element of the first hint.
- * The text contains the text of each hint after the text of its element, for example `a: 8 dependents; b: 8 dependents`.
- * The list has a group for each hint. The text of the group starts with the text of the element of the hint.
+ * The text contains the text of each hint after its [ConfigHint.label], for example `a: 8 dependents; b: 8 dependents`.
+ * The list has a group for each hint. The text of the group starts with the label of the hint.
  * A hint without a list has an item that the user cannot select. A line with one hint keeps the hint.
  */
-internal fun joinHintsOnOneLine(hints: List<ConfigHint>, lineOf: (ConfigHint) -> Int): List<ConfigHint> =
-    hints.groupBy(lineOf).values.map { line ->
+internal fun joinHintsOnOneLine(hints: List<ConfigHint>, lineOf: (ConfigHint) -> Int): List<ConfigHint> {
+    if (hints.size <= 1) return hints
+    return hints.groupBy(lineOf).values.map { line ->
         if (line.size == 1) return@map line.single()
-        val parts = line.map { MoonExplorerBundle.message("hint.joined.part", it.element.text, it.text) }
+        val parts = line.map { MoonExplorerBundle.message("hint.joined.part", it.label, it.text) }
         val text = parts.reduce { joined, next -> MoonExplorerBundle.message("hint.joined", joined, next) }
         val items = line.zip(parts).flatMap { (hint, part) ->
-            val key = hint.element.text
             if (hint.list.items.isEmpty()) {
                 listOf(HintItem(part, null))
             } else {
                 hint.list.items.map { item ->
-                    item.copy(group = item.group?.let { MoonExplorerBundle.message("hint.joined.part", key, it) } ?: key)
+                    item.copy(group = item.group?.let { MoonExplorerBundle.message("hint.joined.part", hint.label, it) } ?: hint.label)
                 }
             }
         }
         ConfigHint(line.first().element, text, HintList(MoonExplorerBundle.message("hint.joined.title"), items))
     }
+}
 
 /** Gives the entry of a hint with [text] and [list]. The click handler must not keep PSI. [HintList] contains no PSI. */
 internal fun codeVisionEntry(text: String, list: HintList, providerId: String): CodeVisionEntry =
