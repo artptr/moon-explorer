@@ -1,11 +1,11 @@
 package io.github.artptr.moonexplorer.config
 
 import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
+import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
+import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
-import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
-import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -16,12 +16,12 @@ import io.github.artptr.moonexplorer.model.MoonProject
 import io.github.artptr.moonexplorer.model.MoonTask
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.ProjectSource
+import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TaskConfigs
 import io.github.artptr.moonexplorer.model.TaskGraph
+import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.WorkspaceTasks
 import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.model.SourceFile
-import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.lastLoaded
 import io.github.artptr.moonexplorer.model.loadRecorded
 import io.github.artptr.moonexplorer.model.prepareForTests
@@ -84,6 +84,8 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst), MoonInheritedCodeVisionProvider().relativeOrderings)
         val merged = MoonMergedCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
         assertEquals(MoonInheritedCodeVisionProvider().id, merged.id)
+        val dependents = MoonDependentsCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
+        assertEquals(MoonMergedCodeVisionProvider().id, dependents.id)
     }
 
     fun testCountUsesTheFiltersOfTheProjects() {
@@ -215,7 +217,12 @@ class ConfigInsightsTest : BasePlatformTestCase() {
     fun testGroupOfARenamedTaskIsItsTarget() {
         val hint = insights(".moon/tasks/frontend.yml").dependentsHints().single { it.element.text == "typecheck" }
         assertEquals("1 dependent", hint.text)
-        assertEquals("web:tsc", hint.list.items.single().group)
+        // The dependent web:build depends on the renamed task web:tsc. The item opens the task key build in the file of web.
+        val item = hint.list.items.single()
+        assertEquals("web:tsc", item.group)
+        assertEquals("web:build", item.text)
+        assertEquals("apps/web/moon.yml", item.secondary)
+        assertEquals(SourceFile(workspacePath("apps/web/moon.yml"), "build"), item.target)
     }
 
     fun testDependentIsCountedOneTime() {
@@ -268,12 +275,16 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals("Inherited by 1 project", MoonExplorerBundle.message("hint.inheritedBy", 1))
         assertEquals("1 inherited task", MoonExplorerBundle.message("hint.inheritedTasks", 1))
         assertEquals("2 inherited tasks", MoonExplorerBundle.message("hint.inheritedTasks", 2))
+        assertEquals("0 inherited tasks", MoonExplorerBundle.message("hint.inheritedTasks", 0))
+        assertEquals("0 dependents", MoonExplorerBundle.message("hint.dependents", 0))
+        assertEquals("1 dependent", MoonExplorerBundle.message("hint.dependents", 1))
+        assertEquals("2 dependents", MoonExplorerBundle.message("hint.dependents", 2))
     }
 
     fun testHintWithAnEmptyListHasNoClickAction() {
-        val empty = codeVisionEntry("Inherited by 0 projects", HintList("title", emptyList()), "moon.inherited")
+        val empty = codeVisionEntry("Inherited by 0 projects", HintList("title", emptyList()), MoonInheritedCodeVisionProvider.ID)
         assertFalse(empty is ClickableTextCodeVisionEntry)
-        val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), "moon.inherited")
+        val one = codeVisionEntry("Inherited by 1 project", HintList("title", listOf(HintItem("web", null))), MoonInheritedCodeVisionProvider.ID)
         assertTrue(one is ClickableTextCodeVisionEntry)
     }
 
@@ -294,6 +305,14 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(listOf("Inherited by 9 projects"), inherited.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("Merged in 1 project", "Merged in 1 project"), merged.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
         assertEquals(listOf("lint", "format"), merged.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
+    }
+
+    fun testDependentsProviderGivesTheHintsInTheEditor() {
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile(".moon/tasks/all.yml"))
+        val entries = MoonDependentsCodeVisionProvider().computeForEditor(myFixture.editor, myFixture.file)
+        assertEquals(listOf("2 dependents"), entries.map { (it.second as ClickableTextCodeVisionEntry).longPresentation })
+        assertEquals(listOf("lint"), entries.map { myFixture.file.findElementAt(it.first.startOffset)?.text })
+        assertEquals(MoonDependentsCodeVisionProvider.ID, entries.single().second.providerId)
     }
 
     fun testProvidersGiveTheHintsInTheProjectFile() {

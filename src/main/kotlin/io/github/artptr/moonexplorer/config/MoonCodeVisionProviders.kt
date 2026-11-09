@@ -48,13 +48,17 @@ internal fun codeVisionEntry(text: String, list: HintList, providerId: String): 
 
 /** The hint with the number of projects that inherit tasks from the file. */
 class MoonInheritedCodeVisionProvider : MoonCodeVisionProvider() {
-    override val id: String get() = "moon.inherited"
+    override val id: String get() = ID
     override val name: String get() = MoonExplorerBundle.message("codeVision.inherited.name")
 
     /** In a flow mapping, the hint at the top of the file and a hint of a task can be on one line. This hint is the first. */
     override val relativeOrderings: List<CodeVisionRelativeOrdering>
         get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst)
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.inheritedHints()
+
+    internal companion object {
+        const val ID = "moon.inherited"
+    }
 }
 
 /** The hint for a global task that merges with local tasks. */
@@ -62,7 +66,7 @@ class MoonMergedCodeVisionProvider : MoonCodeVisionProvider() {
     override val id: String get() = ID
     override val name: String get() = MoonExplorerBundle.message("codeVision.merged.name")
     override val relativeOrderings: List<CodeVisionRelativeOrdering>
-        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter("moon.inherited"))
+        get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter(MoonInheritedCodeVisionProvider.ID))
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.mergedHints()
 
     internal companion object {
@@ -72,11 +76,15 @@ class MoonMergedCodeVisionProvider : MoonCodeVisionProvider() {
 
 /** The hint with the number of direct dependents of a global task. The hint is after the hint of [MoonMergedCodeVisionProvider]. */
 class MoonDependentsCodeVisionProvider : MoonCodeVisionProvider() {
-    override val id: String get() = "moon.dependents"
+    override val id: String get() = ID
     override val name: String get() = MoonExplorerBundle.message("codeVision.dependents.name")
     override val relativeOrderings: List<CodeVisionRelativeOrdering>
         get() = listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter(MoonMergedCodeVisionProvider.ID))
     override fun hints(insights: ConfigInsights): List<ConfigHint> = insights.dependentsHints()
+
+    internal companion object {
+        const val ID = "moon.dependents"
+    }
 }
 
 /** Adds the hints of the plugin to **Settings | Editor | Inlay Hints**. */
