@@ -272,6 +272,45 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(SourceFile(workspacePath(".moon/tasks/all.yml"), "format"), item.target)
     }
 
+    /** Gives the dependents hints of `all.yml` with [text]. The project `a` inherits `lint` and `format`. Each task has one dependent. */
+    private fun dependentsHintsOf(text: String): List<ConfigHint> {
+        val all = ".moon/tasks/all.yml"
+        val tasks = WorkspaceTasks(
+            projects = listOf(MoonProject("a", listOf(MoonTask("lint", "a:lint", null), MoonTask("format", "a:format", null)))),
+            sources = listOf(ProjectSource("a", "apps/web")),
+            taskConfigs = mapOf(
+                "a" to TaskConfigs(inheritedLayers = mapOf("lint" to listOf(InheritedLayer("lint", all)), "format" to listOf(InheritedLayer("format", all)))),
+            ),
+        )
+        val state = TestData.loadedState(tasks, taskGraph = TaskGraph(mapOf("a:lint" to setOf("a:x"), "a:format" to setOf("a:y"))))
+        return insightsOf(text, all, state).dependentsHints()
+    }
+
+    private fun joinedOnEditorLines(hints: List<ConfigHint>) = joinHintsOnOneLine(hints) { myFixture.editor.document.getLineNumber(it.element.textOffset) }
+
+    fun testHintsOfTasksOnOneLineAreJoined() {
+        val hints = dependentsHintsOf("tasks: {lint: {command: 'x'}, format: {command: 'y'}}\n")
+        assertEquals(2, hints.size)
+        val joined = joinedOnEditorLines(hints).single()
+        assertEquals("lint: 1 dependent; format: 1 dependent", joined.text)
+        assertEquals("lint", joined.element.text)
+        assertEquals("Hints on This Line", joined.list.title)
+        assertEquals(listOf("lint: a:lint" to "a:x", "format: a:format" to "a:y"), joined.list.items.map { it.group to it.text })
+    }
+
+    fun testHintsOnDifferentLinesAreNotJoined() {
+        val hints = dependentsHintsOf("tasks:\n  lint: {command: 'x'}\n  format: {command: 'y'}\n")
+        assertEquals(hints, joinedOnEditorLines(hints))
+    }
+
+    fun testJoinedHintWithAnEmptyListHasAnItemThatCannotBeSelected() {
+        val hints = dependentsHintsOf("tasks: {lint: {command: 'x'}, format: {command: 'y'}}\n")
+        val withEmpty = listOf(hints[0], ConfigHint(hints[1].element, hints[1].text, HintList("title", emptyList())))
+        val items = joinedOnEditorLines(withEmpty).single().list.items
+        assertEquals(HintItem("format: 1 dependent", null), items.last())
+        assertEquals("lint: a:lint", items.first().group)
+    }
+
     fun testNoHintAndOtherHintsStayIfTheTaskGraphFails() {
         service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
         service.refresh()
