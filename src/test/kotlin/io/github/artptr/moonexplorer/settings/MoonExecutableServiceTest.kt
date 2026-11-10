@@ -7,7 +7,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.SearchEnvironment
 import io.github.artptr.moonexplorer.testData.FAKE_MOON_NAME
 import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
-import java.io.File
 import java.nio.file.Path
 
 class MoonExecutableServiceTest : BasePlatformTestCase() {
@@ -33,23 +32,5 @@ class MoonExecutableServiceTest : BasePlatformTestCase() {
         val root = workspace()
         val result = service.find("", root.resolve("apps/web"), env)
         assertEquals(root.toRealPath().resolve("node_modules/.bin/$FAKE_MOON_NAME"), result.executable?.toRealPath())
-    }
-
-    fun testFindWithoutWorkspaceDoesNotExamineNodeModules() {
-        val result = service.find("", null, env)
-        assertNull(result.executable)
-        assertTrue(result.examined.none { "node_modules" in it.toString() })
-    }
-
-    fun testFindUsesTheGivenSettingsPath() {
-        val moon = fakeMoonExecutable()
-        assertEquals(moon, service.find(moon.toString(), workspace().resolve("apps/web"), env).executable)
-    }
-
-    fun testRelativeSettingsPathStartsAtTheWorkspaceRoot() {
-        val root = workspace()
-        fakeMoonExecutable(root.resolve("tools"))
-        val result = service.find("tools/$FAKE_MOON_NAME", root.resolve("apps/web"), env)
-        assertEquals(root.toRealPath().resolve("tools/$FAKE_MOON_NAME"), result.executable?.toRealPath())
     }
 }

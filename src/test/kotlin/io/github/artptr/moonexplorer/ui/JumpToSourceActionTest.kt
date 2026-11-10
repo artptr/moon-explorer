@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.ui
 
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.keymap.KeymapManager
@@ -8,15 +9,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import io.github.artptr.moonexplorer.model.MoonProject
-import io.github.artptr.moonexplorer.model.MoonTask
-import io.github.artptr.moonexplorer.model.ProjectSource
-import io.github.artptr.moonexplorer.model.SourceFile
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.WorkspaceTasks
-import io.github.artptr.moonexplorer.model.allTasks
-import io.github.artptr.moonexplorer.model.workspacePath
+import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import java.nio.file.Files
 import java.nio.file.Path

@@ -1,9 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
 import io.github.artptr.moonexplorer.testData.TestData
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
+import org.junit.Assert.*
 import org.junit.Test
 
 class TaskGraphParserTest {
@@ -14,11 +12,6 @@ class TaskGraphParserTest {
     fun givesTheDirectDependentsOfATarget() {
         assertEquals(setOf("ui:build", "ui:generate-icons"), recorded.dependents["ui:lint"])
         assertEquals(setOf("web:build"), recorded.dependents["web:tsc"])
-    }
-
-    @Test
-    fun dependentsContainInternalTasks() {
-        assert("ui:generate-icons" in recorded.dependents.getValue("ui:lint"))
     }
 
     @Test

@@ -4,12 +4,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.model.ID_ORDER
-import io.github.artptr.moonexplorer.model.MoonProject
-import io.github.artptr.moonexplorer.model.MoonTask
-import io.github.artptr.moonexplorer.model.TaskCategory
-import io.github.artptr.moonexplorer.model.TaskGrouping
-import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import javax.swing.tree.DefaultMutableTreeNode
 

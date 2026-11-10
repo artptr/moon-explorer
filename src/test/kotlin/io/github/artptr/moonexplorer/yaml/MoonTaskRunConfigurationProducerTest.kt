@@ -7,34 +7,19 @@ import com.intellij.execution.actions.RunConfigurationProducer
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.run.MoonRunConfiguration
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 
-class MoonTaskRunConfigurationProducerTest : BasePlatformTestCase() {
-
-    private val service get() = project.service<MoonTasksService>()
+class MoonTaskRunConfigurationProducerTest : MoonTasksServiceTestCase() {
 
     private val producer get() = RunConfigurationProducer.getInstance(MoonTaskRunConfigurationProducer::class.java)
 
     override fun setUp() {
         super.setUp()
-        service.prepareForTests()
         service.loadRecorded()
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
     }
 
     /** Gives the leaf of the task key [taskId] in the file [path] of the test workspace. */

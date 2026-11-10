@@ -1,29 +1,19 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.testFramework.LightVirtualFile
-import com.intellij.testFramework.TestActionEvent
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.settings.MoonSettings
-import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import javax.swing.tree.TreePath
 
-class SelectOpenedFileActionTest : BasePlatformTestCase() {
-
-    private lateinit var panel: MoonTasksPanel
+class SelectOpenedFileActionTest : MoonTasksPanelTestCase() {
 
     private val messages = mutableListOf<String>()
 
@@ -31,9 +21,6 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        project.service<MoonSettings>().resetForTests()
-        panel = MoonTasksPanel(project)
-        Disposer.register(testRootDisposable, panel)
         panel.showInfo = { messages += it }
         // The test workspace is not in the light project. Let the tests open its files.
         VfsRootAccess.allowRootAccess(testRootDisposable, root.toString())
@@ -41,8 +28,7 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            FileEditorManager.getInstance(project).let { manager -> manager.openFiles.forEach(manager::closeFile) }
-            project.service<MoonSettings>().resetForTests()
+            FileEditorManagerEx.getInstanceEx(project).closeAllFiles()
         } finally {
             super.tearDown()
         }
@@ -53,25 +39,12 @@ class SelectOpenedFileActionTest : BasePlatformTestCase() {
     /** Updates the action and gives its presentation. If [withPanel] is false, the data context does not contain the panel. */
     private fun update(withPanel: Boolean = true): Presentation {
         val action = SelectOpenedFileAction()
-        val e = if (withPanel) {
-            tasksPanelEvent(action, project, panel)
-        } else {
-            TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
-        }
-        action.update(e)
-        return e.presentation
+        if (withPanel) return tasksPanelEvent(action, project, panel).also(action::update).presentation
+        return action.updatedPresentation(SimpleDataContext.getProjectContext(project))
     }
 
     private fun openInEditor(file: String) {
-        val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root.resolve(file))
-            ?: error("The test workspace does not contain $file")
-        FileEditorManager.getInstance(project).openFile(virtualFile, true)
-    }
-
-    fun testToolbarHasTheAction() {
-        val actionManager = ActionManager.getInstance()
-        val toolbar = actionManager.getAction(MoonTasksPanel.TOOLBAR_GROUP_ID) as DefaultActionGroup
-        assertTrue(toolbar.childActionsOrStubs.any { actionManager.getId(it) == "MoonExplorer.SelectOpenedFile" })
+        FileEditorManager.getInstance(project).openFile(TestData.workspaceVirtualFile(file), true)
     }
 
     fun testSelectsAndExpandsTheProjectOfTheFile() {

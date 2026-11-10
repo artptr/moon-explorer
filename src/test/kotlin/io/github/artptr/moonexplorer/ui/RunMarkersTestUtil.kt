@@ -3,7 +3,7 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiFile
-import java.util.Collections
+import java.util.*
 
 /**
  * Records each file that the refresher analyzes again, and gives the list of the files. If [callReal] is true, the refresher also does the real restart.

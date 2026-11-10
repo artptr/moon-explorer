@@ -10,35 +10,24 @@ import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.artptr.moonexplorer.model.ExistingConfigFiles
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.WorkspaceTasks
-import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.prepareForTests
-import io.github.artptr.moonexplorer.model.workspacePath
+import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
 
-class RunMarkersRefresherTest : BasePlatformTestCase() {
-
-    private val service get() = project.service<MoonTasksService>()
+class RunMarkersRefresherTest : MoonTasksServiceTestCase() {
 
     /** The files that the refresher analyzed again. The test does not start the real analysis. */
     private lateinit var restarted: List<PsiFile>
 
     override fun setUp() {
         super.setUp()
-        service.prepareForTests()
         restarted = project.service<RunMarkersRefresher>().recordRestarts(testRootDisposable, callReal = false)
     }
 
     override fun tearDown() {
         try {
             FileEditorManagerEx.getInstanceEx(project).closeAllFiles()
-            runBlocking { service.resetForTests() }
         } finally {
             super.tearDown()
         }

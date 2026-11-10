@@ -2,22 +2,18 @@ package io.github.artptr.moonexplorer.yaml
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
-import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiNamedElement
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.config.MoonInheritedTasksGotoDeclarationHandler
 import io.github.artptr.moonexplorer.config.MoonInheritedTasksInspection
-import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
 import kotlin.io.path.writeText
 
@@ -26,9 +22,7 @@ import kotlin.io.path.writeText
  * The workspace is a copy of [TestData.gutterWorkspace] in a temporary directory. The project `app` can inherit `check` and `clean`
  * from `.moon/tasks/one.yml`, and `clean` also from `.moon/tasks/two.yml`.
  */
-class MoonInheritedTasksIntegrationTest : BasePlatformTestCase() {
-
-    private val service get() = project.service<MoonTasksService>()
+class MoonInheritedTasksIntegrationTest : MoonTasksServiceTestCase() {
 
     private lateinit var root: Path
 
@@ -40,7 +34,6 @@ class MoonInheritedTasksIntegrationTest : BasePlatformTestCase() {
         FileUtil.copyDir(TestData.gutterWorkspace, root.toFile())
         root.resolve(".moon/tasks/one.yml").writeText("tasks:\n  check:\n    command: 'echo check'\n  clean:\n    command: 'echo clean'\n")
         root.resolve(".moon/tasks/two.yml").writeText("tasks:\n  clean:\n    command: 'echo clean two'\n")
-        service.prepareForTests()
         service.projectDir = { root }
         myFixture.enableInspections(MoonInheritedTasksInspection())
     }
@@ -49,7 +42,6 @@ class MoonInheritedTasksIntegrationTest : BasePlatformTestCase() {
         try {
             // Close the files before the reset. Thus the IDE does not analyze them again after the deletion of the workspace.
             FileEditorManagerEx.getInstanceEx(project).closeAllFiles()
-            runBlocking { service.resetForTests() }
         } finally {
             super.tearDown()
         }

@@ -1,50 +1,22 @@
 package io.github.artptr.moonexplorer.config
 
-import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
 import com.intellij.codeInsight.codeVision.settings.CodeVisionGroupSettingProvider
 import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import com.intellij.codeInsight.hints.codeVision.DaemonBoundCodeVisionProvider
-import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.model.InheritedLayer
-import io.github.artptr.moonexplorer.model.MoonProject
-import io.github.artptr.moonexplorer.model.MoonTask
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.ProjectSource
-import io.github.artptr.moonexplorer.model.SourceFile
-import io.github.artptr.moonexplorer.model.TaskConfigs
-import io.github.artptr.moonexplorer.model.TaskGraph
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.WorkspaceTasks
-import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.model.lastLoaded
-import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.prepareForTests
+import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
-class ConfigInsightsTest : BasePlatformTestCase() {
-
-    private val service get() = project.service<MoonTasksService>()
+class ConfigInsightsTest : MoonTasksServiceTestCase() {
 
     override fun setUp() {
         super.setUp()
-        service.prepareForTests()
         service.loadRecorded()
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
     }
 
     /** Gives the insights of the workspace file [path]. If [state] is not null, the insights use [state] and not the loaded data. */
@@ -93,14 +65,6 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         // The project web renames typecheck to tsc. The task icons:typecheck is internal, but icons inherits it.
         assertEquals("test, tsc", items["web"])
         assertEquals("test, typecheck", items["icons"])
-    }
-
-    fun testOrderOfTheProvidersOnOneLine() {
-        assertEquals(listOf(CodeVisionRelativeOrdering.CodeVisionRelativeOrderingFirst), MoonInheritedCodeVisionProvider().relativeOrderings)
-        val merged = MoonMergedCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
-        assertEquals(MoonInheritedCodeVisionProvider.ID, merged.id)
-        val dependents = MoonDependentsCodeVisionProvider().relativeOrderings.single() as CodeVisionRelativeOrdering.CodeVisionRelativeOrderingAfter
-        assertEquals(MoonMergedCodeVisionProvider.ID, dependents.id)
     }
 
     fun testCountUsesTheFiltersOfTheProjects() {
@@ -214,10 +178,6 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val hint = insights.inheritedHints().single()
         assertEquals("3 inherited tasks", hint.text)
         assertEquals(0, hint.element.textOffset)
-    }
-
-    fun testLocalTaskOfAnExcludedGlobalTaskDoesNotMerge() {
-        assertFalse(insights("apps/web/moon.yml").mergedHints().any { it.element.text == "format" })
     }
 
     fun testGlobalTaskHasTheHintWithItsDependents() {

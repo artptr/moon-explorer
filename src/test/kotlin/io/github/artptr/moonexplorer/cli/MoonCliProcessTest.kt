@@ -2,6 +2,7 @@ package io.github.artptr.moonexplorer.cli
 
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.ApplicationRule
+import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -31,10 +32,8 @@ class MoonCliProcessTest {
     }
 
     /** Makes a script that writes its arguments and the value of NO_COLOR, and stops with [exitCode]. */
-    private fun fakeMoon(exitCode: Int = 0): File = File(temp.newFolder("fake-moon"), "moon").apply {
-        writeText("#!/bin/sh\necho \"$@ NO_COLOR=\$NO_COLOR\"\nexit $exitCode\n")
-        setExecutable(true)
-    }
+    private fun fakeMoon(exitCode: Int = 0): File =
+        fakeMoonExecutable(temp.newFolder("fake-moon").toPath(), "moon", "#!/bin/sh\necho \"$@ NO_COLOR=\$NO_COLOR\"\nexit $exitCode\n").toFile()
 
     private fun queryProjects(executable: File): CliResult {
         val workspace = temp.newFolder("workspace").toPath()

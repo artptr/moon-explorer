@@ -4,33 +4,10 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import com.intellij.openapi.components.service
-import com.intellij.openapi.util.Disposer
-import com.intellij.testFramework.TestActionEvent
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
-import io.github.artptr.moonexplorer.settings.MoonSettings
-import io.github.artptr.moonexplorer.settings.resetForTests
 
-class GroupByActionsTest : BasePlatformTestCase() {
-
-    private lateinit var panel: MoonTasksPanel
-
-    override fun setUp() {
-        super.setUp()
-        project.service<MoonSettings>().resetForTests()
-        panel = MoonTasksPanel(project)
-        Disposer.register(testRootDisposable, panel)
-    }
-
-    override fun tearDown() {
-        try {
-            project.service<MoonSettings>().resetForTests()
-        } finally {
-            super.tearDown()
-        }
-    }
+class GroupByActionsTest : MoonTasksPanelTestCase() {
 
     private fun event(action: TasksPanelToggleAction) = tasksPanelEvent(action, project, panel)
 
@@ -85,9 +62,7 @@ class GroupByActionsTest : BasePlatformTestCase() {
 
     fun testActionsAreHiddenWithoutThePanel() {
         for (action in listOf(GroupByProjectAction(), CategoryStackAction())) {
-            val event = TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
-            action.update(event)
-            assertFalse(event.presentation.isEnabledAndVisible)
+            assertFalse(action.updatedPresentation(SimpleDataContext.getProjectContext(project)).isEnabledAndVisible)
         }
     }
 }

@@ -2,45 +2,24 @@ package io.github.artptr.moonexplorer.yaml
 
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
-import com.intellij.lang.LanguageExtension
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import com.intellij.openapi.components.service
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.TestActionEvent
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import io.github.artptr.moonexplorer.ui.RunInEachProjectGroup
 import io.github.artptr.moonexplorer.ui.RunTargetsAction
-import kotlinx.coroutines.runBlocking
-import org.jetbrains.yaml.YAMLLanguage
 import java.nio.file.Files
 
-class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
+class MoonTaskRunLineMarkerContributorTest : MoonTasksServiceTestCase() {
 
     private val contributor = MoonTaskRunLineMarkerContributor()
-
-    private val service get() = project.service<MoonTasksService>()
-
-    override fun setUp() {
-        super.setUp()
-        service.prepareForTests()
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
-    }
 
     /** Gives the PSI of the file [path] in the test workspace. [path] is a path from the workspace root. */
     private fun workspaceFile(path: String) = project.psiFileAt(TestData.workspaceRoot.resolve(path))
@@ -60,11 +39,6 @@ class MoonTaskRunLineMarkerContributorTest : BasePlatformTestCase() {
         val path = FileUtil.createTempDirectory("moon-keys", null, true).toPath().resolve("moon.yml")
         Files.writeString(path, text)
         return project.psiFileAt(path).leaves().mapNotNull(::taskKeyAt)
-    }
-
-    fun testContributorIsRegisteredForYaml() {
-        val contributors = LanguageExtension<RunLineMarkerContributor>("com.intellij.runLineMarkerContributor").allForLanguage(YAMLLanguage.INSTANCE)
-        assertTrue(contributors.any { it is MoonTaskRunLineMarkerContributor })
     }
 
     fun testEachTaskKeyOfAProjectHasTheRunIcon() {

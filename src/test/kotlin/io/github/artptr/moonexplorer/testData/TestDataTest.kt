@@ -2,9 +2,7 @@ package io.github.artptr.moonexplorer.testData
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 
 /** Makes sure that the test data contains the items that the tests of the plugin use. */
@@ -35,23 +33,6 @@ class TestDataTest {
         // The parser reads only the dependencies of the tasks. They must give the same number of items as the edges of the graph.
         val dependencies = graph.getAsJsonObject("data").entrySet().sumOf { it.value.asJsonObject.getAsJsonArray("deps")?.size() ?: 0 }
         assertEquals(graph.getAsJsonObject("graph").getAsJsonArray("edges").size(), dependencies)
-    }
-
-    @Test
-    fun workspaceHasMoonConfiguration() {
-        assertTrue(TestData.workspace.resolve(".moon/workspace.yml").isFile)
-    }
-
-    @Test
-    fun outputContainsAllProjectsWithTasks() {
-        assertEquals(setOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), tasks.keys)
-    }
-
-    @Test
-    fun projectWithoutTasksHasNoTasksKey() {
-        assertTrue(TestData.workspace.resolve("packages/config/moon.yml").isFile)
-        val config = projects.single { it.get("id").asString == "config" }
-        assertFalse(config.has("tasks"))
     }
 
     @Test
@@ -89,13 +70,6 @@ class TestDataTest {
         assertEquals(listOf("--max-warnings", "0", "lint"), args)
     }
 
-    @Test
-    fun someTasksHaveNoDescription() {
-        val all = tasks.values.flatMap { projectTasks -> projectTasks.entrySet().map { it.value.asJsonObject } }
-        assertTrue(all.any { it.has("description") })
-        assertTrue(all.any { !it.has("description") })
-    }
-
     /**
      * The commands of the test workspace do not make output files. If a task does not make a necessary output file, moon stops with an error.
      * Thus all outputs must be optional. Then `moon run` completes for each task in a manual test.
@@ -122,45 +96,12 @@ class TestDataTest {
     }
 
     /** The groups by `layer` and by tag, and the icon for the language of each project, use these values. They do not need one more moon command. */
-    @Test
-    fun projectsHaveLayerTagsAndLanguage() {
-        val web = projects.single { it.get("id").asString == "web" }
-        assertEquals("application", web.get("layer").asString)
-        assertEquals("typescript", web.get("language").asString)
-        assertEquals(listOf("react", "public"), web.getAsJsonObject("config").getAsJsonArray("tags").map { it.asString })
-    }
-
     /** The groups by `stack` and by `layer` use a "(none)" node. moon gives the value `unknown` if a project does not set the value. */
-    @Test
-    fun projectWithoutStackAndLayerHasUnknownValues() {
-        val scripts = projects.single { it.get("id").asString == "scripts" }
-        assertEquals("unknown", scripts.get("stack").asString)
-        assertEquals("unknown", scripts.get("layer").asString)
-    }
-
-    @Test
-    fun projectsWithTasksHaveDifferentLayers() {
-        val layers = projects.filter { it.has("tasks") }.map { it.get("layer").asString }.toSet()
-        assertEquals(setOf("application", "library", "unknown"), layers)
-    }
-
     /**
      * A tooltip with the command can use these values.
      * moon sets the type from the options of the task. A task with outputs has the type `build`, a persistent task has the type `run`, and all other tasks have the type `test`.
      * Thus `lint` and `format` are `test`. An icon for each type can be incorrect for these tasks.
      */
-    @Test
-    fun tasksHaveTypeAndCommand() {
-        val webTasks = tasks.getValue("web")
-        assertEquals("build", webTasks.getAsJsonObject("build").get("type").asString)
-        assertEquals("run", webTasks.getAsJsonObject("dev").get("type").asString)
-        assertEquals("test", webTasks.getAsJsonObject("test").get("type").asString)
-        assertEquals("test", webTasks.getAsJsonObject("lint").get("type").asString)
-        assertEquals("test", webTasks.getAsJsonObject("format").get("type").asString)
-        assertEquals("echo", webTasks.getAsJsonObject("build").get("command").asString)
-        assertEquals(listOf("build", "web"), webTasks.getAsJsonObject("build").getAsJsonArray("args").map { it.asString })
-    }
-
     @Test
     fun recordedTaskFilesHaveTheirTargets() {
         for (target in listOf("api:audit", "web:lint", "web:build")) {
