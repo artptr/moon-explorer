@@ -11,11 +11,7 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.configFilePath
-import io.github.artptr.moonexplorer.model.isYamlFile
-import io.github.artptr.moonexplorer.model.lastLoaded
+import io.github.artptr.moonexplorer.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged

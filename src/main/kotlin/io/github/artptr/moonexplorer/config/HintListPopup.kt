@@ -7,8 +7,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.ui.popup.ListPopupStepEx
+import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -21,8 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.awt.event.MouseEvent
-import java.util.Collections
-import java.util.IdentityHashMap
+import java.util.*
 
 /** The list of a hint or of a gutter icon. The IDE calls [choose] with the [SourceFile] of the item that the user selects. */
 internal class HintListStep(list: HintList, private val choose: (SourceFile) -> Unit) :

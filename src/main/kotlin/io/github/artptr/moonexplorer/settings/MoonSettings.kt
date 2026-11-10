@@ -1,11 +1,6 @@
 package io.github.artptr.moonexplorer.settings
 
-import com.intellij.openapi.components.BaseState
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.SimplePersistentStateComponent
-import com.intellij.openapi.components.State
-import com.intellij.openapi.components.Storage
-import com.intellij.openapi.components.StoragePathMacros
+import com.intellij.openapi.components.*
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 

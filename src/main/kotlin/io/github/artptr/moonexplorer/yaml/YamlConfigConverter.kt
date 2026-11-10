@@ -4,18 +4,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import io.github.artptr.moonexplorer.config.ConfigConverter
-import io.github.artptr.moonexplorer.config.ConfigKey
-import io.github.artptr.moonexplorer.config.ConfigSyntax
-import io.github.artptr.moonexplorer.config.ConfigTextChange
-import io.github.artptr.moonexplorer.config.InheritedTasksEntry
-import org.jetbrains.yaml.psi.YAMLCompoundValue
-import org.jetbrains.yaml.psi.YAMLFile
-import org.jetbrains.yaml.psi.YAMLKeyValue
-import org.jetbrains.yaml.psi.YAMLMapping
-import org.jetbrains.yaml.psi.YAMLScalar
-import org.jetbrains.yaml.psi.YAMLSequence
-import org.jetbrains.yaml.psi.YAMLSequenceItem
+import io.github.artptr.moonexplorer.config.*
+import org.jetbrains.yaml.psi.*
 
 /** Gives the [ConfigSyntax] of a YAML configuration file. The converter reads only the first YAML document of the file. */
 class YamlConfigConverter : ConfigConverter {
