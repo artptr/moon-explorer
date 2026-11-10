@@ -1,9 +1,11 @@
 package io.github.artptr.moonexplorer
 
 import com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter
+import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.artptr.moonexplorer.run.MoonRunConfigurationType
 
 /** Examines the entries of `plugin.xml` that have no other test. */
 class PluginRegistrationTest : BasePlatformTestCase() {
@@ -16,6 +18,10 @@ class PluginRegistrationTest : BasePlatformTestCase() {
             "The errorHandler JetBrainsMarketplaceErrorReportSubmitter must be registered in plugin.xml",
             submitter,
         )
+    }
+
+    fun testRunConfigurationTypeIsRegistered() {
+        assertTrue(ConfigurationType.CONFIGURATION_TYPE_EP.extensionList.any { it is MoonRunConfigurationType })
     }
 
     fun testNpmDependencySupportIsRegistered() {

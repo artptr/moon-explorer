@@ -195,8 +195,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val file = taskSourceFiles(state, target).firstOrNull() ?: projectSourceFile(state, targetProjectId(target), targetTaskId(target))
         return HintItem(target, file, group, file?.path?.let(state::workspacePath))
     }
-
-    /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */}
+}
 
 /** Gives [text] and the [strategies], for example `web (args: prepend, deps: replace)`. If the map is empty, the function gives only [text]. */
 internal fun withStrategies(text: String, strategies: Map<String, String>): String {

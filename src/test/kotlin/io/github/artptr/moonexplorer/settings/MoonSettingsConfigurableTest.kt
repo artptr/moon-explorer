@@ -167,4 +167,10 @@ class MoonSettingsConfigurableTest : MoonTasksServiceTestCase() {
         service.awaitState(TasksState.MoonFailed(MoonFailure.Error("from timeout")))
     }
 
+
+    fun testCommentTellsThatTheTimeoutIsNotForTheTasksThatYouRun() {
+        val comment = MoonExplorerBundle.message("settings.timeout.comment", MoonSettings.DEFAULT_TIMEOUT_SECONDS.toString())
+        assertTrue(comment.contains(MoonSettings.DEFAULT_TIMEOUT_SECONDS.toString()))
+        assertTrue(comment.contains("does not apply to the tasks that you run"))
+    }
 }

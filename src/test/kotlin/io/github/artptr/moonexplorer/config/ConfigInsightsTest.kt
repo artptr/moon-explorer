@@ -319,6 +319,11 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         assertEquals("web (args: replace)", withStrategies("web", mapOf("args" to "replace")))
     }
 
+    fun testOnlyAFileWithAConverterHasAConverter() {
+        assertTrue(hasConfigConverter(myFixture.configureByText("moon.yml", "tasks: {}\n")))
+        assertFalse(hasConfigConverter(myFixture.configureByText("notes.txt", "tasks: {}\n")))
+    }
+
     fun testFileOutsideTheLoadHasNoInsights() {
         myFixture.openFileInEditor(TestData.workspaceVirtualFile(".moon/workspace.yml"))
         assertNull(configInsights(myFixture.file))
