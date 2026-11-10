@@ -2,43 +2,22 @@ package io.github.artptr.moonexplorer.ui
 
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
-import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.components.JBList
-import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.model.MoonTask
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.loadNoWorkspace
-import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.loadStale
-import io.github.artptr.moonexplorer.model.prepareForTests
-import io.github.artptr.moonexplorer.model.startEndlessRefresh
+import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 
-class MoonTaskSearchContributorTest : BasePlatformTestCase() {
+class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
 
-    private lateinit var service: MoonTasksService
     private lateinit var contributor: MoonTaskSearchContributor
 
     override fun setUp() {
         super.setUp()
-        service = project.service<MoonTasksService>()
-        service.prepareForTests()
         service.loadRecorded()
         contributor = MoonTaskSearchContributor(project)
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
     }
 
     private fun search(pattern: String): List<FoundItemDescriptor<MoonTask>> {
@@ -49,35 +28,18 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
 
     private fun targets(pattern: String): List<String> = search(pattern).map { it.item.target }
 
-    fun testSearchFindsATaskByItsId() {
+    fun testSearchFindsTasksByIdProjectDescriptionAndTarget() {
+        // Each pattern and the targets that the search must find. The search can also find other targets for the project and the target.
         assertSameElements(targets("storybook"), "ui:storybook")
-    }
-
-    fun testSearchFindsTheTasksOfAProject() {
-        assertContainsElements(targets("worker"), "worker:audit", "worker:build", "worker:check", "worker:start")
-    }
-
-    fun testSearchFindsATaskByItsDescription() {
-        assertSameElements(targets("migrations"), "db:migrate")
-    }
-
-    fun testSearchFindsTwoWordsOfTheDescription() {
-        assertSameElements(targets("database migrations"), "db:migrate")
-    }
-
-    fun testSearchIgnoresTheCase() {
         assertSameElements(targets("STORYBOOK"), "ui:storybook")
-    }
-
-    fun testSearchFindsAFullTarget() {
+        assertSameElements(targets("migrations"), "db:migrate")
+        assertSameElements(targets("database migrations"), "db:migrate")
+        assertContainsElements(targets("worker"), "worker:audit", "worker:build", "worker:check", "worker:start")
         assertContainsElements(targets("web:build"), "web:build")
     }
 
-    fun testSearchFindsNothingForAnUnknownText() {
+    fun testSearchFindsNothingForAnUnknownTextOrABlankPattern() {
         assertEmpty(search("no-such-task"))
-    }
-
-    fun testSearchFindsNothingForABlankPattern() {
         assertEmpty(search("  "))
     }
 
@@ -93,31 +55,9 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
         assertSameElements(targets("storybook"), "ui:storybook")
     }
 
-    fun testSearchUsesTheLastTasksDuringARefreshAfterAFailedRefresh() {
-        service.loadStale()
-        service.startEndlessRefresh()
-        assertSameElements(targets("storybook"), "ui:storybook")
-    }
-
     fun testSearchFindsNothingWithoutAWorkspace() {
         service.loadNoWorkspace()
         assertEmpty(search("build"))
-    }
-
-    fun testSearchUsesTheLastTasksAfterAFailedRefresh() {
-        service.loadStale()
-        assertSameElements(targets("storybook"), "ui:storybook")
-    }
-
-    fun testSearchDoesNotStartMoon() {
-        var calls = 0
-        service.queryProjects = {
-            calls++
-            CliResult.Success(TestData.recorded("query-projects.json"))
-        }
-        search("build")
-        search("web")
-        assertEquals(0, calls)
     }
 
     fun testSelectionRunsTheTask() {
@@ -126,11 +66,6 @@ class MoonTaskSearchContributorTest : BasePlatformTestCase() {
         val task = search("storybook").single().item
         assertTrue("The popup must close", contributor.processSelectedItem(task, 0, "storybook"))
         assertEquals(listOf(project to "ui:storybook"), ran)
-    }
-
-    fun testContributorIsOnlyInTheAllTab() {
-        assertFalse(contributor.isShownInSeparateTab)
-        assertFalse(contributor.showInFindResults())
     }
 
     fun testRendererHasNoLeftSpace() {

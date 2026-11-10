@@ -1,8 +1,5 @@
 package io.github.artptr.moonexplorer.ui
 
-import com.intellij.openapi.components.service
-import com.intellij.openapi.util.Disposer
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.openapi.util.TextRange
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.speedSearch.SpeedSearchSupply
@@ -10,32 +7,24 @@ import com.intellij.ui.treeStructure.Tree
 import io.github.artptr.moonexplorer.model.TaskCategory
 import io.github.artptr.moonexplorer.model.TaskGrouping
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.settings.MoonSettings
-import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import java.awt.event.KeyEvent
 import java.beans.PropertyChangeListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 
-class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
+class TaskTreeSpeedSearchTest : MoonTasksPanelTestCase() {
 
-    private lateinit var panel: MoonTasksPanel
-
-    private val tasks by lazy { TestData.recordedTasks() }
+    private val tasks = TestData.recordedTasks()
 
     override fun setUp() {
         super.setUp()
-        project.service<MoonSettings>().resetForTests()
-        panel = MoonTasksPanel(project)
-        Disposer.register(testRootDisposable, panel)
-        panel.render(TestData.loadedState(tasks))
+        panel.loadRecorded()
     }
 
     override fun tearDown() {
         try {
             panel.speedSearch.hidePopup()
-            project.service<MoonSettings>().resetForTests()
         } finally {
             super.tearDown()
         }
@@ -51,7 +40,7 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
     }
 
     fun testSearchFindsATaskInACollapsedProjectNode() {
-        val project = selectedPathOf("web")
+        val project = panel.projectPath("web")
         assertFalse(panel.tree.isExpanded(project))
         panel.speedSearch.findAndSelectElement("preview")
         assertEquals("web:preview", selectedTask.task.target)
@@ -165,7 +154,4 @@ class TaskTreeSpeedSearchTest : BasePlatformTestCase() {
         assertEquals("build", build.toString())
         assertEquals("web", TaskNode(build.task, showProject = true).toString())
     }
-
-    private fun selectedPathOf(projectId: String): TreePath =
-        panel.allPaths().single { (it.lastPathComponent as? ProjectNode)?.project?.id == projectId }
 }

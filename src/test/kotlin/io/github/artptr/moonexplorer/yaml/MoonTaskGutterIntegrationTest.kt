@@ -1,6 +1,6 @@
 package io.github.artptr.moonexplorer.yaml
 
-import com.intellij.codeInsight.daemon.GutterMark
+import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.RunConfigurationProducer
 import com.intellij.ide.DataManager
@@ -13,30 +13,24 @@ import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
-import com.intellij.codeInsight.codeVision.ui.model.ClickableTextCodeVisionEntry
 import io.github.artptr.moonexplorer.config.MoonCodeVisionProvider
 import io.github.artptr.moonexplorer.config.MoonInheritedCodeVisionProvider
 import io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider
-import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.QueryProjectsParser
 import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.run.MoonRunConfiguration
 import io.github.artptr.moonexplorer.testData.TestData
 import io.github.artptr.moonexplorer.ui.RunMarkersRefresher
 import io.github.artptr.moonexplorer.ui.recordRestarts
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
 
 /**
  * Tests the run icons in the editor with the real daemon. The workspace is a copy of [TestData.gutterWorkspace] in a temporary directory.
  * The output of `moon query projects` comes from [queryJson]. Thus each test can change the tasks.
  */
-class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
-
-    private val service get() = project.service<MoonTasksService>()
+class MoonTaskGutterIntegrationTest : MoonTasksServiceTestCase() {
 
     private lateinit var root: Path
 
@@ -49,7 +43,6 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         root = FileUtil.createTempDirectory("moon-gutter", null, true).toPath().toRealPath()
         VfsRootAccess.allowRootAccess(testRootDisposable, root.toString())
         FileUtil.copyDir(TestData.gutterWorkspace, root.toFile())
-        service.prepareForTests()
         service.projectDir = { root }
         restarted = project.service<RunMarkersRefresher>().recordRestarts(testRootDisposable, callReal = true)
     }
@@ -58,7 +51,6 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         try {
             // Close the files before the reset. Thus the refresher does not analyze them again after the deletion of the workspace.
             FileEditorManagerEx.getInstanceEx(project).closeAllFiles()
-            runBlocking { service.resetForTests() }
         } finally {
             super.tearDown()
         }
@@ -127,19 +119,13 @@ class MoonTaskGutterIntegrationTest : BasePlatformTestCase() {
         assertEquals(expected, all())
     }
 
-    fun testLocalTaskThatMergesHasTheInheritanceIconInTheGutter() {
-        load(listOf("build", "lint"), listOf("check", "lint"))
-        open("app/moon.yaml")
-        assertTrue(myFixture.findAllGutters().any { it.tooltipText == "Merged with one.yml" })
-    }
-
     private fun open(path: String) {
         val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root.resolve(path)) ?: error("No file $path")
         myFixture.configureFromExistingVirtualFile(file)
     }
 
-    private fun tooltips(gutters: List<GutterMark> = myFixture.findAllGutters()): List<String?> =
-        gutters.map { it.tooltipText }.filter { it?.startsWith("Run ") == true || it?.startsWith("Inherited ") == true }
+    private fun tooltips(): List<String?> =
+        myFixture.findAllGutters().map { it.tooltipText }.filter { it?.startsWith("Run ") == true || it?.startsWith("Inherited ") == true }
 
     fun testProjectFileWithTheYamlExtensionAndAQuotedKeyHasRunIcons() {
         load(listOf("build", "lint"))

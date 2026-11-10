@@ -2,12 +2,7 @@ package io.github.artptr.moonexplorer.testData
 
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
-import io.github.artptr.moonexplorer.model.QueryProjectsParser
-import io.github.artptr.moonexplorer.model.TaskGraph
-import io.github.artptr.moonexplorer.model.TaskGraphParser
-import io.github.artptr.moonexplorer.model.TasksLoader
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.WorkspaceTasks
+import io.github.artptr.moonexplorer.model.*
 import java.io.File
 import java.nio.file.Path
 
@@ -25,6 +20,9 @@ object TestData {
     /** Reads the file [path] from [workspace]. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
     fun workspaceText(path: String): String = File(workspace, path).readText()
 
+    /** Gives the absolute path of the file [path] of [workspace]. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
+    fun workspacePath(path: String): Path = workspaceRoot.resolve(path)
+
     /** Gives the file [path] of [workspace] in the VFS. [path] is a path from the workspace root, for example `apps/web/moon.yml`. */
     fun workspaceVirtualFile(path: String): VirtualFile =
         LocalFileSystem.getInstance().refreshAndFindFileByNioFile(workspaceRoot.resolve(path)) ?: error("No file $path in the test workspace")
@@ -41,14 +39,19 @@ object TestData {
     /** Reads a recorded file from [moon]. */
     fun recorded(name: String): String = File(moon, name).readText()
 
+    // The values are immutable. Thus all tests share one parsed value, and the tests do not parse the recorded files again.
+    private val taskGraph by lazy { TaskGraphParser.parse(recorded("task-graph.json")) ?: error("The recorded task graph has no data") }
+    private val tasks by lazy { QueryProjectsParser.parse(recorded("query-projects.json")) }
+    private val state by lazy { loadedState(tasks) }
+
     /** The task graph of the recorded `moon task-graph --json` output. */
-    fun recordedTaskGraph(): TaskGraph = TaskGraphParser.parse(recorded("task-graph.json")) ?: error("The recorded task graph has no data")
+    fun recordedTaskGraph(): TaskGraph = taskGraph
 
     /** The projects and tasks of the recorded `moon query projects` output. */
-    fun recordedTasks(): WorkspaceTasks = QueryProjectsParser.parse(recorded("query-projects.json"))
+    fun recordedTasks(): WorkspaceTasks = tasks
 
     /** The state after a successful load of the recorded `moon query projects` output in [workspace]. */
-    fun recordedState(): TasksState.Loaded = loadedState(recordedTasks())
+    fun recordedState(): TasksState.Loaded = state
 
     /**
      * The state after a successful load of [tasks] in [root]. The loader makes the state. Thus it contains the configuration files on the disk.

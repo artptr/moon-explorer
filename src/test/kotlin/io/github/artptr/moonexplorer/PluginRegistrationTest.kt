@@ -1,9 +1,22 @@
 package io.github.artptr.moonexplorer
 
+import com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.ErrorReportSubmitter
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
-class PluginSuggestionTest : BasePlatformTestCase() {
+/** Examines the entries of `plugin.xml` that have no other test. */
+class PluginRegistrationTest : BasePlatformTestCase() {
+
+    fun testMarketplaceErrorHandlerIsRegistered() {
+        val submitter = ErrorReportSubmitter.EP_NAME.extensionList
+            .filterIsInstance<JetBrainsMarketplaceErrorReportSubmitter>()
+            .singleOrNull { it.pluginDescriptor?.pluginId?.idString == "io.github.artptr.moonexplorer" }
+        assertNotNull(
+            "The errorHandler JetBrainsMarketplaceErrorReportSubmitter must be registered in plugin.xml",
+            submitter,
+        )
+    }
 
     fun testNpmDependencySupportIsRegistered() {
         // The bean class of this extension point is internal in the platform. Read its public fields by name.

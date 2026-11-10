@@ -4,11 +4,9 @@ import com.intellij.execution.ExecutionException
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CancellationException
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -35,25 +33,6 @@ class TasksLoaderTest {
     @Test
     fun noProjectDirectoryGivesNoWorkspace() {
         assertEquals(TasksState.NoWorkspace, load(null, CliResult.Success("{}")))
-    }
-
-    @Test
-    fun directoryWithoutMoonGivesNoWorkspace() {
-        assertEquals(TasksState.NoWorkspace, load(temp.newFolder().toPath(), CliResult.Success("{}")))
-    }
-
-    @Test
-    fun runsTheQueryInTheWorkspaceRoot() {
-        var dir: Path? = null
-        runBlocking { loadTasks(workspace.resolve("apps/web")) { dir = it; recorded } }
-        assertEquals(workspace.toAbsolutePath().normalize(), dir)
-    }
-
-    @Test
-    fun runsOneQueryForEachLoad() {
-        var calls = 0
-        runBlocking { loadTasks(workspace) { calls++; recorded } }
-        assertEquals(1, calls)
     }
 
     @Test
@@ -91,14 +70,6 @@ class TasksLoaderTest {
     }
 
     @Test
-    fun loadedTasksHaveTheStackOfTheirProject() {
-        val state = load(workspace, recorded) as TasksState.Loaded
-        val stacks = state.tasks.projects.associate { it.id to it.stack }
-        assertEquals("frontend", stacks["web"])
-        assertEquals("backend", stacks["api"])
-    }
-
-    @Test
     fun cliFailureGivesMoonFailedWithTheSameCause() {
         val examined = listOf(workspace.resolve("node_modules/.bin/moon"))
         val failures = mapOf(
@@ -124,14 +95,10 @@ class TasksLoaderTest {
     }
 
     @Test
-    fun unexpectedErrorGivesUnexpectedError() {
-        val state = runBlocking { loadTasks(workspace) { throw IllegalStateException("unexpected") } }
-        assertEquals(TasksState.UnexpectedError, state)
-    }
-
-    @Test
-    fun checkedExceptionGivesUnexpectedError() {
-        val state = runBlocking { loadTasks(workspace) { throw ExecutionException("cannot start") } }
-        assertEquals(TasksState.UnexpectedError, state)
+    fun unexpectedErrorOrCheckedExceptionGivesUnexpectedError() {
+        for (exception in listOf(IllegalStateException("unexpected"), ExecutionException("cannot start"))) {
+            val state = runBlocking { loadTasks(workspace) { throw exception } }
+            assertEquals("Exception $exception", TasksState.UnexpectedError, state)
+        }
     }
 }

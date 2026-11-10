@@ -3,46 +3,19 @@ package io.github.artptr.moonexplorer.model
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.testData.TestData
 import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.milliseconds
 
-class MoonTasksServiceTest : BasePlatformTestCase() {
+class MoonTasksServiceTest : MoonTasksServiceTestCase() {
 
-    private lateinit var service: MoonTasksService
     private val recorded = TestData.recorded("query-projects.json")
 
-    override fun setUp() {
-        super.setUp()
-        service = project.service<MoonTasksService>()
-        service.prepareForTests()
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
-    }
-
-    fun testRefreshLoadsTheTasks() {
-        service.queryProjects = { CliResult.Success(recorded) }
-        service.refresh()
-        val expected = TestData.recordedState()
-        service.awaitState(expected)
-        assertEquals(9, expected.tasks.projects.size)
-    }
+    private val loaded get() = TestData.recordedState()
 
     fun testDefaultQueryRunsMoonQueryProjects() {
         // The fake moon is a shell script. Thus this test does not run on Windows.
@@ -57,19 +30,14 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
                 "  printf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n" +
                 "fi\n",
         )
-        val settings = project.service<MoonSettings>()
-        try {
-            settings.executablePath = moon.toString()
-            // Use the default query, not the fake from setUp.
-            runBlocking { service.resetForTests() }
-            service.projectDir = { TestData.workspace.toPath() }
-            service.refresh()
-            val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
-            val graph = TaskGraph(mapOf("a:b" to setOf("task-graph---json")))
-            service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected)), taskGraph = graph))
-        } finally {
-            settings.executablePath = ""
-        }
+        project.service<MoonSettings>().executablePath = moon.toString()
+        // Use the default query, not the fake from setUp.
+        runBlocking { service.resetForTests() }
+        service.projectDir = { TestData.workspace.toPath() }
+        service.refresh()
+        val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
+        val graph = TaskGraph(mapOf("a:b" to setOf("task-graph---json")))
+        service.awaitState(TestData.loadedState(WorkspaceTasks(listOf(expected)), taskGraph = graph))
     }
 
     fun testServiceShowsTheTasksBeforeTheTaskGraphCompletes() {
@@ -82,9 +50,9 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         }
         service.refresh()
         service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
-        runBlocking { withTimeout(10_000) { started.await() } }
+        started.awaitWithTimeout()
         finish.complete(Unit)
-        service.awaitState(TestData.recordedState())
+        service.awaitState(loaded)
     }
 
     fun testRefreshKeepsTheLastTaskGraphUntilTheCommandCompletes() {
@@ -98,7 +66,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             CliResult.Success("""{"data": {}}""")
         }
         service.refresh()
-        runBlocking { withTimeout(10_000) { started.await() } }
+        started.awaitWithTimeout()
         // The result of moon query projects did not change. Thus the state is the same instance, with the last task graph.
         assertSame(last, service.state.value)
         finish.complete(Unit)
@@ -116,20 +84,15 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         val started = CompletableDeferred<Unit>()
         service.taskGraph = { started.complete(Unit); awaitCancellation() }
         service.refresh()
-        runBlocking { withTimeout(10_000) { started.await() } }
+        started.awaitWithTimeout()
         service.taskGraph = { CliResult.Success(TestData.recorded("task-graph.json")) }
         service.refresh()
-        service.awaitState(TestData.recordedState())
+        service.awaitState(loaded)
     }
 
     fun testTimeoutComesFromTheSettings() {
-        val settings = project.service<MoonSettings>()
-        try {
-            settings.timeoutSeconds = 90
-            assertEquals(90_000, service.timeoutMillis())
-        } finally {
-            settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
-        }
+        project.service<MoonSettings>().timeoutSeconds = 90
+        assertEquals(90_000, service.timeoutMillis())
     }
 
     fun testDefaultQueryStopsMoonAfterTheTimeLimitFromTheSettings() {
@@ -138,37 +101,19 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         // The script does not stop before the time limit. `exec` replaces the shell. Thus the plugin stops the `sleep` process.
         val moon = fakeMoonExecutable(content = "#!/bin/sh\nexec sleep 30\n")
         val settings = project.service<MoonSettings>()
-        try {
-            settings.executablePath = moon.toString()
-            settings.timeoutSeconds = 1
-            // Use the default query, not the fake from setUp.
-            runBlocking { service.resetForTests() }
-            service.projectDir = { TestData.workspace.toPath() }
-            service.refresh()
-            service.awaitState(TasksState.MoonFailed(MoonFailure.TimedOut))
-        } finally {
-            settings.executablePath = ""
-            settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
-        }
-    }
-
-    fun testRefreshShowsTheErrorText() {
-        service.queryProjects = { CliResult.Failed("bad config") }
+        settings.executablePath = moon.toString()
+        settings.timeoutSeconds = 1
+        // Use the default query, not the fake from setUp.
+        runBlocking { service.resetForTests() }
+        service.projectDir = { TestData.workspace.toPath() }
         service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
-    }
-
-    fun testRefreshSetsLoadingBeforeItReturns() {
-        service.queryProjects = { CliResult.Failed("first") }
-        service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("first")))
-        assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
+        service.awaitState(TasksState.MoonFailed(MoonFailure.TimedOut))
     }
 
     fun testRefreshAfterALoadKeepsTheLastLoad() {
         service.loadRecorded()
         val state = service.startEndlessRefresh()
-        assertEquals(TasksState.Loading(TestData.recordedState()), state)
+        assertEquals(TasksState.Loading(loaded), state)
         assertEquals(TestData.recordedTasks(), state.loadedTasks)
     }
 
@@ -184,9 +129,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testRefreshAfterAFailureWithoutAnEarlierLoadHasNoFailure() {
-        service.queryProjects = { CliResult.Failed("bad config") }
-        service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
+        service.loadFailed("bad config")
+        // refresh sets the Loading state before it returns.
         assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
     }
 
@@ -195,15 +139,6 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.loadNoWorkspace()
         service.projectDir = { TestData.workspace.toPath() }
         assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
-    }
-
-    fun testFailureAfterARefreshAfterNoWorkspaceIsNotStale() {
-        service.loadRecorded()
-        service.loadNoWorkspace()
-        service.projectDir = { TestData.workspace.toPath() }
-        service.queryProjects = { CliResult.Failed("bad config") }
-        service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
     }
 
     fun testRefreshUsesTheInputsOfTheCall() {
@@ -220,7 +155,7 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         }
         try {
             service.refresh()
-            runBlocking { withTimeout(10_000) { started.await() } }
+            started.awaitWithTimeout()
             service.queryProjects = { CliResult.Failed("second refresh") }
             service.refresh()
             // A change after the call must not go into the load of the call.
@@ -250,9 +185,9 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
             }
         }
         service.refresh()
-        runBlocking { withTimeout(10_000) { started.await() } }
+        started.awaitWithTimeout()
         service.refresh()
-        service.awaitState(TestData.recordedState())
+        service.awaitState(loaded)
         assertTrue("The first load must be cancelled", cancelled.isCompleted)
         assertEquals(2, calls.get())
     }
@@ -263,15 +198,8 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         service.awaitState(TasksState.MoonFailed(MoonFailure.Error("from startup")))
     }
 
-    private val loaded get() = TestData.recordedState()
-
-    fun testFailureAfterASuccessfulLoadGivesStale() {
-        service.queryProjects = { CliResult.Success(recorded) }
-        service.refresh()
-        service.awaitState(loaded)
-        service.queryProjects = { CliResult.Failed("bad config") }
-        service.refresh()
-        service.awaitState(TasksState.Stale(loaded, TasksState.MoonFailed(MoonFailure.Error("bad config"))))
+    fun testFailureAfterASuccessfulLoadGivesStaleAndASuccessGivesLoaded() {
+        service.loadStale("bad config")
         service.queryProjects = { CliResult.Success(recorded) }
         service.refresh()
         service.awaitState(loaded)
@@ -287,22 +215,20 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     }
 
     fun testNoWorkspaceRemovesTheLastSuccessfulLoad() {
-        service.refresh()
-        service.awaitState(loaded)
+        service.loadRecorded()
         val empty = FileUtil.createTempDirectory("no-workspace", null, true).toPath()
         service.projectDir = { empty }
         service.refresh()
         service.awaitState(TasksState.NoWorkspace)
         assertNull(service.configWatch.root)
+        assertEmpty(service.configWatch.sources)
+        // A failure after the next refresh is not stale.
         service.projectDir = { TestData.workspace.toPath() }
-        service.queryProjects = { CliResult.Failed("bad config") }
-        service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
+        service.loadFailed("bad config")
     }
 
     fun testLoadSetsTheConfigWatch() {
-        service.refresh()
-        service.awaitState(loaded)
+        service.loadRecorded()
         assertEquals(TestData.workspaceRoot, service.configWatch.root)
         assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
         // A failure keeps the sources of the last successful load.
@@ -319,39 +245,30 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
         assertEquals(TestData.recordedTasks().sources, service.configWatch.sources)
     }
 
-    fun testNoWorkspaceRemovesTheSourcesFromTheConfigWatch() {
-        service.loadRecorded()
-        service.loadNoWorkspace()
-        assertNull(service.configWatch.root)
-        assertEmpty(service.configWatch.sources)
-    }
-
     fun testConfigWatchHasTheRootDuringTheFirstLoad() {
         service.startEndlessRefresh()
         // A change during the first load must cause a refresh. Thus the listener must know the root before moon completes.
         assertEquals(TestData.workspaceRoot, service.configWatch.root)
     }
 
-    fun testTenChangesInOneSecondCauseOneQuery() {
+    fun testManyScheduledRefreshesCauseOneQuery() {
         val calls = AtomicInteger()
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
-        // The default delay is 1 second. The time between the changes is much shorter. Thus a slow computer does not cause a second query.
-        repeat(10) {
-            service.scheduleRefresh()
-            Thread.sleep(100)
-        }
+        // The time between the calls is much shorter than the delay. Thus a slow computer does not cause a second query.
+        service.refreshDelay = 300.milliseconds
+        repeat(10) { service.scheduleRefresh() }
         service.awaitState(loaded)
         // Wait longer than the delay. No other refresh must start.
-        Thread.sleep(2_000)
+        Thread.sleep(600)
         assertEquals(1, calls.get())
     }
 
     fun testScheduledRefreshWaitsForTheDelay() {
         val calls = AtomicInteger()
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
-        service.refreshDelay = 2_000.milliseconds
+        service.refreshDelay = 500.milliseconds
         service.scheduleRefresh()
-        Thread.sleep(200)
+        Thread.sleep(100)
         assertEquals(0, calls.get())
         service.awaitState(loaded)
         assertEquals(1, calls.get())
@@ -360,12 +277,12 @@ class MoonTasksServiceTest : BasePlatformTestCase() {
     fun testManualRefreshCancelsTheScheduledRefresh() {
         val calls = AtomicInteger()
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
-        service.refreshDelay = 300.milliseconds
+        service.refreshDelay = 200.milliseconds
         service.scheduleRefresh()
         service.refresh()
         service.awaitState(loaded)
-        // Wait much longer than the delay. The cancelled refresh must not start.
-        Thread.sleep(1_500)
+        // Wait longer than the delay. The cancelled refresh must not start.
+        Thread.sleep(600)
         assertEquals(1, calls.get())
     }
 }

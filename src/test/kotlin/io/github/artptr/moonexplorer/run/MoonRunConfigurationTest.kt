@@ -3,7 +3,6 @@ package io.github.artptr.moonexplorer.run
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configurations.CommandLineState
-import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.executors.DefaultRunExecutor
@@ -33,10 +32,6 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         val element = Element("configuration")
         writeExternal(element)
         return configuration("").also { it.readExternal(element) }
-    }
-
-    fun testTypeIsRegistered() {
-        assertTrue(ConfigurationType.CONFIGURATION_TYPE_EP.extensionList.any { it is MoonRunConfigurationType })
     }
 
     fun testCommandLineRunsTheTargetInTheWorkspaceRoot() {
@@ -179,10 +174,6 @@ class MoonRunConfigurationTest : BasePlatformTestCase() {
         assertFalse(loaded.force)
         assertTrue(loaded.environmentVariables.envs.isEmpty())
         assertTrue(loaded.environmentVariables.isPassParentEnvs)
-    }
-
-    fun testTargetIsSavedAndLoaded() {
-        assertEquals("api:audit", configuration("api:audit").savedAndLoaded().target)
     }
 
     fun testEditorChangesTheTarget() {

@@ -3,43 +3,25 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.TestActionEvent
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.artptr.moonexplorer.cli.CliResult
-import io.github.artptr.moonexplorer.model.MoonFailure
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.loadStale
-import io.github.artptr.moonexplorer.model.prepareForTests
-import io.github.artptr.moonexplorer.model.startEndlessRefresh
-import kotlinx.coroutines.runBlocking
+import io.github.artptr.moonexplorer.model.*
 
-class ShowRefreshFailureActionTest : BasePlatformTestCase() {
-
-    private lateinit var service: MoonTasksService
-
-    override fun setUp() {
-        super.setUp()
-        service = project.service<MoonTasksService>()
-        service.prepareForTests()
-    }
+/** [TasksStateTest][io.github.artptr.moonexplorer.model.TasksStateTest] examines `refreshFailure` for all states. Thus this test only examines some states. */
+class ShowRefreshFailureActionTest : MoonTasksServiceTestCase() {
 
     override fun tearDown() {
         try {
             project.service<RefreshFailureNotifier>().onState(TasksState.Loading(null))
             project.service<RefreshFailureNotifier>().onState(TasksState.NoWorkspace)
-            runBlocking { service.resetForTests() }
         } finally {
             super.tearDown()
         }
     }
 
-    private fun isVisible(): Boolean {
+    private fun isVisible(): Boolean = ShowRefreshFailureAction().updatedPresentation(SimpleDataContext.getProjectContext(project)).isVisible
+
+    private fun perform() {
         val action = ShowRefreshFailureAction()
-        val event = TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project))
-        action.update(event)
-        return event.presentation.isVisible
+        action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
     }
 
     fun testActionIsHiddenAfterASuccessfulLoad() {
@@ -48,9 +30,7 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
     }
 
     fun testActionIsHiddenForAFailureWithoutAnEarlierLoad() {
-        service.queryProjects = { CliResult.Failed("bad config") }
-        service.refresh()
-        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
+        service.loadFailed("bad config")
         assertFalse(isVisible())
     }
 
@@ -59,32 +39,13 @@ class ShowRefreshFailureActionTest : BasePlatformTestCase() {
         assertTrue(isVisible())
     }
 
-    fun testActionStaysVisibleDuringARefreshAfterAFailedRefresh() {
-        service.loadStale("bad config")
-        service.startEndlessRefresh()
-        assertTrue(isVisible())
-    }
-
-    fun testActionIsHiddenDuringARefreshAfterASuccessfulLoad() {
-        service.loadRecorded()
-        service.startEndlessRefresh()
-        assertFalse(isVisible())
-    }
-
-    fun testActionShowsTheNotificationAgainDuringARefresh() {
-        service.loadStale("bad config")
-        service.startEndlessRefresh()
-        val shown = collectRefreshNotifications(project, testRootDisposable)
-        val action = ShowRefreshFailureAction()
-        action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
-        assertTrue(shown.single().content.contains("bad config"))
-    }
-
-    fun testActionShowsTheNotificationAgain() {
+    fun testActionShowsTheNotificationAgainAlsoDuringARefresh() {
         service.loadStale("bad config")
         val shown = collectRefreshNotifications(project, testRootDisposable)
-        val action = ShowRefreshFailureAction()
-        action.actionPerformed(TestActionEvent.createTestEvent(action, SimpleDataContext.getProjectContext(project)))
-        assertTrue(shown.single().content.contains("bad config"))
+        perform()
+        service.startEndlessRefresh()
+        perform()
+        assertEquals(2, shown.size)
+        assertTrue(shown.all { it.content.contains("bad config") })
     }
 }

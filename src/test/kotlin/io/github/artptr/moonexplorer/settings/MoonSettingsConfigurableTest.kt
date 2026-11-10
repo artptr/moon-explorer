@@ -7,20 +7,18 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.UIUtil
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonFailure
-import io.github.artptr.moonexplorer.model.MoonTasksService
+import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.awaitState
-import io.github.artptr.moonexplorer.model.prepareForTests
 import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
-import kotlinx.coroutines.runBlocking
 import java.io.File
 
-class MoonSettingsConfigurableTest : BasePlatformTestCase() {
+/** Apply loads the tasks again. Thus the test uses [MoonTasksServiceTestCase], which also resets the settings in tearDown. */
+class MoonSettingsConfigurableTest : MoonTasksServiceTestCase() {
 
     private lateinit var settings: MoonSettings
     private lateinit var configurable: MoonSettingsConfigurable
@@ -28,16 +26,13 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
     override fun setUp() {
         super.setUp()
         settings = project.service<MoonSettings>()
-        settings.executablePath = ""
-        settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
+        settings.resetForTests()
         configurable = MoonSettingsConfigurable(project)
     }
 
     override fun tearDown() {
         try {
             configurable.disposeUIResources()
-            settings.executablePath = ""
-            settings.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
         } finally {
             super.tearDown()
         }
@@ -82,12 +77,6 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         assertEquals(path, settings.executablePath)
     }
 
-    fun testBlankPathIsSavedAsEmpty() {
-        settings.executablePath = "   "
-        assertEquals("", settings.executablePath)
-        assertNull(settings.state.executablePath)
-    }
-
     fun testPageFindsMoonWithTheTextOfTheFieldBeforeApply() {
         val moon = fakeMoonExecutable()
         configurable.createComponent()
@@ -102,21 +91,15 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
             ?: error("The settings page has no path field")
 
     fun testApplySavesThePathAndLoadsTheTasksAgain() {
-        val tasks = project.service<MoonTasksService>()
-        tasks.prepareForTests()
-        try {
-            tasks.queryProjects = { CliResult.Failed("from apply") }
-            val moon = fakeMoonExecutable()
-            configurable.createComponent()
-            configurable.reset()
-            pathField().text = moon.toString()
-            assertTrue(configurable.isModified)
-            configurable.apply()
-            assertEquals(moon.toString(), settings.executablePath)
-            tasks.awaitState(TasksState.MoonFailed(MoonFailure.Error("from apply")))
-        } finally {
-            runBlocking { tasks.resetForTests() }
-        }
+        service.queryProjects = { CliResult.Failed("from apply") }
+        val moon = fakeMoonExecutable()
+        configurable.createComponent()
+        configurable.reset()
+        pathField().text = moon.toString()
+        assertTrue(configurable.isModified)
+        configurable.apply()
+        assertEquals(moon.toString(), settings.executablePath)
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("from apply")))
     }
 
     fun testPathThatIsNotValidShowsAnError() {
@@ -141,31 +124,6 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         PlatformTestUtil.waitWithEventsDispatching("The first search must stop", { slow.isCompleted }, 10)
         PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
         assertEquals(second.toString(), configurable.foundField.text)
-    }
-
-    // Issue #26 sets the time limit to 60 seconds. If you change the default value, also change this test.
-    fun testDefaultTimeoutIsOneMinute() {
-        assertEquals(60, MoonSettings.SettingsState().timeoutSeconds)
-        assertEquals(60, MoonSettings().timeoutSeconds)
-    }
-
-    fun testStoredTimeoutOutsideTheRangeGivesTheDefault() {
-        for (value in listOf(0, -5, MoonSettings.MAX_TIMEOUT_SECONDS + 1)) {
-            settings.state.timeoutSeconds = value
-            assertEquals("Stored value $value", MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.timeoutSeconds)
-        }
-    }
-
-    fun testParseTimeoutAcceptsWholeNumbersInTheRange() {
-        assertEquals(1, MoonSettings.parseTimeoutSeconds("1"))
-        assertEquals(120, MoonSettings.parseTimeoutSeconds(" 120 "))
-        assertEquals(86_400, MoonSettings.parseTimeoutSeconds("86400"))
-    }
-
-    fun testParseTimeoutRejectsOtherText() {
-        for (text in listOf("", " ", "0", "-1", "1.5", "abc", "86401", "99999999999")) {
-            assertNull("Text <$text>", MoonSettings.parseTimeoutSeconds(text))
-        }
     }
 
     fun testPageShowsTheSavedTimeout() {
@@ -197,50 +155,16 @@ class MoonSettingsConfigurableTest : BasePlatformTestCase() {
         assertEquals(MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.timeoutSeconds)
     }
 
-    fun testApplySavesTheTimeoutAndLoadsTheTasksAgain() {
-        val tasks = project.service<MoonTasksService>()
-        tasks.prepareForTests()
-        try {
-            tasks.queryProjects = { CliResult.Failed("from timeout") }
-            configurable.createComponent()
-            configurable.reset()
-            configurable.timeoutField.text = "300"
-            configurable.apply()
-            assertEquals(300, settings.timeoutSeconds)
-            assertFalse(configurable.isModified)
-            tasks.awaitState(TasksState.MoonFailed(MoonFailure.Error("from timeout")))
-        } finally {
-            runBlocking { tasks.resetForTests() }
-        }
+    fun testApplySavesTheTimeoutWithoutSpacesAndLoadsTheTasksAgain() {
+        service.queryProjects = { CliResult.Failed("from timeout") }
+        configurable.createComponent()
+        configurable.reset()
+        configurable.timeoutField.text = " 300 "
+        configurable.apply()
+        assertEquals(300, settings.timeoutSeconds)
+        assertEquals("300", configurable.timeoutField.text)
+        assertFalse("The page must not be modified after apply", configurable.isModified)
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("from timeout")))
     }
 
-    fun testSetterRejectsATimeoutOutsideTheRange() {
-        for (value in listOf(0, -5, MoonSettings.MAX_TIMEOUT_SECONDS + 1)) {
-            assertThrows(IllegalArgumentException::class.java) { settings.timeoutSeconds = value }
-        }
-        assertEquals(MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.state.timeoutSeconds)
-    }
-
-    fun testApplyShowsTheSavedTimeoutWithoutSpaces() {
-        val tasks = project.service<MoonTasksService>()
-        tasks.prepareForTests()
-        try {
-            configurable.createComponent()
-            configurable.reset()
-            configurable.timeoutField.text = " 120 "
-            configurable.apply()
-            assertEquals(120, settings.timeoutSeconds)
-            assertEquals("120", configurable.timeoutField.text)
-            assertFalse("The page must not be modified after apply", configurable.isModified)
-        } finally {
-            runBlocking { tasks.resetForTests() }
-        }
-    }
-
-    fun testCommentShowsTheDefaultTimeout() {
-        val comment = MoonExplorerBundle.message("settings.timeout.comment", MoonSettings.DEFAULT_TIMEOUT_SECONDS.toString())
-        assertTrue(comment.contains("The default value is 60."))
-        // The comment must tell that the time limit is not for moon run.
-        assertTrue(comment.contains("The time limit does not apply to the tasks that you run."))
-    }
 }

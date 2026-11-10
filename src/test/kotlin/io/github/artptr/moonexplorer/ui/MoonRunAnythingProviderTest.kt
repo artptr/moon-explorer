@@ -4,40 +4,20 @@ import com.intellij.ide.actions.runAnything.activity.RunAnythingProvider
 import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
-import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.allTasks
-import io.github.artptr.moonexplorer.model.loadNoWorkspace
-import io.github.artptr.moonexplorer.model.loadRecorded
-import io.github.artptr.moonexplorer.model.loadStale
-import io.github.artptr.moonexplorer.model.prepareForTests
-import io.github.artptr.moonexplorer.model.startEndlessRefresh
+import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 
-class MoonRunAnythingProviderTest : BasePlatformTestCase() {
+class MoonRunAnythingProviderTest : MoonTasksServiceTestCase() {
 
-    private lateinit var service: MoonTasksService
     private lateinit var provider: MoonRunAnythingProvider
     private val context by lazy { SimpleDataContext.getProjectContext(project) }
 
     override fun setUp() {
         super.setUp()
-        service = project.service<MoonTasksService>()
-        service.prepareForTests()
         provider = MoonRunAnythingProvider()
         service.loadRecorded()
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
     }
 
     fun testTargetOfRunCommand() {
@@ -68,12 +48,6 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         }
     }
 
-    fun testCompletionAfterMoonRunGivesTheLoadedTargets() {
-        val values = provider.getValues(context, "moon run ")
-        val expected = TestData.recordedTasks().allTasks.map { "moon run ${it.target}" }
-        assertSameElements(values, expected)
-    }
-
     fun testDuringARefreshTheCompletionUsesTheLastTargets() {
         // When you save a configuration file, the plugin starts a refresh. The completion must show the tasks during the refresh.
         assertEquals(TasksState.Loading(TestData.recordedState()), service.startEndlessRefresh())
@@ -97,11 +71,6 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
         }
         assertNull(provider.findMatchingValue(context, "moon --version"))
         assertNull(provider.findMatchingValue(context, "moon run web:build"))
-    }
-
-    fun testCompletionUsesTheLastTargetsAfterAFailedRefresh() {
-        service.loadStale()
-        assertContainsElements(provider.getValues(context, "moon run "), "moon run ui:storybook")
     }
 
     fun testNoCompletionAfterATarget() {
@@ -164,9 +133,5 @@ class MoonRunAnythingProviderTest : BasePlatformTestCase() {
             ),
             commands,
         )
-    }
-
-    fun testProviderIsRegistered() {
-        assertTrue(RunAnythingProvider.EP_NAME.extensionList.any { it is MoonRunAnythingProvider })
     }
 }

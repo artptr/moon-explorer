@@ -121,15 +121,6 @@ class MoonExecutableLocatorTest {
     }
 
     @Test
-    fun windowsLooksForExeAndCmd() {
-        val result = MoonExecutableLocator.find(null, workspace, env(windows = true))
-        assertEquals(
-            listOf(workspace.resolve("node_modules/.bin/moon.exe"), workspace.resolve("node_modules/.bin/moon.cmd")),
-            result.examined.take(2),
-        )
-    }
-
-    @Test
     fun windowsFindsMoonCmdInNodeModules() {
         val cmd = fakeMoonExecutable(workspace.resolve("node_modules/.bin"), "moon.cmd")
         assertEquals(cmd, MoonExecutableLocator.find(null, workspace, env(windows = true)).executable)

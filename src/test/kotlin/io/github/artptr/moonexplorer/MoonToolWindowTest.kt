@@ -2,32 +2,17 @@ package io.github.artptr.moonexplorer
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.wm.ToolWindowEP
-import com.intellij.toolWindow.ToolWindowHeadlessManagerImpl
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.toolWindow.ToolWindowHeadlessManagerImpl
 import io.github.artptr.moonexplorer.ui.MoonToolWindowFactory
-import io.github.artptr.moonexplorer.ui.RefreshTasksAction
 
 class MoonToolWindowTest : BasePlatformTestCase() {
-
-    fun testToolWindowIsRegistered() {
-        val registered = ToolWindowEP.EP_NAME.extensionList.any { it.id == "Moon" }
-        assertTrue("The Moon tool window must be registered in plugin.xml", registered)
-    }
 
     fun testFactoryAddsContent() {
         val toolWindow = ToolWindowHeadlessManagerImpl.MockToolWindow(project)
         MoonToolWindowFactory().createToolWindowContent(project, toolWindow)
         assertEquals(1, toolWindow.contentManager.contentCount)
-    }
-
-    fun testRefreshActionIsInTheToolbar() {
-        val actionManager = ActionManager.getInstance()
-        val action = actionManager.getAction("MoonExplorer.RefreshTasks")
-        assertInstanceOf(action, RefreshTasksAction::class.java)
-        assertFalse(action.templatePresentation.text.isNullOrBlank())
-        val group = actionManager.getAction("MoonExplorer.TasksToolbar") as DefaultActionGroup
-        assertTrue(group.childActionsOrStubs.any { actionManager.getId(it) == "MoonExplorer.RefreshTasks" })
     }
 
     fun testToolbarLayout() {
@@ -66,5 +51,15 @@ class MoonToolWindowTest : BasePlatformTestCase() {
             ),
             ids,
         )
+    }
+
+    fun testActionsOfTheToolbarAndTheContextMenuHaveText() {
+        val actionManager = ActionManager.getInstance()
+        for (groupId in listOf("MoonExplorer.TasksToolbar", "MoonExplorer.GroupBy", "MoonExplorer.TaskPopup")) {
+            val group = actionManager.getAction(groupId) as DefaultActionGroup
+            for (action in group.childActionsOrStubs.filter { it !is Separator }) {
+                assertFalse("The action ${actionManager.getId(action)} has no text", action.templatePresentation.text.isNullOrBlank())
+            }
+        }
     }
 }

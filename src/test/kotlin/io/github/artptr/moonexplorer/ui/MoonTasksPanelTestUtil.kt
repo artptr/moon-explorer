@@ -3,17 +3,44 @@ package io.github.artptr.moonexplorer.ui
 import com.intellij.notification.Notification
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.TestActionEvent
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.ComponentUtil
 import com.intellij.util.ui.UIUtil
+import io.github.artptr.moonexplorer.settings.MoonSettings
+import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
 import java.awt.Point
 import javax.swing.tree.TreePath
+
+/**
+ * A test that uses a [MoonTasksPanel]. setUp resets [MoonSettings] and makes the panel. tearDown resets [MoonSettings] again.
+ * The light project is the same for all tests. Thus each test starts with the default category and main group.
+ */
+abstract class MoonTasksPanelTestCase : BasePlatformTestCase() {
+
+    protected lateinit var panel: MoonTasksPanel
+
+    override fun setUp() {
+        super.setUp()
+        project.service<MoonSettings>().resetForTests()
+        panel = MoonTasksPanel(project)
+        Disposer.register(testRootDisposable, panel)
+    }
+
+    override fun tearDown() {
+        try {
+            project.service<MoonSettings>().resetForTests()
+        } finally {
+            super.tearDown()
+        }
+    }
+}
 
 /** Shows the recorded tasks of the test workspace in the panel. Call this function on the EDT. */
 fun MoonTasksPanel.loadRecorded() = render(TestData.recordedState())
@@ -26,6 +53,15 @@ fun MoonTasksPanel.selectedPaths(): List<TreePath> = tree.selectionPaths.orEmpty
 
 /** Gives the path of the category node [value]. */
 fun MoonTasksPanel.categoryPath(value: String): TreePath = allPaths().single { (it.lastPathComponent as? CategoryNode)?.value == value }
+
+/** Gives the path of the project node [id]. Use this function if the tree has no category nodes. */
+fun MoonTasksPanel.projectPath(id: String): TreePath = allPaths().single { (it.lastPathComponent as? ProjectNode)?.project?.id == id }
+
+/** Gives the path of the task node [target] below its project node. Use this function if the tree has no category nodes. */
+fun MoonTasksPanel.taskPath(target: String): TreePath = allPaths().single {
+    val node = it.lastPathComponent
+    node is TaskNode && node.task.target == target && (it.parentPath.lastPathComponent as? ProjectNode)?.project?.id == target.substringBefore(':')
+}
 
 /** Gives the path of the node below the category node [value] for which [node] gives true. */
 private fun MoonTasksPanel.pathIn(value: String, node: (Any) -> Boolean): TreePath = allPaths().single { path ->
@@ -76,3 +112,7 @@ fun tasksPanelEvent(action: AnAction, project: Project, panel: MoonTasksPanel): 
     action,
     SimpleDataContext.builder().add(CommonDataKeys.PROJECT, project).add(TASKS_PANEL, panel).build(),
 )
+
+/** Updates [this] action with the data context [context], and gives the presentation. */
+fun AnAction.updatedPresentation(context: DataContext): Presentation =
+    TestActionEvent.createTestEvent(this, context).also(::update).presentation

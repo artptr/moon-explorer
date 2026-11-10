@@ -1,10 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
 import io.github.artptr.moonexplorer.testData.TestData
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 
 class QueryProjectsParserTest {
@@ -283,20 +280,15 @@ class QueryProjectsParserTest {
     }
 
     @Test
-    fun unknownStackIsNull() {
-        // moon gives "unknown" if the project does not set stack.
-        val json = """{"projects": [{"id": "a", "stack": "unknown", "tasks": {"t": {"id": "t"}}}]}"""
-        assertEquals(mapOf("a" to emptyList<String>()), values(json, TaskCategory.STACK))
-    }
-
-    @Test
     fun unknownStackIsNullInAllCases() {
         val json = """
             {"projects": [
-              {"id": "a", "stack": "Unknown", "tasks": {"t": {"id": "t"}}}, {"id": "b", "stack": "UNKNOWN", "tasks": {"t": {"id": "t"}}}
+              {"id": "a", "stack": "Unknown", "tasks": {"t": {"id": "t"}}}, {"id": "b", "stack": "UNKNOWN", "tasks": {"t": {"id": "t"}}},
+              {"id": "c", "stack": "unknown", "tasks": {"t": {"id": "t"}}}
             ]}
         """
-        assertEquals(mapOf("a" to emptyList<String>(), "b" to emptyList()), values(json, TaskCategory.STACK))
+        // moon gives "unknown" if the project does not set stack.
+        assertEquals(mapOf("a" to emptyList<String>(), "b" to emptyList(), "c" to emptyList()), values(json, TaskCategory.STACK))
     }
 
     @Test

@@ -47,4 +47,38 @@ class MoonSettingsTest : BasePlatformTestCase() {
         assertEquals(TaskCategory.LAYER, loaded.taskCategory)
         assertEquals(TaskGrouping.TASK_NAME, loaded.mainGroup)
     }
+
+    fun testBlankPathIsSavedAsEmpty() {
+        val settings = MoonSettings()
+        settings.executablePath = "   "
+        assertEquals("", settings.executablePath)
+        assertNull(settings.state.executablePath)
+    }
+
+    // Issue #26 sets the time limit to 60 seconds. If you change the default value, also change this test.
+    fun testDefaultTimeoutIsOneMinute() {
+        assertEquals(60, MoonSettings.SettingsState().timeoutSeconds)
+        assertEquals(60, MoonSettings().timeoutSeconds)
+    }
+
+    fun testTimeoutOutsideTheRangeIsNotUsed() {
+        val settings = MoonSettings()
+        for (value in listOf(0, -5, MoonSettings.MAX_TIMEOUT_SECONDS + 1)) {
+            assertThrows(IllegalArgumentException::class.java) { settings.timeoutSeconds = value }
+            assertEquals(MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.state.timeoutSeconds)
+            // A stored value outside the range, for example from a changed workspace file, gives the default value.
+            settings.state.timeoutSeconds = value
+            assertEquals("Stored value $value", MoonSettings.DEFAULT_TIMEOUT_SECONDS, settings.timeoutSeconds)
+            settings.state.timeoutSeconds = MoonSettings.DEFAULT_TIMEOUT_SECONDS
+        }
+    }
+
+    fun testParseTimeoutAcceptsOnlyWholeNumbersInTheRange() {
+        assertEquals(1, MoonSettings.parseTimeoutSeconds("1"))
+        assertEquals(120, MoonSettings.parseTimeoutSeconds(" 120 "))
+        assertEquals(86_400, MoonSettings.parseTimeoutSeconds("86400"))
+        for (text in listOf("", " ", "0", "-1", "1.5", "abc", "86401", "99999999999")) {
+            assertNull("Text <$text>", MoonSettings.parseTimeoutSeconds(text))
+        }
+    }
 }

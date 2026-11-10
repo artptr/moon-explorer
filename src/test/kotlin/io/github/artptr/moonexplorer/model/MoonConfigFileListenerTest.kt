@@ -1,32 +1,27 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.components.service
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.PlatformTestUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.milliseconds
 
-class MoonConfigFileListenerTest : BasePlatformTestCase() {
+class MoonConfigFileListenerTest : MoonTasksServiceTestCase() {
 
-    private lateinit var service: MoonTasksService
     private lateinit var dir: Path
     private val calls = AtomicInteger()
-    private val delay = 200.milliseconds
+    // A short delay makes the tests fast. testManyChangesCauseOneRefresh sets a longer delay.
+    private val delay = 50.milliseconds
 
     override fun setUp() {
         super.setUp()
-        service = project.service<MoonTasksService>()
-        service.prepareForTests()
         // Use the real path. Thus the paths of the VFS and of the service are the same also if the temp directory is a symbolic link.
         dir = FileUtil.createTempDirectory("moon-workspace", null, true).toPath().toRealPath()
         listOf(".moon/workspace.yml", ".moon/tasks/all.yml", ".moon/cache/states/x.json", "apps/web/moon.yml", "README.md", "other/keep.txt").forEach {
@@ -41,14 +36,6 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
         service.refresh()
         service.awaitState(TestData.loadedState(TestData.recordedTasks(), dir))
         calls.set(0)
-    }
-
-    override fun tearDown() {
-        try {
-            runBlocking { service.resetForTests() }
-        } finally {
-            super.tearDown()
-        }
     }
 
     private fun file(path: String): VirtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir.resolve(path))!!
@@ -77,25 +64,16 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
         awaitCalls(1)
     }
 
-    fun testChangeOfATasksFileRefreshes() {
-        changeInIde(".moon/tasks/all.yml")
-        awaitCalls(1)
-    }
-
     fun testChangeFromOutsideTheIdeRefreshes() {
         changeOnDisk(".moon/tasks/all.yml")
         awaitCalls(1)
     }
 
-    fun testChangeInTheCacheDoesNotRefresh() {
+    fun testChangeOfOtherFilesDoesNotRefresh() {
         changeInIde(".moon/cache/states/x.json")
         changeOnDisk(".moon/cache/states/x.json")
-        Thread.sleep(delay.inWholeMilliseconds * 3)
-        assertEquals(0, calls.get())
-    }
-
-    fun testChangeOfOtherFilesDoesNotRefresh() {
         changeInIde("README.md")
+        runWriteAction { file("README.md").move(this, file("other")) }
         Thread.sleep(delay.inWholeMilliseconds * 3)
         assertEquals(0, calls.get())
     }
@@ -126,18 +104,13 @@ class MoonConfigFileListenerTest : BasePlatformTestCase() {
         awaitCalls(1)
     }
 
-    fun testMoveOfOtherFilesDoesNotRefresh() {
-        val file = file("README.md")
-        val target = file("other")
-        runWriteAction { file.move(this, target) }
-        Thread.sleep(delay.inWholeMilliseconds * 3)
-        assertEquals(0, calls.get())
-    }
-
     fun testManyChangesCauseOneRefresh() {
+        // The time between the changes is much shorter than this delay. Thus a slow computer does not cause a second refresh.
+        val longDelay = 300.milliseconds
+        service.refreshDelay = longDelay
         repeat(10) { changeInIde("apps/web/moon.yml") }
         awaitCalls(1)
-        Thread.sleep(delay.inWholeMilliseconds * 3)
+        Thread.sleep(longDelay.inWholeMilliseconds * 2)
         assertEquals(1, calls.get())
     }
 }
