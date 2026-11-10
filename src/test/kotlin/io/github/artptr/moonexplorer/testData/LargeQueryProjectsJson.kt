@@ -12,12 +12,15 @@ import com.google.gson.JsonParser
  * Thus the output has the same structure as the output of moon.
  * The function changes only `id`, `target`, `tasks`, and `taskTargets`. Other values, for example `root`, `deps`, and `inputGlobs`,
  * stay the same as in the recorded project or task. Use this output for tests of size and speed, not for tests of these values.
- * The default values make output for a workspace with the same size as the example workspace in the product vision:
+ * The output is for a workspace with the same size as the example workspace in the product vision:
  * 17 projects and 14 tasks in each project.
  */
 object LargeQueryProjectsJson {
 
-    fun generate(projectCount: Int = 17, tasksPerProject: Int = 14): String {
+    private const val PROJECT_COUNT = 17
+    private const val TASKS_PER_PROJECT = 14
+
+    fun generate(): String {
         val recorded = JsonParser.parseString(TestData.recorded("query-projects.json")).asJsonObject
         val projectTemplates = recorded.getAsJsonArray("projects").map { it.asJsonObject }.filter { it.has("tasks") }
         val taskTemplates = projectTemplates.flatMap { project ->
@@ -26,12 +29,12 @@ object LargeQueryProjectsJson {
 
         val projects = JsonArray()
         var next = 0
-        for (p in 1..projectCount) {
+        for (p in 1..PROJECT_COUNT) {
             val projectId = "project-%02d".format(p)
             val project = projectTemplates[(p - 1) % projectTemplates.size].deepCopy()
             val tasks = JsonObject()
             val targets = JsonArray()
-            for (t in 1..tasksPerProject) {
+            for (t in 1..TASKS_PER_PROJECT) {
                 val taskId = "task-%02d".format(t)
                 val task = taskTemplates[next++ % taskTemplates.size].deepCopy()
                 task.addProperty("id", taskId)

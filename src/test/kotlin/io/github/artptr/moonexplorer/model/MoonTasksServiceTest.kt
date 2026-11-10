@@ -269,7 +269,8 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
     fun testScheduledRefreshWaitsForTheDelay() {
         val calls = AtomicInteger()
         service.queryProjects = { calls.incrementAndGet(); CliResult.Success(recorded) }
-        service.refreshDelay = 500.milliseconds
+        // The delay is 10 times the sleep. Thus a slow computer does not start the refresh before the check.
+        service.refreshDelay = 1_000.milliseconds
         service.scheduleRefresh()
         Thread.sleep(100)
         assertEquals(0, calls.get())

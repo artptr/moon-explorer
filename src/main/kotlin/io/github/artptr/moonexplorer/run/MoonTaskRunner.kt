@@ -43,7 +43,7 @@ object MoonTaskRunner {
         val runManager = RunManager.getInstance(project)
         val targets = listOf(target)
         val existing = find(project, targets, affected = false)
-        val settings = existing ?: create(project, targets, affected = false)
+        val settings = existing ?: create(runManager, targets, affected = false)
         if (!edit(project, settings, MoonExplorerBundle.message("run.configuration.edit.title"))) return
         when {
             existing == null -> runManager.addConfiguration(settings)
@@ -75,16 +75,16 @@ object MoonTaskRunner {
     internal fun findOrCreate(project: Project, targets: List<String>, affected: Boolean): RunnerAndConfigurationSettings {
         val runManager = RunManager.getInstance(project)
         val settings = find(project, targets, affected)
-            ?: create(project, targets, affected).also(runManager::setTemporaryConfiguration)
+            ?: create(runManager, targets, affected).also(runManager::setTemporaryConfiguration)
         runManager.selectedConfiguration = settings
         return settings
     }
 
     /** Makes a new run configuration for [targets] and [affected]. The function does not add it to the run manager. */
-    private fun create(project: Project, targets: List<String>, affected: Boolean): RunnerAndConfigurationSettings {
+    private fun create(runManager: RunManager, targets: List<String>, affected: Boolean): RunnerAndConfigurationSettings {
         val factory = MoonRunConfigurationType.getInstance().factory
         // setUp gives the name of the configuration.
-        val settings = RunManager.getInstance(project).createConfiguration("", factory)
+        val settings = runManager.createConfiguration("", factory)
         (settings.configuration as MoonRunConfiguration).setUp(targets, affected)
         return settings
     }
