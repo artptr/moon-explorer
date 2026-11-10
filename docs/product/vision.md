@@ -307,7 +307,7 @@ Issue [#78](https://github.com/artptr/moon-explorer/issues/78) did a check of th
 The IDE downloaded the SchemaStore catalog on 2026-11-10. The catalog changes, and thus the result can change.
 The check opened a copy of `src/test/testData/workspace/` in the sandbox IDE (`runWebStorm`).
 
-The check set the project settings of the copy to use the SchemaStore catalog. This is the setting in **Settings \| Languages & Frameworks \| Schemas and DTDs \| Remote JSON Schemas**. The IDE keeps it in `.idea/jsonCatalog.xml`.
+The check set the project settings of the copy to use the SchemaStore catalog. This is the setting in **Settings \| Languages & Frameworks \| Schemas and DTDs \| Remote JSON Schemas**. The project setting is in `.idea/jsonCatalog.xml`.
 
 The check added these temporary files to the copy. The test workspace does not contain them.
 
@@ -371,7 +371,7 @@ These files use the same catalog and the same cache. Thus this table gives the e
 
 | File | Empty cache | Full cache |
 |------|-------------|------------|
-| `moon.yml` without a mapping, `.moon/toolchains.yml`, `.moon/extensions.yml`, and `.moon/tasks/node/nested.yml` | No schema and no banner, as for `.moon/workspace.yml` | The banner shows **Apply schema**. After you click the button, the IDE uses the schema from the cache. |
+| `moon.yml` without a mapping, `.moon/toolchains.yml`, `.moon/extensions.yml`, and `.moon/tasks/node/nested.yml` | No schema and no banner, as for `.moon/workspace.yml` | The banner shows **Apply schema**. After you click the button, the IDE uses the schema from the cache. The incorrect key gives a warning. |
 | Files directly in `.moon/tasks/`, and `template.yml` | No schema and no banner | No schema and no banner. These files get no schema with a network connection either. |
 
 moon writes the local schemas to `.moon/cache/schemas/` when it syncs the workspace.
