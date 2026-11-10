@@ -306,7 +306,8 @@ If you change the column "Moon Explorer", also change the README.
 Issue [#78](https://github.com/artptr/moon-explorer/issues/78) did a check of the moon JSON schemas in WebStorm 2026.3 with moon 2.6.4 on 2026-11-10.
 The IDE downloaded the SchemaStore catalog on 2026-11-10. The catalog changes, and thus the result can change.
 The check opened a copy of `src/test/testData/workspace/` in the sandbox IDE (`runWebStorm`).
-The check set the project settings of the copy to use the SchemaStore catalog.
+
+The check set the project settings of the copy to use the SchemaStore catalog. This is the setting in **Settings \| Languages & Frameworks \| Schemas and DTDs \| Remote JSON Schemas**. The IDE keeps it in `.idea/jsonCatalog.xml`.
 
 The check added these temporary files to the copy. The test workspace does not contain them.
 
@@ -330,12 +331,13 @@ The check added these incorrect keys:
 
 For code completion, the check put the caret on an empty line at the root level. Then the check selected **Code \| Code Completion \| Basic**.
 
-The SchemaStore catalog has v2 entries for these files:
+The SchemaStore catalog has v2 entries for these YAML files:
 
 - `moon.yml`
 - `.moon/workspace.yml`, `.moon/toolchains.yml`, and `.moon/extensions.yml`
 - `**/.moon/tasks/**/*.yml`
 
+The list shows only the `.yml` patterns. The catalog also has patterns for `.yaml`, `.json`, `.jsonc`, and `.toml`, and for the directory `.config/moon/`.
 The entry for `template.yml` has no file pattern.
 
 This table gives the result with a network connection:
@@ -348,7 +350,7 @@ This table gives the result with a network connection:
 | `.moon/extensions.yml` | The same result as `.moon/toolchains.yml`. The warning is for the value `true`, not for the key. `otherExtension: {}` gives no warning. Code completion shows only `$schema` and `extends`. |
 | Files directly in `.moon/tasks/`, for example `all.yml` | No schema and no banner. The incorrect key gives no warning. Code completion shows "No suggestions". The pattern `**/.moon/tasks/**/*.yml` finds only the files in a subdirectory. |
 | `.moon/tasks/node/nested.yml` | No schema at first. A banner shows the button **Apply schema**. After you click the button, the incorrect key gives a warning. Code completion shows the keys. |
-| `template.yml` | No schema and no banner. |
+| `template.yml` | No schema and no banner. The incorrect key gives no warning. Code completion shows "No suggestions". |
 
 For the check without a network connection, the sandbox IDE used an HTTP proxy at `127.0.0.1:9`.
 No process used this port. Thus the IDE did not connect to the network.
@@ -364,12 +366,17 @@ This table gives the result without a network connection:
 | The catalog and the schemas from the check with a network connection | The incorrect key gives a warning. | The banner shows **Apply schema**. After you click the button, the incorrect key gives a warning. |
 
 Thus the SchemaStore schemas operate without a network connection only if they are in the cache of the IDE.
-The check without a network connection did not include the other files. These files use the same catalog and the same cache.
-A file that gets no schema with a network connection also gets no schema without a network connection.
+The check without a network connection did not include the other files.
+These files use the same catalog and the same cache. Thus this table gives the expected result for them. The check did not see this result.
+
+| File | Empty cache | Full cache |
+|------|-------------|------------|
+| `moon.yml` without a mapping, `.moon/toolchains.yml`, `.moon/extensions.yml`, and `.moon/tasks/node/nested.yml` | No schema and no banner, as for `.moon/workspace.yml` | The banner shows **Apply schema**. After you click the button, the IDE uses the schema from the cache. |
+| Files directly in `.moon/tasks/`, and `template.yml` | No schema and no banner | No schema and no banner. These files get no schema with a network connection either. |
 
 moon writes the local schemas to `.moon/cache/schemas/` when it syncs the workspace.
 For example, `moon sync` and `moon run` write them. `moon query projects` does not write them.
-The command `moon sync config-schemas` writes only the configuration schemas.
+The command `moon sync config-schemas` writes only the schema files.
 moon writes these files: `project.json`, `workspace.json`, `tasks.json`, `toolchains.json`, `extensions.json`, `template.json`, and `template-frontmatter.json`.
 
 On 2026-11-10, each local file of moon 2.6.4 had the same JSON data as the file with the same name in `https://moonrepo.dev/schemas/v2/`.
