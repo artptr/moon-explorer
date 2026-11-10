@@ -287,7 +287,7 @@ This table gives the decision for each function of the extension, version 0.16.6
 | A run of `moon check` for a project | **Run Anything** runs `moon check <project>`. | An action in the tree is in section 7. |
 | A report of the last run | No | Issue [#77](https://github.com/artptr/moon-explorer/issues/77) records this function. |
 | The action graph, the project graph, and the task graph | **Run Anything** runs `moon action-graph`, `moon project-graph`, and `moon task-graph`. | An action that starts the moon commands is in section 7. The plugin does not show the graph itself. Refer to section 8. |
-| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore | The team did not do a check of this function in WebStorm. A manual configuration is necessary for `template.yml`. A setting for the local schemas in `.moon/cache/schemas` is possible. Issue [#78](https://github.com/artptr/moon-explorer/issues/78) records the check. |
+| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore. The user must click **Apply schema** for each file. Some files get no schema. | The SchemaStore schemas do not give a good result. Refer to section 11.1. Issue [#186](https://github.com/artptr/moon-explorer/issues/186) records a schema provider. |
 | An MCP server for AI agents | No | The team does not plan this function. Refer to principle 7 in section 5. |
 | An update of the tree when `moon.yml` or a file in `.moon/` changes | An automatic refresh 1 second after the change | Complete. Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. If the refresh fails, the tree keeps the last tasks and a notification shows the error. |
 | An action that updates the tree | The **Refresh** action | Complete. |
@@ -300,3 +300,42 @@ This table gives the decision for each function of the extension, version 0.16.6
 
 The README uses this table to tell users which functions Moon Explorer has. Issue [#79](https://github.com/artptr/moon-explorer/issues/79) added a section about the moon VS Code extension to the README.
 If you change the column "Moon Explorer", also change the README.
+
+### 11.1 JSON schemas in WebStorm
+
+Issue [#78](https://github.com/artptr/moon-explorer/issues/78) did a check of the moon JSON schemas in WebStorm 2026.3 with moon 2.6.4.
+The check used a copy of the test workspace in the sandbox IDE (`runWebStorm`).
+The check used the SchemaStore catalog.
+
+The SchemaStore catalog has v2 entries for these files:
+
+- `moon.yml`
+- `.moon/workspace.yml`, `.moon/toolchains.yml`, and `.moon/extensions.yml`
+- `**/.moon/tasks/**/*.yml`
+
+The entry for `template.yml` has no file pattern.
+
+This table gives the result with a network connection:
+
+| File | Result |
+|------|--------|
+| `moon.yml` | No schema at first. A banner shows the button **Apply schema**. After you click the button, an incorrect key gives a warning. The button adds a mapping only for the file that is open. Thus the user must click the button again for each different `moon.yml`. |
+| `.moon/workspace.yml` | No schema at first. After you click **Apply schema**, an incorrect key gives a warning. Code completion shows the keys. |
+| `.moon/tasks/all.yml` | No schema and no banner. The pattern `**/.moon/tasks/**/*.yml` finds only the files in a subdirectory, for example `.moon/tasks/node/nested.yml`. |
+| `template.yml` | No schema and no banner. |
+
+Without a network connection, the IDE cannot get the catalog or the schemas.
+The check used a proxy that is not available and an empty schema cache.
+The IDE did not get a schema, and thus it did not write a schema to its cache.
+The IDE keeps the schemas that it got before in its cache in the system directory.
+The team did not do a visual check of the editor without a network connection.
+
+moon writes local schemas only when you run `moon sync config-schemas`.
+The command writes these files to `.moon/cache/schemas/`: `project.json`, `workspace.json`, `tasks.json`, `toolchains.json`, `extensions.json`, `template.json`, and `template-frontmatter.json`.
+The commands `moon query projects` and `moon sync` do not write the schemas.
+The local `project.json` is the same as `https://moonrepo.dev/schemas/v2/project.json`.
+
+**NOTE:** If you delete `.moon/cache/schemas/`, moon does not write the schemas again until you use the option `--force`.
+
+The SchemaStore schemas do not give a good result.
+Issue [#186](https://github.com/artptr/moon-explorer/issues/186) records a schema provider that uses the local schemas of moon.

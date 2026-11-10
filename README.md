@@ -51,7 +51,7 @@ Some features live in the IDE itself rather than in the plugin.
 | Run `moon check` for a project | Type `moon check <project>` in **Run Anything** |
 | Report of the last run | Not available. The **Run** tool window shows the output of each run. |
 | Action, project, and task graphs | Type `moon action-graph`, `moon project-graph`, or `moon task-graph` in **Run Anything** |
-| Validation of moon config files with JSON schemas | The IDE picks up the moon schemas from [SchemaStore](https://www.schemastore.org). For `template.yml`, add a JSON schema mapping by hand. |
+| Validation of moon config files with JSON schemas | Partial. The IDE offers the moon schemas from [SchemaStore](https://www.schemastore.org), but you must click **Apply schema** in each file. Files directly in `.moon/tasks/` and `template.yml` get no schema, and it needs a network connection. To fix this, add JSON schema mappings by hand or point them at the local schemas from `moon sync config-schemas`. |
 | MCP server for AI agents | Not available |
 | Tree updates when `moon.yml` or a file in `.moon/` changes | Automatic, about 1 second after the change |
 | Refresh command | The **Refresh** button in the tool window toolbar |
