@@ -95,13 +95,6 @@ class TestDataTest {
         assertFalse("generate-icons" in taskIds("ui"))
     }
 
-    /** The groups by `layer` and by tag, and the icon for the language of each project, use these values. They do not need one more moon command. */
-    /** The groups by `stack` and by `layer` use a "(none)" node. moon gives the value `unknown` if a project does not set the value. */
-    /**
-     * A tooltip with the command can use these values.
-     * moon sets the type from the options of the task. A task with outputs has the type `build`, a persistent task has the type `run`, and all other tasks have the type `test`.
-     * Thus `lint` and `format` are `test`. An icon for each type can be incorrect for these tasks.
-     */
     @Test
     fun recordedTaskFilesHaveTheirTargets() {
         for (target in listOf("api:audit", "web:lint", "web:build")) {

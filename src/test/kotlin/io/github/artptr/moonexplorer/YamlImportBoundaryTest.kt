@@ -28,7 +28,6 @@ class YamlImportBoundaryTest {
         assertEquals("These files use org.jetbrains.yaml or the package yaml outside the package yaml", emptyList<String>(), violations)
     }
 
-
     private companion object {
         /**
          * A reference to a YAML class, or to a class of the package `yaml`. A class of the package `yaml` can load YAML classes.

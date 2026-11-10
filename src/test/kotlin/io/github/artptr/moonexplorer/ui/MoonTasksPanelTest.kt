@@ -102,9 +102,12 @@ class MoonTasksPanelTest : MoonTasksPanelTestCase() {
     }
 
     fun testLargeWorkspaceLoadsInLessThanTwoSeconds() {
-        val json = LargeQueryProjectsJson.generate()
+        val tasks = QueryProjectsParser.parse(LargeQueryProjectsJson.generate())
+        // The size of the example workspace in the product vision.
+        assertEquals(17, tasks.projects.size)
+        assertTrue(tasks.projects.all { it.tasks.size == 14 })
         val millis = measureTimeMillis {
-            panel.render(TestData.loadedState(QueryProjectsParser.parse(json)))
+            panel.render(TestData.loadedState(tasks))
         }
         assertEquals(17, panel.tree.model.getChildCount(panel.tree.model.root))
         assertTrue("The tree loaded in $millis ms", millis < 2_000)
