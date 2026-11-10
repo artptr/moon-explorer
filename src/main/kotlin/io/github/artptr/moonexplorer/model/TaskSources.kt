@@ -57,13 +57,10 @@ fun TasksState.Loaded.workspacePath(path: Path): String =
     FileUtil.toSystemIndependentName((if (path.startsWith(root)) root.relativize(path) else path).toString())
 
 /**
- * Gives the files that contain the configuration of [task]. The configuration file of the project is the first file.
+ * Gives the files that contain the configuration of the task [target], for example `web:build`. The configuration file of the project is the first file.
  * The inherited files from `.moon/tasks/` follow, in the sequence that moon uses.
  * The list contains only the files in [TasksState.Loaded.configFiles]. Thus the function does not read the disk.
  */
-fun taskSourceFiles(state: TasksState.Loaded, task: MoonTask): List<SourceFile> = taskSourceFiles(state, task.target)
-
-/** Gives the files that contain the configuration of the task [target], for example `web:build`. Refer to the function with a [MoonTask]. */
 fun taskSourceFiles(state: TasksState.Loaded, target: String): List<SourceFile> {
     val projectId = targetProjectId(target)
     val taskId = targetTaskId(target)
@@ -77,11 +74,11 @@ fun taskSourceFiles(state: TasksState.Loaded, target: String): List<SourceFile> 
 }
 
 /**
- * Gives the configuration file of the project [projectId]. The IDE opens it at the first line.
+ * Gives the configuration file of the project [projectId] with the task key [taskId]. If [taskId] is null, the IDE opens the file at the first line.
  * Gives null if the project had no configuration file at the time of the load. The function does not read the disk.
  */
-fun projectSourceFile(state: TasksState.Loaded, projectId: String): SourceFile? =
-    state.configFiles.projects[projectId]?.let { sourceFile(it, null) }
+fun projectSourceFile(state: TasksState.Loaded, projectId: String, taskId: String? = null): SourceFile? =
+    state.configFiles.projects[projectId]?.let { sourceFile(it, taskId) }
 
 /** Gives [path] with the task key [taskId]. Only a YAML file has task keys. Thus the function ignores [taskId] for a file in a different format. */
 internal fun sourceFile(path: Path, taskId: String?): SourceFile = SourceFile(path, taskId?.takeIf { isYamlFile(path) })
@@ -102,11 +99,11 @@ sealed interface TaskKeyTargets {
 
 /**
  * The targets of the task keys in the configuration files of one load. The keys of the maps are the absolute and normalized paths of the files.
- * [projectFiles] gives the project of each configuration file of a project. [shared] gives the targets of each task ID in each inherited file.
+ * [projectFiles] gives the target of each task ID in each configuration file of a project. [shared] gives the targets of each task ID in each inherited file.
  * The plugin calls [targets] for each task key during the analysis of a file. Thus the index makes the maps only one time for each load.
  */
 internal class TaskKeyIndex private constructor(
-    private val projectFiles: Map<Path, MoonProject>,
+    private val projectFiles: Map<Path, Map<String, String>>,
     private val shared: Map<Path, Map<String, List<String>>>,
 ) {
     /**
@@ -117,15 +114,18 @@ internal class TaskKeyIndex private constructor(
      * The function does not start moon and does not read the disk.
      */
     fun targets(file: Path, taskId: String): TaskKeyTargets? {
-        val project = projectFiles[file]
-        if (project != null) return project.tasks.firstOrNull { it.id == taskId }?.let { TaskKeyTargets.Single(it.target) }
+        val projectTargets = projectFiles[file]
+        if (projectTargets != null) return projectTargets[taskId]?.let(TaskKeyTargets::Single)
         return shared[file]?.get(taskId)?.let(TaskKeyTargets::Shared)
     }
 
     companion object {
         fun of(state: TasksState.Loaded): TaskKeyIndex {
             val projectsById = state.tasks.projects.associateBy { it.id }
-            val projectFiles = state.configFiles.projects.entries.mapNotNull { (id, file) -> projectsById[id]?.let { file to it } }.toMap()
+            // For each file of a project, the target of each task ID. Thus a task key does not need a scan of the tasks.
+            val projectFiles = state.configFiles.projects.entries.mapNotNull { (id, file) ->
+                projectsById[id]?.let { project -> file to project.tasks.associate { it.id to it.target } }
+            }.toMap()
             // The key of the map is the path, not the layer string of moon. Thus two spellings of a layer, for example
             // `./.moon/tasks/all.yml` and `.moon/tasks/all.yml`, give the same file. The projects are in ID_ORDER. Thus the targets are too.
             val shared = HashMap<Path, MutableMap<String, LinkedHashSet<String>>>()

@@ -34,4 +34,7 @@ class ConfigSyntax(
     val tasksKey: PsiElement?,
     val taskKeys: List<ConfigKey>,
     val inheritedTasks: List<InheritedTasksEntry>,
-)
+) {
+    /** Gives the entry of `workspace.inheritedTasks` with the first leaf [element], or null if [element] is not the first leaf of an entry. */
+    fun inheritedTasksEntry(element: PsiElement): InheritedTasksEntry? = inheritedTasks.firstOrNull { it.element == element }
+}

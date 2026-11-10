@@ -78,7 +78,7 @@ class JumpToSourceAction : DumbAwareAction() {
 
     /** Gives the files of [task], or the file of [project] if [task] is null. The function does not read the disk. */
     private fun sourceFiles(state: TasksState.Loaded, task: MoonTask?, project: MoonProject?): List<SourceFile> = when {
-        task != null -> taskSourceFiles(state, task)
+        task != null -> taskSourceFiles(state, task.target)
         project != null -> listOfNotNull(projectSourceFile(state, project.id))
         else -> emptyList()
     }

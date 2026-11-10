@@ -55,7 +55,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     }
 
     /** Gives the entry of `workspace.inheritedTasks` with the first leaf [element], or null if [element] is not the first leaf of an entry. */
-    fun inheritedTasksEntry(element: PsiElement): InheritedTasksEntry? = syntax.inheritedTasks.firstOrNull { it.element == element }
+    fun inheritedTasksEntry(element: PsiElement): InheritedTasksEntry? = syntax.inheritedTasksEntry(element)
 
     /**
      * Gives the inherited files of the project that contain the global task [globalId], in the sequence that moon uses.
@@ -95,7 +95,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
         val items = inheritance.projects.map { (project, localIds) ->
-            HintItem(project, projectFile(project, null), secondary = localIds.joinToString(", "))
+            HintItem(project, projectSourceFile(state, project), secondary = localIds.joinToString(", "))
         }
         val list = HintList(MoonExplorerBundle.message("hint.inheritedBy.title", state.workspacePath(file)), items)
         return listOf(ConfigHint(element, MoonExplorerBundle.message("hint.inheritedBy", items.size), list))
@@ -170,7 +170,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         globalTaskKeys().mapNotNull { (key, task) ->
             val merged = task.mergedIn
             if (merged.isEmpty()) return@mapNotNull null
-            val items = merged.map { HintItem(withStrategies(it.projectId, it.strategies), projectFile(it.projectId, it.localId)) }
+            val items = merged.map { HintItem(withStrategies(it.projectId, it.strategies), projectSourceFile(state, it.projectId, it.localId)) }
             key to HintList(MoonExplorerBundle.message("hint.mergedIn.title", key.id), items)
         }
 
@@ -192,14 +192,11 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
      * If the plugin does not know the files of the task, the item opens the configuration file of the project.
      */
     private fun dependentItem(group: String, target: String): HintItem {
-        val file = taskSourceFiles(state, target).firstOrNull() ?: projectFile(targetProjectId(target), targetTaskId(target))
+        val file = taskSourceFiles(state, target).firstOrNull() ?: projectSourceFile(state, targetProjectId(target), targetTaskId(target))
         return HintItem(target, file, group, file?.path?.let(state::workspacePath))
     }
 
-    /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */
-    private fun projectFile(projectId: String, taskId: String?): SourceFile? =
-        state.configFiles.projects[projectId]?.let { sourceFile(it, taskId) }
-}
+    /** Gives the configuration file of [projectId], or null if the project has no configuration file. [taskId] is the key to open in the file. */}
 
 /** Gives [text] and the [strategies], for example `web (args: prepend, deps: replace)`. If the map is empty, the function gives only [text]. */
 internal fun withStrategies(text: String, strategies: Map<String, String>): String {
@@ -212,6 +209,8 @@ internal fun withStrategies(text: String, strategies: Map<String, String>): Stri
  * The IDE calls this function for all files. Thus it examines the path before it reads the PSI. Call this function in a read action.
  */
 fun configInsights(file: PsiFile): ConfigInsights? {
+    // Most files of the IDE have no converter. This check is cheaper than the path of the file.
+    if (!hasConfigConverter(file)) return null
     val state = file.project.service<MoonTasksService>().state.value.lastLoaded ?: return null
     val path = file.originalFile.virtualFile?.configFilePath() ?: return null
     if (state.inheritanceIndex.file(path) == null && state.inheritanceIndex.projectOfFile(path) == null) return null

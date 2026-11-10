@@ -12,7 +12,6 @@ import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.MoonIcons
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.allTasks
 import io.github.artptr.moonexplorer.model.loadedTasks
 import io.github.artptr.moonexplorer.run.MoonCommandRunner
 import io.github.artptr.moonexplorer.run.MoonTaskRunner
