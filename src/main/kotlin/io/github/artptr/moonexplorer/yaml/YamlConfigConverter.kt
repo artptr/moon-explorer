@@ -1,17 +1,21 @@
 package io.github.artptr.moonexplorer.yaml
 
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import io.github.artptr.moonexplorer.config.ConfigConverter
 import io.github.artptr.moonexplorer.config.ConfigKey
 import io.github.artptr.moonexplorer.config.ConfigSyntax
+import io.github.artptr.moonexplorer.config.ConfigTextChange
 import io.github.artptr.moonexplorer.config.InheritedTasksEntry
+import org.jetbrains.yaml.psi.YAMLCompoundValue
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
+import org.jetbrains.yaml.psi.YAMLSequenceItem
 
 /** Gives the [ConfigSyntax] of a YAML configuration file. The converter reads only the first YAML document of the file. */
 class YamlConfigConverter : ConfigConverter {
@@ -24,6 +28,37 @@ class YamlConfigConverter : ConfigConverter {
             keyLeaf(keyValue)?.let { ConfigKey(keyValue.keyText, it) }
         }
         return ConfigSyntax(firstLeaf(file), tasks?.let(::keyLeaf), taskKeys, inheritedTasks(root))
+    }
+
+    override fun inheritedTasksEntryRemoval(entry: InheritedTasksEntry): ConfigTextChange? {
+        val item = PsiTreeUtil.getParentOfType(entry.element, YAMLSequenceItem::class.java, YAMLKeyValue::class.java) ?: return null
+        val collection = item.parent as? YAMLCompoundValue ?: return null
+        val (others, brackets) = when (collection) {
+            is YAMLSequence -> collection.items.filter { it != item } to "[]"
+            is YAMLMapping -> collection.keyValues.filter { it != item } to "{}"
+            else -> return null
+        }
+        // The text of a flow item does not contain the comma. Thus the function makes the list or map again from the other items.
+        val flowText = brackets[0] + others.joinToString(", ") { it.text } + brackets[1]
+        if (isFlow(collection)) return ConfigTextChange(collection.textRange, flowText)
+        if (others.isNotEmpty()) return ConfigTextChange(blockItemRange(item), "")
+        // A block list or map without items becomes an empty flow list or map on the line of the key.
+        val colon = (collection.parent as? YAMLKeyValue)?.key?.let(PsiTreeUtil::nextLeaf)?.takeIf { it.text == ":" } ?: return null
+        return ConfigTextChange(TextRange(colon.textRange.endOffset, collection.textRange.endOffset), " $flowText")
+    }
+
+    /** Gives true if [collection] has the flow style, for example `[a, b]` or `{a: b}`. */
+    private fun isFlow(collection: PsiElement): Boolean = collection.firstChild?.text.let { it == "[" || it == "{" }
+
+    /**
+     * Gives the text of [item] of a block list or map and the line of the item. If the item is the first item, the range also contains
+     * the white space after the item. Otherwise it contains the white space before the item.
+     */
+    private fun blockItemRange(item: PsiElement): TextRange {
+        val previous = generateSequence(item.prevSibling) { it.prevSibling }.firstOrNull { it.text.isNotBlank() }
+        if (previous != null) return TextRange(previous.textRange.endOffset, item.textRange.endOffset)
+        val next = generateSequence(item.nextSibling) { it.nextSibling }.firstOrNull { it.text.isNotBlank() }
+        return TextRange(item.textRange.startOffset, next?.textRange?.startOffset ?: item.textRange.endOffset)
     }
 
     private fun inheritedTasks(root: YAMLMapping?): List<InheritedTasksEntry> {

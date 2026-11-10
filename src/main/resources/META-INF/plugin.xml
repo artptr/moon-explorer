@@ -43,6 +43,7 @@
         <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonInheritedCodeVisionProvider"/>
         <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider"/>
         <codeInsight.daemonBoundCodeVisionProvider implementation="io.github.artptr.moonexplorer.config.MoonDependentsCodeVisionProvider"/>
+        <gotoDeclarationHandler implementation="io.github.artptr.moonexplorer.config.MoonInheritedTasksGotoDeclarationHandler"/>
         <config.codeVisionGroupSettingProvider implementation="io.github.artptr.moonexplorer.config.MoonCodeVisionGroupSettingProvider"/>
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>

@@ -79,8 +79,7 @@ internal suspend fun openConfigFile(project: Project, target: SourceFile) {
         ?.takeUnless { it.isDirectory } ?: return
     val offset = target.taskId?.let { taskId ->
         readAction {
-            val syntax = PsiManager.getInstance(project).findFile(file)?.let(::configSyntax)
-            syntax?.taskKeys?.firstOrNull { it.id == taskId }?.element?.textOffset
+            PsiManager.getInstance(project).findFile(file)?.let { taskKeyElement(it, taskId) }?.textOffset
         }
     } ?: 0
     withContext(Dispatchers.EDT) {

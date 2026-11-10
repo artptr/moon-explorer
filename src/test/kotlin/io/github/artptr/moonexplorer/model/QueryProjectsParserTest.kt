@@ -88,9 +88,11 @@ class QueryProjectsParserTest {
     }
 
     @Test
-    fun recordedOutputHasNoTaskConfigsForAProjectWithoutTasks() {
+    fun recordedOutputHasOnlyLayersForAProjectWithoutTasks() {
         // The layers of the project config contain format and lint. moon does not write its taskTargets. Thus it inherits no task.
-        assertNull(recorded.taskConfigs["config"])
+        val configs = recorded.taskConfigs.getValue("config")
+        assertEquals(setOf("format", "lint"), configs.layers.keys)
+        assertTrue(configs.inheritedLayers.isEmpty())
     }
 
     /** Gives the task IDs of [InheritedTasksFilter.inheritedLayers] of each project in [json]. */
@@ -112,6 +114,16 @@ class QueryProjectsParserTest {
             mapOf("a" to setOf("l"), "b" to setOf("lint", "test", "build"), "c" to emptySet(), "d" to setOf("lint", "test", "build")),
             inheritedTaskIds(json),
         )
+    }
+
+    @Test
+    fun projectWithOnlyLayersKeepsItsTaskConfigs() {
+        // The project has no tasks, because include has only an unknown ID. The inspection of workspace.inheritedTasks needs the layers.
+        val json = """{"projects": [{"id": "a", "inherited": {"layers": {"lint": ["all.yml"]}}, "config": {"workspace": {"inheritedTasks": {"include": ["lnt"]}}}}, {"id": "b"}]}"""
+        val configs = QueryProjectsParser.parse(json).taskConfigs
+        assertEquals(setOf("a"), configs.keys)
+        assertEquals(mapOf("lint" to listOf("all.yml")), configs.getValue("a").layers)
+        assertTrue(configs.getValue("a").inheritedLayers.isEmpty())
     }
 
     @Test
