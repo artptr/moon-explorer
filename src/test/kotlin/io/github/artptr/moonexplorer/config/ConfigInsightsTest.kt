@@ -142,10 +142,12 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         assertEquals(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck"), typecheck.target)
     }
 
-    fun testProjectWithoutInheritedTasksHasNoInsights() {
-        // The project config has no tasks and inherits no task.
-        myFixture.openFileInEditor(TestData.workspaceVirtualFile("packages/config/moon.yml"))
-        assertNull(configInsights(myFixture.file))
+    fun testProjectWithoutInheritedTasksHasNoHints() {
+        // The project config has no tasks and inherits no task. The insights exist, because the inspection uses the layers of the project.
+        val insights = insights("packages/config/moon.yml")
+        assertEmpty(insights.inheritedHints())
+        assertEmpty(insights.mergedHints())
+        assertEquals(listOf("format", "lint"), insights.globalTaskIds())
     }
 
     fun testLocalTaskThatMergesHasAHintAndAGutterMark() {
@@ -401,6 +403,51 @@ class ConfigInsightsTest : BasePlatformTestCase() {
         val insights = insightsOf("workspace: {inheritedTasks: {exclude: [format]}}\ntasks: {lint: {}}\n", "apps/web/moon.yml")
         assertEquals(listOf("3 inherited tasks @ tasks"), insights.inheritedHints().map { it.text + " @ " + it.element.text })
         assertEquals(listOf("Merged with all.yml @ lint"), insights.mergedHints().map { it.text + " @ " + it.element.text })
+    }
+
+    fun testWorkspaceFilesHaveNoUnknownInheritedTasks() {
+        assertEmpty(insights("apps/web/moon.yml").unknownInheritedTasks())
+        assertEmpty(insights("tools/scripts/moon.yml").unknownInheritedTasks())
+    }
+
+    fun testEntriesWithUnknownGlobalTasks() {
+        // The project scripts can inherit only format and lint from all.yml.
+        val text = "workspace:\n  inheritedTasks:\n    include: [lint, lnt]\n    exclude: [format, test]\n    rename: {typecheck: tsc}\n"
+        val unknown = insightsOf(text, "tools/scripts/moon.yml").unknownInheritedTasks()
+        assertEquals(listOf("lnt", "test", "typecheck"), unknown.map { it.globalId })
+        assertEquals(listOf("lnt", "test", "typecheck"), unknown.map { it.element.text })
+    }
+
+    fun testFileWithoutProjectDataHasNoUnknownInheritedTasks() {
+        assertEmpty(insightsOf("workspace: {inheritedTasks: {include: [lnt]}}\n", ".moon/tasks/all.yml").unknownInheritedTasks())
+    }
+
+    fun testGlobalTaskFilesContainAnExcludedTask() {
+        // The project web excludes format. Go to Declaration still opens the global task.
+        val insights = insights("apps/web/moon.yml")
+        assertEquals(listOf(SourceFile(workspacePath(ALL), "format")), insights.globalTaskFiles("format"))
+        assertEquals(listOf(SourceFile(workspacePath(".moon/tasks/frontend.yml"), "typecheck")), insights.globalTaskFiles("typecheck"))
+        assertEmpty(insights.globalTaskFiles("audit"))
+        assertEquals(listOf("format", "lint", "test", "typecheck"), insights.globalTaskIds())
+    }
+
+    fun testCompletionIdsSkipTheOtherEntriesOfTheSameList() {
+        // The project web can inherit format, lint, test, and typecheck.
+        val insights = insightsOf("workspace:\n  inheritedTasks:\n    include: [lint]\n    exclude: [format, test]\n", "apps/web/moon.yml")
+        val file = myFixture.file
+        fun entry(text: String) = insights.inheritedTasksEntry(file.findElementAt(file.text.indexOf(text))!!)!!
+        // An entry does not hide its own ID. Thus the user can complete the ID again.
+        assertEquals(listOf("lint", "test", "typecheck"), insights.completionIds(entry("test]")))
+        assertEquals(listOf("format", "lint", "typecheck"), insights.completionIds(entry("format,")))
+        // The IDs of exclude do not apply to include.
+        assertEquals(listOf("format", "lint", "test", "typecheck"), insights.completionIds(entry("lint]")))
+    }
+
+    fun testEntryOfAnElement() {
+        val insights = insights("apps/web/moon.yml")
+        val offset = myFixture.editor.document.text.indexOf("typecheck: 'tsc'")
+        assertEquals("typecheck", insights.inheritedTasksEntry(myFixture.file.findElementAt(offset)!!)?.globalId)
+        assertNull(insights.inheritedTasksEntry(myFixture.file.findElementAt(0)!!))
     }
 
     fun testExtensionsAreRegistered() {

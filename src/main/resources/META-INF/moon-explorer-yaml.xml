@@ -10,6 +10,16 @@
                                   implementationClass="io.github.artptr.moonexplorer.yaml.MoonTaskRunLineMarkerContributor"/>
         <codeInsight.lineMarkerProvider language="yaml"
                                         implementationClass="io.github.artptr.moonexplorer.config.MoonInheritanceLineMarkerProvider"/>
+        <localInspection language="yaml"
+                         shortName="MoonInheritedTasks"
+                         bundle="messages.MoonExplorerBundle"
+                         key="inspection.inheritedTasks.name"
+                         groupKey="inspection.group.name"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="io.github.artptr.moonexplorer.config.MoonInheritedTasksInspection"/>
+        <completion.contributor language="yaml"
+                                implementationClass="io.github.artptr.moonexplorer.config.MoonInheritedTasksCompletionContributor"/>
         <runConfigurationProducer implementation="io.github.artptr.moonexplorer.yaml.MoonTaskRunConfigurationProducer"/>
     </extensions>
     <extensions defaultExtensionNs="io.github.artptr.moonexplorer">

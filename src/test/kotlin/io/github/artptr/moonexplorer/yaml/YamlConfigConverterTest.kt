@@ -4,6 +4,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.config.ConfigSyntax
 import io.github.artptr.moonexplorer.config.InheritedTasksEntry
 import io.github.artptr.moonexplorer.config.configSyntax
+import io.github.artptr.moonexplorer.config.inheritedTasksEntryRemoval
 import io.github.artptr.moonexplorer.testData.TestData
 
 class YamlConfigConverterTest : BasePlatformTestCase() {
@@ -73,5 +74,44 @@ class YamlConfigConverterTest : BasePlatformTestCase() {
         myFixture.type("# ")
         com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
         assertNotSame(first, configSyntax(file))
+    }
+
+    /** Removes the entry with the global ID [globalId] from [text] and gives the new text. */
+    private fun removeEntry(text: String, globalId: String): String {
+        val entry = syntax(text).inheritedTasks.first { it.globalId == globalId }
+        return inheritedTasksEntryRemoval(entry.element)!!.applyTo(text)
+    }
+
+    private fun settings(body: String) = "workspace:\n  inheritedTasks:\n$body"
+
+    fun testRemovesAnItemOfABlockList() {
+        val text = settings("    include:\n      - lint\n      - lnt\n      - test\n")
+        assertEquals(settings("    include:\n      - lint\n      - test\n"), removeEntry(text, "lnt"))
+        assertEquals(settings("    include:\n      - lnt\n      - test\n"), removeEntry(text, "lint"))
+        assertEquals(settings("    include:\n      - lint\n      - lnt\n"), removeEntry(text, "test"))
+    }
+
+    fun testRemovesAnItemOfAFlowList() {
+        val text = settings("    exclude: ['a', b, c]\n")
+        assertEquals(settings("    exclude: [b, c]\n"), removeEntry(text, "a"))
+        assertEquals(settings("    exclude: ['a', c]\n"), removeEntry(text, "b"))
+        assertEquals(settings("    exclude: ['a', b]\n"), removeEntry(text, "c"))
+    }
+
+    fun testLastItemGivesAnEmptyList() {
+        // An empty include list removes all global tasks. Without the list, the project inherits all global tasks.
+        assertEquals(settings("    include: []\n"), removeEntry(settings("    include:\n      - lnt\n"), "lnt"))
+        assertEquals(settings("    include: []\n"), removeEntry(settings("    include: [lnt]\n"), "lnt"))
+    }
+
+    fun testElementThatIsNotAnEntryHasNoRemoval() {
+        val syntax = syntax(settings("    include: [lint]\ntasks:\n  lint: {}\n"))
+        assertNull(inheritedTasksEntryRemoval(syntax.taskKeys.single().element))
+    }
+
+    fun testRemovesAPairOfRename() {
+        assertEquals(settings("    rename:\n      typecheck: tsc\n"), removeEntry(settings("    rename:\n      lnt: l\n      typecheck: tsc\n"), "lnt"))
+        assertEquals(settings("    rename: {typecheck: tsc}\n"), removeEntry(settings("    rename: {lnt: l, typecheck: tsc}\n"), "lnt"))
+        assertEquals(settings("    rename: {}\n"), removeEntry(settings("    rename:\n      lnt: l\n"), "lnt"))
     }
 }

@@ -201,7 +201,8 @@ class TaskSourcesTest {
     @Test
     fun loadFindsTheConfigFilesOfTheRecordedWorkspace() {
         val files = state.configFiles
-        assertEquals(state.tasks.projects.map { it.id }.toSet(), files.projects.keys)
+        // The project config has no tasks, but it has layers. Thus the plugin also finds its configuration file.
+        assertEquals(state.tasks.projects.map { it.id }.toSet() + "config", files.projects.keys)
         assertEquals(state.root.resolve("apps/web/moon.yml"), files.projects["web"])
         assertEquals(
             listOf("all.yml", "backend.yml", "frontend.yml").map { ".moon/tasks/$it" }.associateWith { state.root.resolve(it) },

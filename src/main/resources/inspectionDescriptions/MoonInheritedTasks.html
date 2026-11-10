@@ -1,0 +1,15 @@
+<html>
+<body>
+<p>Reports an entry of <code>workspace.inheritedTasks</code> in <code>moon.yml</code> with a global task ID that no inherited file of the project contains.
+The entry has no effect. Possible causes: the ID has a typing error, or the files in <code>.moon/tasks/</code> that apply to the project do not contain the task.</p>
+<p>The inspection examines the items of <code>include</code> and <code>exclude</code>, and the keys of <code>rename</code>.
+It uses the data of the last load of the tasks. If the plugin has no data, the inspection does not report problems.</p>
+<p>The quick fix removes the entry. If the entry is the last item of <code>include</code>, the list becomes empty. Thus the project continues to inherit no tasks.</p>
+<!-- tooltip end -->
+<p>Example:</p>
+<pre><code>workspace:
+  inheritedTasks:
+    exclude: ['lnt']
+</code></pre>
+</body>
+</html>

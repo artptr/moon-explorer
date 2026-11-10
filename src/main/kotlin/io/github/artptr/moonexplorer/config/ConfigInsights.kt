@@ -13,6 +13,7 @@ import io.github.artptr.moonexplorer.model.SourceFile
 import io.github.artptr.moonexplorer.model.TasksState
 import io.github.artptr.moonexplorer.model.configFilePath
 import io.github.artptr.moonexplorer.model.lastLoaded
+import io.github.artptr.moonexplorer.model.resolveInRoot
 import io.github.artptr.moonexplorer.model.sourceFile
 import io.github.artptr.moonexplorer.model.targetProjectId
 import io.github.artptr.moonexplorer.model.targetTaskId
@@ -53,6 +54,45 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     private val global: FileInheritance? = index.file(file)
 
     private val projectId: String? = index.projectOfFile(file)
+
+    /** The global tasks that the project of this file can inherit, from `inherited.layers`. The value is null if the file is not the configuration file of a project with data. */
+    private val layers: Map<String, List<String>>? = projectId?.let { state.tasks.taskConfigs[it]?.layers }
+
+    /**
+     * Gives the entries of `workspace.inheritedTasks` with a global task ID that no inherited file of the project contains.
+     * moon writes in `inherited.layers` all the global tasks that the project can inherit, also the tasks that the entries remove.
+     * Thus an entry with a correct ID is not in the result. If the plugin has no data for the project, the result is empty.
+     */
+    fun unknownInheritedTasks(): List<InheritedTasksEntry> {
+        val known = layers ?: return emptyList()
+        return syntax.inheritedTasks.filter { it.globalId !in known }
+    }
+
+    /** Gives the entry of `workspace.inheritedTasks` with the first leaf [element], or null if [element] is not the first leaf of an entry. */
+    fun inheritedTasksEntry(element: PsiElement): InheritedTasksEntry? = syntax.inheritedTasks.firstOrNull { it.element == element }
+
+    /**
+     * Gives the inherited files of the project that contain the global task [globalId], in the sequence that moon uses.
+     * The result also contains the files of the tasks that the project does not inherit, for example an excluded task.
+     * The function does not read the disk. Thus it is possible that a file in the result is not on the disk.
+     */
+    fun globalTaskFiles(globalId: String): List<SourceFile> =
+        layers?.get(globalId).orEmpty().mapNotNull { layer ->
+            (state.configFiles.inherited[layer] ?: resolveInRoot(state.root, layer))?.let { sourceFile(it, globalId) }
+        }.distinctBy { it.path }
+
+    /** Gives the global task IDs that the project can inherit, in [ID_ORDER]. The list is empty if the plugin has no data for the project. */
+    fun globalTaskIds(): List<String> = layers?.keys.orEmpty().sortedWith(ID_ORDER)
+
+    /**
+     * Gives the completion variants for [entry]: the global task IDs that the project can inherit, in [ID_ORDER].
+     * The result does not contain the IDs of the other entries of the same list or map. For example, an item of `exclude` does not give
+     * the IDs that `exclude` already contains. The IDs of `include` and `rename` remain in the result.
+     */
+    fun completionIds(entry: InheritedTasksEntry): List<String> {
+        val used = syntax.inheritedTasks.filter { it !== entry && it::class == entry::class }.mapTo(HashSet()) { it.globalId }
+        return globalTaskIds().filter { it !in used }
+    }
 
     /**
      * Gives the hints of the inherited tasks.
