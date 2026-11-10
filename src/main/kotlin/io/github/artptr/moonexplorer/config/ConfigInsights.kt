@@ -4,21 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import io.github.artptr.moonexplorer.MoonExplorerBundle
-import io.github.artptr.moonexplorer.model.FileInheritance
-import io.github.artptr.moonexplorer.model.GlobalTaskInheritance
-import io.github.artptr.moonexplorer.model.ID_ORDER
-import io.github.artptr.moonexplorer.model.MergedTask
-import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.SourceFile
-import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.configFilePath
-import io.github.artptr.moonexplorer.model.lastLoaded
-import io.github.artptr.moonexplorer.model.resolveInRoot
-import io.github.artptr.moonexplorer.model.sourceFile
-import io.github.artptr.moonexplorer.model.targetProjectId
-import io.github.artptr.moonexplorer.model.targetTaskId
-import io.github.artptr.moonexplorer.model.taskSourceFiles
-import io.github.artptr.moonexplorer.model.workspacePath
+import io.github.artptr.moonexplorer.model.*
 import java.nio.file.Path
 
 /**
