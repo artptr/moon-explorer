@@ -105,7 +105,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
     internal var runTask: (MoonTask) -> Unit = { MoonTaskRunner.run(project, it.target) }
 
     /**
-     * Shows an information message to the user. [text] is plain text, not HTML. The default value shows a balloon below the toolbar.
+     * Shows an information message to the user. The text is plain text, not HTML. The default value shows a balloon below the toolbar.
      * Tests change this value to a fake. Change it only on the EDT.
      */
     internal var showInfo: (String) -> Unit = { text ->
@@ -136,7 +136,7 @@ class MoonTasksPanel(private val project: Project) : SimpleToolWindowPanel(true,
             ?: error("plugin.xml must register the action group $TOOLBAR_GROUP_ID")
         actionToolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, group, true)
         actionToolbar.targetComponent = this
-        setToolbar(actionToolbar.component)
+        toolbar = actionToolbar.component
         setContent(loadingPanel)
         installTaskActions()
 

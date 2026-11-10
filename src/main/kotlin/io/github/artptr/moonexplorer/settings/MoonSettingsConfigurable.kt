@@ -21,6 +21,7 @@ import io.github.artptr.moonexplorer.model.MoonTasksService
 import kotlinx.coroutines.*
 import java.nio.file.Path
 import javax.swing.event.DocumentEvent
+import kotlin.time.Duration.Companion.milliseconds
 
 /** The settings page Settings | Tools | Moon Explorer. */
 class MoonSettingsConfigurable(private val project: Project) : BoundSearchableConfigurable(
@@ -139,7 +140,7 @@ class MoonSettingsConfigurable(private val project: Project) : BoundSearchableCo
         foundField.text = MoonExplorerBundle.message("settings.found.searching")
         val service = project.service<MoonExecutableService>()
         return service.scope.launch(Dispatchers.IO) {
-            delay(delayMillis)
+            delay(delayMillis.milliseconds)
             val executable = service.find(settingsPath).executable
             val search = coroutineContext.job
             // The settings dialog is modal. Thus the update must run in any modality state.

@@ -9,6 +9,7 @@ import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import java.nio.file.Path
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A test that uses [MoonTasksService]. setUp calls [prepareForTests]. tearDown resets the service and [MoonSettings].
@@ -49,13 +50,13 @@ fun MoonTasksService.prepareForTests() {
 
 /** Waits until the state is equal to [expected]. If this does not occur in 10 seconds, the test fails. */
 fun MoonTasksService.awaitState(expected: TasksState) {
-    runBlocking { withTimeoutOrNull(10_000) { state.first { it == expected } } }
+    runBlocking { withTimeoutOrNull(10.seconds) { state.first { it == expected } } }
         ?: throw AssertionError("Expected $expected, but the state is ${state.value}")
 }
 
 /** Waits until the deferred value completes. If this does not occur in 10 seconds, the test fails. */
 fun CompletableDeferred<Unit>.awaitWithTimeout() {
-    runBlocking { withTimeout(10_000) { await() } }
+    runBlocking { withTimeout(10.seconds) { await() } }
 }
 
 /** Loads the recorded tasks and waits for the [TasksState.Loaded] state. */

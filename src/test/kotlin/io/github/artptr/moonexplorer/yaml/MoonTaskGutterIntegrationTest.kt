@@ -13,13 +13,11 @@ import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
-import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.config.MoonCodeVisionProvider
 import io.github.artptr.moonexplorer.config.MoonInheritedCodeVisionProvider
 import io.github.artptr.moonexplorer.config.MoonMergedCodeVisionProvider
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
-import io.github.artptr.moonexplorer.model.QueryProjectsParser
-import io.github.artptr.moonexplorer.model.awaitState
+import io.github.artptr.moonexplorer.model.loadJson
 import io.github.artptr.moonexplorer.run.MoonRunConfiguration
 import io.github.artptr.moonexplorer.testData.TestData
 import io.github.artptr.moonexplorer.ui.RunMarkersRefresher
@@ -70,12 +68,9 @@ class MoonTaskGutterIntegrationTest : MoonTasksServiceTestCase() {
             """"inherited":{"layers":{$layers}},"tasks":{$tasks},"taskTargets":[$targets]}]}"""
     }
 
-    /** Loads the tasks with the output of [queryJson] and waits for the [TasksState.Loaded] state of this output. */
+    /** Loads the tasks with the output of [queryJson] and waits for the loaded state of this output. */
     private fun load(own: List<String>, global: List<String> = listOf("check")) {
-        val json = queryJson(own, global)
-        service.queryProjects = { CliResult.Success(json) }
-        service.refresh()
-        service.awaitState(TestData.loadedState(QueryProjectsParser.parse(json), root))
+        service.loadJson(queryJson(own, global), root)
     }
 
     fun testHintStaysOnTheKeyWhileTheUserTypes() {

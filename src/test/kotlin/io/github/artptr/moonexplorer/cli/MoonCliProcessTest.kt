@@ -15,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import kotlin.time.Duration.Companion.seconds
 
 /** Starts a fake `moon` script. The tests do not start moon. The script is a shell script, thus the tests do not run on Windows. */
 class MoonCliProcessTest {
@@ -33,11 +34,11 @@ class MoonCliProcessTest {
 
     /** Makes a script that writes its arguments and the value of NO_COLOR, and stops with [exitCode]. */
     private fun fakeMoon(exitCode: Int = 0): File =
-        fakeMoonExecutable(temp.newFolder("fake-moon").toPath(), "moon", "#!/bin/sh\necho \"$@ NO_COLOR=\$NO_COLOR\"\nexit $exitCode\n").toFile()
+        fakeMoonExecutable(temp.newFolder("fake-moon").toPath(), "moon", $$"#!/bin/sh\necho \"$@ NO_COLOR=$NO_COLOR\"\nexit $$exitCode\n").toFile()
 
     private fun queryProjects(executable: File): CliResult {
         val workspace = temp.newFolder("workspace").toPath()
-        return runBlocking { withTimeout(10_000) { withContext(Dispatchers.IO) { MoonCli.queryProjects(executable.toPath(), workspace, timeoutMillis = 10_000) } } }
+        return runBlocking { withTimeout(10.seconds) { withContext(Dispatchers.IO) { MoonCli.queryProjects(executable.toPath(), workspace, timeoutMillis = 10_000) } } }
     }
 
     @Test

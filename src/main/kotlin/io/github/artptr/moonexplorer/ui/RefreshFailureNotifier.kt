@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * The notifier also operates if the IDE did not make the Moon tool window.
  */
 @Service(Service.Level.PROJECT)
-class RefreshFailureNotifier(private val project: Project, private val scope: CoroutineScope) {
+class RefreshFailureNotifier(private val project: Project, scope: CoroutineScope) {
 
     /** The notification that the IDE shows now. Use it only on the EDT. */
     internal var notification: Notification? = null

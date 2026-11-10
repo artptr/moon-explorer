@@ -31,8 +31,8 @@ import kotlinx.coroutines.withContext
 class JumpToSourceAction : DumbAwareAction() {
 
     /**
-     * Shows [files] with the title [title] near the selection in [dataContext]. [label] gives the text that the list shows for a file.
-     * The function calls [onChosen] with the file that the user selects. The list keeps the sequence of [files].
+     * Shows `files` with the title `title` near the selection in `dataContext`. `label` gives the text that the list shows for a file.
+     * The function calls `onChosen` with the file that the user selects. The list keeps the sequence of `files`.
      * Tests replace this value with a test function. Change it only on the EDT.
      */
     internal var showChooser: (
@@ -112,7 +112,7 @@ private fun showFileChooser(
     JBPopupFactory.getInstance().createPopupChooserBuilder(files)
         .setTitle(title)
         .setRenderer(
-            SimpleListCellRenderer.create<SourceFile> { cell, file, _ ->
+            SimpleListCellRenderer.create { cell, file: SourceFile, _ ->
                 cell.icon = FileTypeManager.getInstance().getFileTypeByFileName(file.path.fileName.toString()).icon
                 cell.text = label(file)
             },
