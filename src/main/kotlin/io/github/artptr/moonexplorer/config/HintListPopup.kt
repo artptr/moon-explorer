@@ -52,7 +52,7 @@ internal class HintListStep(list: HintList, private val choose: (SourceFile) -> 
 
     override fun onChosen(selectedValue: HintItem, finalChoice: Boolean): PopupStep<*>? {
         selectedValue.target?.let { target -> return doFinalStep { choose(target) } }
-        return PopupStep.FINAL_CHOICE
+        return FINAL_CHOICE
     }
 }
 

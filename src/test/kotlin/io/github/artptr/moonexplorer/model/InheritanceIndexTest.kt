@@ -10,7 +10,7 @@ class InheritanceIndexTest {
     private val state = TestData.recordedState()
     private val index = state.inheritanceIndex
 
-    private fun path(file: String): Path = TestData.workspaceRoot.resolve(file)
+    private fun path(file: String): Path = TestData.workspacePath(file)
 
     private val all = path(".moon/tasks/all.yml")
     private val frontend = path(".moon/tasks/frontend.yml")

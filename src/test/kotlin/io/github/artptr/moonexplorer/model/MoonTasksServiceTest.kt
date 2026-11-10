@@ -23,12 +23,15 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
         // The script writes one project. The ID of the project is the first two arguments.
         // For the task graph, the script writes one task. The target of the task is the first two arguments.
         val moon = fakeMoonExecutable(
-            content = "#!/bin/sh\n" +
-                "if [ \"\$1\" = task-graph ]; then\n" +
-                "  printf '{\"data\": {\"0\": {\"target\": \"%s-%s\", \"deps\": [{\"target\": \"a:b\"}]}}}' \"\$1\" \"\$2\"\n" +
-                "else\n" +
-                "  printf '{\"projects\": [{\"id\": \"%s-%s\", \"tasks\": {\"t\": {\"id\": \"t\"}}}]}' \"\$1\" \"\$2\"\n" +
-                "fi\n",
+            content = $$"""
+                #!/bin/sh
+                if [ "$1" = task-graph ]; then
+                  printf '{"data": {"0": {"target": "%s-%s", "deps": [{"target": "a:b"}]}}}' "$1" "$2"
+                else
+                  printf '{"projects": [{"id": "%s-%s", "tasks": {"t": {"id": "t"}}}]}' "$1" "$2"
+                fi
+
+            """.trimIndent(),
         )
         project.service<MoonSettings>().executablePath = moon.toString()
         // Use the default query, not the fake from setUp.

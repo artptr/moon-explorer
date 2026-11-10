@@ -36,7 +36,7 @@ import java.nio.file.Path
 class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
 
     /**
-     * Starts the analysis of [file] again. Tests replace this value with a test function. Change it only on the test thread.
+     * Starts the analysis of a file again. Tests replace this value with a test function. Change it only on the test thread.
      * The refresher calls it on the EDT.
      */
     internal var restart: (PsiFile) -> Unit = { DaemonCodeAnalyzer.getInstance(project).restart(it, this) }

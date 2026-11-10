@@ -7,12 +7,10 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiNamedElement
-import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.config.MoonInheritedTasksGotoDeclarationHandler
 import io.github.artptr.moonexplorer.config.MoonInheritedTasksInspection
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
-import io.github.artptr.moonexplorer.model.QueryProjectsParser
-import io.github.artptr.moonexplorer.model.awaitState
+import io.github.artptr.moonexplorer.model.loadJson
 import io.github.artptr.moonexplorer.testData.TestData
 import java.nio.file.Path
 import kotlin.io.path.writeText
@@ -58,9 +56,7 @@ class MoonInheritedTasksIntegrationTest : MoonTasksServiceTestCase() {
         file.writeText(text.replace("<caret>", ""))
         val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file)!!
         if (load) {
-            service.queryProjects = { CliResult.Success(queryJson) }
-            service.refresh()
-            service.awaitState(TestData.loadedState(QueryProjectsParser.parse(queryJson), root))
+            service.loadJson(queryJson, root)
         }
         myFixture.configureFromExistingVirtualFile(virtualFile)
         if (caret >= 0) myFixture.editor.caretModel.moveToOffset(caret)

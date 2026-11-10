@@ -53,20 +53,20 @@ class MoonConfigFileListenerTest : MoonTasksServiceTestCase() {
         VfsUtil.markDirtyAndRefresh(false, false, false, file)
     }
 
-    /** Waits until the service ran [expected] queries. If this does not occur in 3 seconds, the test fails. */
-    private fun awaitCalls(expected: Int) {
-        PlatformTestUtil.waitWithEventsDispatching({ "Expected $expected queries, but the service ran ${calls.get()}" }, { calls.get() >= expected }, 3)
-        assertEquals(expected, calls.get())
+    /** Waits until the service ran one query. If this does not occur in 3 seconds, or if the service ran more queries, the test fails. */
+    private fun awaitOneCall() {
+        PlatformTestUtil.waitWithEventsDispatching({ "Expected 1 query, but the service ran ${calls.get()}" }, { calls.get() >= 1 }, 3)
+        assertEquals(1, calls.get())
     }
 
     fun testChangeOfAProjectConfigFileRefreshesInLessThanThreeSeconds() {
         changeInIde("apps/web/moon.yml")
-        awaitCalls(1)
+        awaitOneCall()
     }
 
     fun testChangeFromOutsideTheIdeRefreshes() {
         changeOnDisk(".moon/tasks/all.yml")
-        awaitCalls(1)
+        awaitOneCall()
     }
 
     fun testChangeOfOtherFilesDoesNotRefresh() {
@@ -81,27 +81,27 @@ class MoonConfigFileListenerTest : MoonTasksServiceTestCase() {
     fun testRenameOfAProjectConfigFileRefreshes() {
         val file = file("apps/web/moon.yml")
         runWriteAction { file.rename(this, "moon.yml.bak") }
-        awaitCalls(1)
+        awaitOneCall()
     }
 
     fun testMoveOfATasksFileRefreshes() {
         val file = file(".moon/tasks/all.yml")
         val target = file("other")
         runWriteAction { file.move(this, target) }
-        awaitCalls(1)
+        awaitOneCall()
     }
 
     fun testDeleteOfAProjectDirectoryRefreshes() {
         // The recorded output has the project web in apps/web. The VFS sends one event for the directory, not for its moon.yml.
         val dir = file("apps/web")
         runWriteAction { dir.delete(this) }
-        awaitCalls(1)
+        awaitOneCall()
     }
 
     fun testRenameOfAParentOfAProjectDirectoryRefreshes() {
         val dir = file("apps")
         runWriteAction { dir.rename(this, "applications") }
-        awaitCalls(1)
+        awaitOneCall()
     }
 
     fun testManyChangesCauseOneRefresh() {
@@ -109,7 +109,7 @@ class MoonConfigFileListenerTest : MoonTasksServiceTestCase() {
         val longDelay = 300.milliseconds
         service.refreshDelay = longDelay
         repeat(10) { changeInIde("apps/web/moon.yml") }
-        awaitCalls(1)
+        awaitOneCall()
         Thread.sleep(longDelay.inWholeMilliseconds * 2)
         assertEquals(1, calls.get())
     }
