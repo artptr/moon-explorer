@@ -157,6 +157,8 @@ This is an example of the registration:
 ## Consequences
 
 - When the YAML plugin is active, the IDE opens `moon.yml` and `moon.yaml` with the new file type. The JSON schemas from SchemaStore continue to operate.
+
+  **NOTE:** Issue #78 found that the user must click **Apply schema** to use a SchemaStore schema. `.moon/workspace.yml` has the YAML file type and has the same result. Thus the new file type does not cause this step. Refer to [vision.md](../product/vision.md), section 11.1.
 - Other YAML files keep the YAML file type, because the YAML language keeps its primary file type.
 - When the YAML plugin is not active, the IDE has no moon file type. It shows no hints, no gutter icons, and no run icons. The tool window and the run configuration operate.
 - JetBrains Marketplace gets the masks `moon.yml` and `moon.yaml`. It does not get masks for the files in `.moon/`. Thus a file in `.moon/` does not cause a plugin suggestion.
