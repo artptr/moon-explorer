@@ -83,7 +83,8 @@ object MoonTaskRunner {
     /** Makes a new run configuration for [targets] and [affected]. The function does not add it to the run manager. */
     private fun create(project: Project, targets: List<String>, affected: Boolean): RunnerAndConfigurationSettings {
         val factory = MoonRunConfigurationType.getInstance().factory
-        val settings = RunManager.getInstance(project).createConfiguration(configurationName(targets, affected), factory)
+        // setUp gives the name of the configuration.
+        val settings = RunManager.getInstance(project).createConfiguration("", factory)
         (settings.configuration as MoonRunConfiguration).setUp(targets, affected)
         return settings
     }

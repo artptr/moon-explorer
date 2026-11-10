@@ -47,13 +47,16 @@ fun configSyntax(file: PsiFile): ConfigSyntax? = CachedValuesManager.getCachedVa
     CachedValueProvider.Result.create(CONVERTERS.forLanguage(file.language)?.convert(file), file)
 }
 
+/** Gives true if a converter can read files in the language of [file]. The check does not read the PSI. */
+fun hasConfigConverter(file: PsiFile): Boolean = CONVERTERS.forLanguage(file.language) != null
+
 /**
  * Gives the change that removes the entry of `workspace.inheritedTasks` with the first leaf [element], with the converter of its file.
  * Gives null if [element] is not the first leaf of an entry. Refer to [ConfigConverter.inheritedTasksEntryRemoval].
  */
 fun inheritedTasksEntryRemoval(element: PsiElement): ConfigTextChange? {
     val file = element.containingFile
-    val entry = configSyntax(file)?.inheritedTasks?.firstOrNull { it.element == element } ?: return null
+    val entry = configSyntax(file)?.inheritedTasksEntry(element) ?: return null
     return CONVERTERS.forLanguage(file.language)?.inheritedTasksEntryRemoval(entry)
 }
 

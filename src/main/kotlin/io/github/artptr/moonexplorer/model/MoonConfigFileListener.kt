@@ -28,8 +28,7 @@ class MoonConfigFileListener(private val project: Project) : BulkFileListener {
 
     private fun isConfigChange(event: VFileEvent, watch: ConfigWatch): Boolean {
         // moon reads only the local disk. Files in archives or in other file systems do not apply.
-        if (event.fileSystem !is LocalFileSystem) return false
-        return when (event) {
+        return event.fileSystem is LocalFileSystem && when (event) {
             is VFileMoveEvent -> MoonConfigFiles.isConfigChange(event.oldPath, watch) || MoonConfigFiles.isConfigChange(event.newPath, watch)
             is VFilePropertyChangeEvent -> event.propertyName == VirtualFile.PROP_NAME &&
                 (MoonConfigFiles.isConfigChange(event.oldPath, watch) || MoonConfigFiles.isConfigChange(event.newPath, watch))

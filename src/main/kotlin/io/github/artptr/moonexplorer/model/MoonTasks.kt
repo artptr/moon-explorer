@@ -109,10 +109,13 @@ data class WorkspaceTasks(
     val projects: List<MoonProject>,
     val sources: List<ProjectSource> = emptyList(),
     val taskConfigs: Map<String, TaskConfigs> = emptyMap(),
-)
-
-/** All tasks of all projects, in the sequence of [WorkspaceTasks.projects]. */
-val WorkspaceTasks.allTasks: List<MoonTask> get() = projects.flatMap { it.tasks }
+) {
+    /**
+     * All tasks of all projects, in the sequence of [projects]. **Search Everywhere** and **Run Anything** read the list for each keystroke.
+     * Thus the class makes the list only one time. The list is not a part of [equals].
+     */
+    val allTasks: List<MoonTask> by lazy { projects.flatMap { it.tasks } }
+}
 
 /** The main group of the tree of the Moon tool window. It sets the structure in each [TaskCategory] node. */
 enum class TaskGrouping {

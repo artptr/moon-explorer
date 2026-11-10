@@ -15,10 +15,8 @@ class TaskSourcesTest {
 
     private val state = TestData.recordedState()
 
-    private fun task(target: String) = state.tasks.allTasks.single { it.target == target }
-
     /** Gives the files of [target] as paths from the workspace root. */
-    private fun files(target: String) = taskSourceFiles(state, task(target)).map {
+    private fun files(target: String) = taskSourceFiles(state, target).map {
         assertEquals(targetTaskId(target), it.taskId)
         state.workspacePath(it.path)
     }
@@ -111,7 +109,7 @@ class TaskSourcesTest {
     @Test
     fun renamedInheritedTaskIsInTheFileOfMoonTasksWithTheGlobalId() {
         val path = state.root.resolve(".moon/tasks/frontend.yml")
-        assertEquals(listOf(SourceFile(path, "typecheck")), taskSourceFiles(state, task("web:tsc")))
+        assertEquals(listOf(SourceFile(path, "typecheck")), taskSourceFiles(state, "web:tsc"))
     }
 
     @Test
@@ -173,13 +171,13 @@ class TaskSourcesTest {
                 ),
             ),
         )
-        val result = taskSourceFiles(TestData.loadedState(tasks, state.root), task("web:build"))
+        val result = taskSourceFiles(TestData.loadedState(tasks, state.root), "web:build")
         assertEquals(listOf(state.root.resolve(".moon/tasks/all.yml")), result.map { it.path })
     }
 
     @Test
     fun taskWithoutConfigsHasNoFiles() {
-        val result = taskSourceFiles(state.copy(tasks = state.tasks.copy(taskConfigs = emptyMap())), task("web:build"))
+        val result = taskSourceFiles(state.copy(tasks = state.tasks.copy(taskConfigs = emptyMap())), "web:build")
         assertEquals(emptyList<SourceFile>(), result)
     }
 
@@ -231,7 +229,7 @@ class TaskSourcesTest {
         val loaded = loadTempProject()
         assertNull(projectSourceFile(loaded, "p"))
         assertNull(projectSourceFile(loaded, "unknown"))
-        assertEquals(emptyList<SourceFile>(), taskSourceFiles(loaded, MoonTask("build", "p:build", null)))
+        assertEquals(emptyList<SourceFile>(), taskSourceFiles(loaded, "p:build"))
     }
 
     /** The directory of the project `p` in a temporary workspace. */
@@ -267,14 +265,14 @@ class TaskSourcesTest {
         val loaded = loadTempProject()
         writeProjectFile("moon.yml")
         assertNull(projectSourceFile(loaded, "p"))
-        assertEquals(emptyList<SourceFile>(), taskSourceFiles(loaded, MoonTask("build", "p:build", null)))
+        assertEquals(emptyList<SourceFile>(), taskSourceFiles(loaded, "p:build"))
         assertEquals(SourceFile(projectDir.resolve("moon.yml"), null), projectSourceFile(loadTempProject(), "p"))
     }
 
     @Test
     fun taskInAFileThatIsNotYamlHasNoTaskId() {
         val file = writeProjectFile("moon.toml")
-        assertEquals(listOf(SourceFile(file, null)), taskSourceFiles(loadTempProject(), MoonTask("build", "p:build", null)))
+        assertEquals(listOf(SourceFile(file, null)), taskSourceFiles(loadTempProject(), "p:build"))
     }
 
     @Test
