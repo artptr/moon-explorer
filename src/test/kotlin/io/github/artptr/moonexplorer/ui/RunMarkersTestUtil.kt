@@ -7,7 +7,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PlatformTestUtil
 import io.github.artptr.moonexplorer.model.MoonTasksService
-import io.github.artptr.moonexplorer.model.lastLoaded
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -27,16 +26,17 @@ fun RunMarkersRefresher.recordRestarts(disposable: Disposable, callReal: Boolean
 }
 
 /**
- * Waits until [RunMarkersRefresher] handled the current loaded data of the service. If the IDE did not make the refresher, the function does nothing.
- * If the refresher does not handle the data in 10 seconds, the test fails.
+ * Waits until [RunMarkersRefresher] handled the current state of the service. If the IDE did not make the refresher, the function does nothing.
+ * If the refresher does not handle the state in 10 seconds, the test fails.
  *
  * The refresher starts the analysis of the open files on the EDT after a load. If the refresher does this while a test highlights a file,
  * the test framework stops the analysis with an AssertionError. Thus the test helpers that change the state call this function.
  */
 fun MoonTasksService.awaitRunMarkersRefresher() {
     val refresher = project.serviceIfCreated<RunMarkersRefresher>() ?: return
-    fun done() = refresher.handled == state.value.lastLoaded
-    val message = "The refresher did not handle the loaded data"
+    // Compare the instances. Thus the function also waits if the refresher handles an old state that is equal to the current state.
+    fun done() = refresher.handled === state.value
+    val message = "The refresher did not handle the state of the service"
     if (ApplicationManager.getApplication().isDispatchThread) {
         // The refresher uses the EDT. Thus the wait must dispatch the events.
         PlatformTestUtil.waitWithEventsDispatching(message, ::done, 10)

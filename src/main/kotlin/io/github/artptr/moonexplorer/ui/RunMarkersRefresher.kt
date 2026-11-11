@@ -6,7 +6,7 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
@@ -15,8 +15,6 @@ import com.intellij.psi.PsiManager
 import io.github.artptr.moonexplorer.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
@@ -46,11 +44,12 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
     internal var restart: (PsiFile) -> Unit = { DaemonCodeAnalyzer.getInstance(project).restart(it, this) }
 
     /**
-     * The loaded data that the refresher handled last. The value is null before the first load and while the service has no loaded data.
-     * Tests wait until this value is equal to the loaded data of the service. Then the refresher does not start the analysis later in the test.
+     * The state of the service that the refresher handled last. The value is null before the refresher gets the first state.
+     * Tests wait until this value is the same instance as the current state of the service. Then the refresher does not start the analysis
+     * later in the test. Each change of the state makes a new instance. Thus the comparison of the instances also finds a change to an old value.
      */
     @Volatile
-    internal var handled: TasksState.Loaded? = null
+    internal var handled: TasksState? = null
         private set
 
     init {
@@ -58,8 +57,10 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
         val service = project.service<MoonTasksService>()
         scope.launch {
             var previous: TasksState.Loaded? = null
-            service.state.map { it.lastLoaded }.distinctUntilChanged().collect { loaded ->
-                val paths = runMarkerPaths(previous) + runMarkerPaths(loaded)
+            service.state.collect { state ->
+                val loaded = state.lastLoaded
+                // Only a change of the loaded data changes the icons and the hints.
+                val paths = if (loaded == previous) emptySet() else runMarkerPaths(previous) + runMarkerPaths(loaded)
                 previous = loaded
                 if (paths.isNotEmpty()) {
                     // An exception must not stop the collection. If the collection stops, no later load updates the files.
@@ -68,10 +69,10 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
-                        thisLogger().warn("Cannot analyze the open moon configuration files again", e)
+                        LOG.warn("Cannot analyze the open moon configuration files again", e)
                     }
                 }
-                handled = loaded
+                handled = state
             }
         }
     }
@@ -95,6 +96,10 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
                 restart(file)
             }
         }
+    }
+
+    private companion object {
+        private val LOG = logger<RunMarkersRefresher>()
     }
 }
 
