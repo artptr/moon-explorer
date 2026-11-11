@@ -10,6 +10,7 @@ import com.intellij.ui.components.JBList
 import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertNotEquals
 
 class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
 
@@ -43,7 +44,15 @@ class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
         // The contributor uses this value of the platform matcher to skip a task. Refer to MoonTaskSearchContributor.NO_MATCH.
         val matcher = NameUtil.buildMatcher("*storybook").build()
         assertEquals(MoonTaskSearchContributor.NO_MATCH, matcher.matchingDegree("db:migrate", false))
-        assertFalse(matcher.matchingDegree("ui:storybook", false) == MoonTaskSearchContributor.NO_MATCH)
+        assertNotEquals(MoonTaskSearchContributor.NO_MATCH, matcher.matchingDegree("ui:storybook", false))
+    }
+
+    fun testSearchPutsAMatchAtTheStartOfAWordBeforeAMatchInAWord() {
+        // "check" matches the start of a word in worker:check and in the descriptions of the lint and audit tasks.
+        // It matches in the word "typecheck" of the typecheck tasks. Search Everywhere puts the items with a higher weight first.
+        val sorted = search("check").sortedByDescending { it.weight }.map { it.item.target }
+        assertContainsElements(sorted.take(sorted.size - 3), "worker:check", "api:lint", "api:audit")
+        assertSameElements(sorted.takeLast(3), "admin:typecheck", "ui:typecheck", "utils:typecheck")
     }
 
     fun testSearchWeightIsTheMatchingDegreeOfTheSearchText() {

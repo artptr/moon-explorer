@@ -10,12 +10,12 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.components.JBList
 import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.swing.JLabel
 
 class JumpToSourceActionTest : BasePlatformTestCase() {
 
@@ -176,8 +176,8 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
     fun testChooserRendererShowsTheFileTypeIconAndTheLabel() {
         val file = SourceFile(Path.of("/workspace/apps/web/moon.yml"), "lint")
         val component = sourceFileRenderer { "apps/web/moon.yml" }
-            .getListCellRendererComponent(JBList(file), file, 0, false, false) as SimpleColoredComponent
-        assertEquals("apps/web/moon.yml", component.getCharSequence(true).toString())
+            .getListCellRendererComponent(JBList(file), file, 0, false, false) as JLabel
+        assertEquals("apps/web/moon.yml", component.text)
         val expectedIcon = FileTypeManager.getInstance().getFileTypeByFileName("moon.yml").icon
         assertNotNull(expectedIcon)
         assertSame(expectedIcon, component.icon)

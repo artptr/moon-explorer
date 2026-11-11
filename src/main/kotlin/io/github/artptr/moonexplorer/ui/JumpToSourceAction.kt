@@ -13,7 +13,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.SimpleListCellRenderer
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.*
 import kotlinx.coroutines.Dispatchers
@@ -121,13 +121,14 @@ private fun showFileChooser(
 
 /**
  * Shows the icon of the file type and the text that `label` gives for a file.
- * The renderer does not use `listCellRenderer { }`, because `LcrRow` is experimental API.
+ * The renderer extends [SimpleListCellRenderer], because only the `create` functions of this class are deprecated.
+ * It does not use `listCellRenderer { }`, because `LcrRow` is experimental API.
  */
 internal fun sourceFileRenderer(label: (SourceFile) -> String): ListCellRenderer<SourceFile> =
-    object : ColoredListCellRenderer<SourceFile>() {
-        override fun customizeCellRenderer(list: JList<out SourceFile>, value: SourceFile?, index: Int, selected: Boolean, hasFocus: Boolean) {
+    object : SimpleListCellRenderer<SourceFile>() {
+        override fun customize(list: JList<out SourceFile>, value: SourceFile?, index: Int, selected: Boolean, hasFocus: Boolean) {
             if (value == null) return
             icon = FileTypeManager.getInstance().getFileTypeByFileName(value.path.fileName.toString()).icon
-            append(label(value))
+            text = label(value)
         }
     }
