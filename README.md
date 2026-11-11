@@ -64,10 +64,10 @@ The **Moon** tool window shows every project and task in the workspace as a tree
 
 - **Group the tree the way you think.** Group by project, or by task name to see every project that has a `lint` or a `build` task. Add an outer category by `stack`, `layer`, or tag to split frontend from backend, apps from libraries.
 - **Type to search.** Select the tree and start typing to match task IDs, project IDs, and task descriptions.
-- **Select Opened File** finds the project of the file in the editor, nested projects included. It's available when the tree is grouped by project.
+- **Select Opened File** finds the project of the file in the editor, nested projects included. It's available when a local file is open and the tree is grouped by project.
 - **Jump to Source** (F4 or Cmd+Down) opens the `moon.yml` of a project, or the exact line where a task is declared, including tasks inherited from `.moon/tasks/`.
-- **Always up to date.** The tree refreshes about a second after you change `moon.yml` or a configuration file in `.moon/` (the cache doesn't count), including changes from `git checkout` or other tools. If a refresh fails, you keep the last good tree, and the **Show Refresh Error** button tells you what went wrong.
-- Internal tasks stay hidden, the same as in `moon run`.
+- **Always up to date.** The tree refreshes about a second after you change a project configuration file (for example, `moon.yml`) or a configuration file in `.moon/` (except the cache), including changes from `git checkout` or other tools. If a refresh fails, you keep the last good tree, and the **Show Refresh Error** button tells you what went wrong.
+- Internal tasks stay hidden in the tree, the same as in `moon run`.
 
 ### Run tasks from anywhere
 
@@ -101,16 +101,16 @@ Global tasks in `.moon/tasks/` change the tasks of many projects at once. Moon E
 - In `workspace.inheritedTasks`, completion suggests the global task IDs that the project can inherit, and **Go to Declaration** opens the global task.
 - An inspection flags `include`, `exclude`, and `rename` entries that match no global task (a typo like `lnt`, for example), with a quick fix to remove them.
 
-`moon.yml` and `moon.yaml` get their own **Moon** file type with the moon icon. The IDE's existing JSON schema support is unaffected.
+`moon.yml` and `moon.yaml` get their own **Moon** file type with the moon icon. The IDE's existing JSON schema support is unaffected. One side effect: **Search Everywhere** no longer lists the YAML keys of these files.
 
 These editor features work with YAML configuration files. `moon.json` and the other formats get no run icons or hints, and **Jump to Source** opens them at the first line.
 
-The task data comes from the moon CLI itself (`moon query projects` and `moon task-graph`). The plugin reads your configuration files only to place the hints and icons. It never guesses at inheritance rules, so what you see is what moon will run.
+The task data comes from the moon CLI itself (`moon query projects` and `moon task-graph`). The plugin reads your configuration files to connect that data to the editor: to place the hints and icons, and to provide completion, navigation, and the inspection. It never guesses at inheritance rules, so what you see is what moon will run.
 
 ### Works with your setup
 
 - **Finds moon automatically.** It looks in `node_modules/.bin/` of the workspace first, then in proto, then on `PATH`. No global install needed.
-- **Any JetBrains IDE.** It uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are optional.
+- **Any IntelliJ-based JetBrains IDE.** It uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are optional.
 - **Native IDE building blocks.** Tool windows, run configurations, Search Everywhere, Run Anything, Code Vision, inspections. Your shortcuts and habits carry over.
 - **Works offline** and sends no telemetry.
 
@@ -149,7 +149,7 @@ For anything else, [open an issue](https://github.com/artptr/moon-explorer/issue
 
 ## Privacy and error reports
 
-Moon Explorer runs fully offline and collects no telemetry. It sends nothing to a server: it reads only the output of the moon CLI and your local configuration files.
+Moon Explorer runs offline and collects no telemetry. It reads only local data: the output of the moon CLI and your configuration files. The only network action is the error report that you choose to send, as described below.
 
 If the plugin crashes or freezes the IDE, you can send a report to the maintainer: in the **IDE Internal Errors** dialog, click **Report to third-party plugin**.
 Reports go to JetBrains Marketplace, and only with your consent: either you send each one yourself, or you've turned on **Send error reports to JetBrains automatically** in the IDE.
@@ -176,7 +176,7 @@ Some features live in the IDE itself rather than in the plugin.
 | Action, project, and task graphs | Type `moon action-graph`, `moon project-graph`, or `moon task-graph` in **Run Anything** |
 | Validation of moon config files with JSON schemas | Partial. Click **Apply schema** in each file that shows the banner. Files directly in `.moon/tasks/` and `template.yml` get no schema. Offline, only schemas in the IDE cache work. Workaround: map the files to the local schemas in `.moon/cache/schemas/` by hand. |
 | MCP server for AI agents | Not available in the plugin. Use `moon mcp`, or the IDE's own MCP server to start run configurations. |
-| Tree updates when `moon.yml` or a file in `.moon/` changes | Automatic, about 1 second after the change |
+| Tree updates when `moon.yml` or a file in `.moon/` changes | Automatic, about 1 second after a change to a project configuration file (for example, `moon.yml`) or a configuration file in `.moon/` (except the cache) |
 | Refresh command | The **Refresh** button in the tool window toolbar |
 | Open a project's config file | Select a project or a task and press **Jump to Source** (F4 or Cmd+Down). This also opens files in `.moon/tasks/`. |
 | `moon.binPath` setting | **Settings \| Tools \| Moon Explorer**. Usually you don't need it: the plugin finds moon in `node_modules/.bin/`, in proto, and on `PATH`. |

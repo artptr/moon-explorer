@@ -15,7 +15,7 @@
 - A global task with direct dependents has the hint **N dependents** in its file in `.moon/tasks/`. The list puts the dependents into groups by the target of the inherited task, for example `ui:lint`. The list also shows the internal tasks. Click an item to open the task key of the dependent. If the command `moon task-graph` fails, the IDE does not show this hint. The IDE shows the other hints.
 - The `moon.yml` file of a project shows a warning on an entry of `workspace.inheritedTasks` if no inherited file of the project contains the global task. Example: `exclude: ['lnt']`. The quick fix **Remove entry** removes the entry. If the entry is the last item of `include`, the list becomes `[]`. Thus the project continues to inherit no tasks. To disable the inspection, use **Settings | Editor | Inspections | Moon**.
 - In the entries of `workspace.inheritedTasks`, **Go to Declaration** opens the global task in the file in `.moon/tasks/`. If more than one file has the global task, the IDE shows a list of the files. The completion gives the global task IDs that the project can inherit.
-- The plugin gives the file names `moon.yml` and `moon.yaml` to JetBrains Marketplace. Thus an IDE without the plugin can suggest Moon Explorer when you open one of these files. The suggestion is possible only after the release on JetBrains Marketplace.
+- The plugin gives the file names `moon.yml` and `moon.yaml` to JetBrains Marketplace. After the release, JetBrains Marketplace can use these names. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
 ### Changed
 
@@ -59,7 +59,7 @@
 - A moon run configuration can contain more than one target. Put spaces between the targets. The option **Run only the affected tasks** adds `--affected` to the command.
 - The task nodes and the project nodes in the **Moon** tool window have the action **Jump to Source**. Use the shortcut of **Jump to Source** (F4 or Cmd+Down) or the context menu. For a task, the IDE opens the configuration file of the project, for example `moon.yml`, or a file in `.moon/tasks/`. If the task is in more than one file, the IDE shows a list of the files. In a YAML file, the IDE shows the line of the task. In a file of a different format, and for a project, the IDE shows the first line.
 - The **Category** selection in the **Group By** menu of the **Moon** tool window has the option **Tag**. The tree shows a node for each tag. A project with two tags is in the two tag nodes. The projects without tags are in the "(none)" node.
-- Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
+- Plugin suggestion: the plugin declares the npm package `@moonrepo/cli` in `package.json` for IDEs with the JavaScript plugin, for example WebStorm.
   **NOTE:** JetBrains did not approve this suggestion. Thus the IDE does not show it.
 
 ### Fixed

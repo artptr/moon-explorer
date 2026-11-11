@@ -12,8 +12,8 @@
             <li>A <b>Moon</b> tool window with every project and task of the workspace</li>
             <li>Group by project or by task name, optionally inside <code>stack</code>, <code>layer</code>, or tag nodes</li>
             <li>Type to search task IDs, project IDs, and task descriptions</li>
-            <li><b>Jump to Source</b> opens the line where a task is declared, including tasks inherited from <code>.moon/tasks/</code></li>
-            <li>Automatic refresh about a second after you change <code>moon.yml</code> or a configuration file in <code>.moon/</code></li>
+            <li><b>Jump to Source</b> opens the configuration file of a task, at the line of the task in YAML files, including tasks inherited from <code>.moon/tasks/</code></li>
+            <li>Automatic refresh about a second after you change a project configuration file or a configuration file in <code>.moon/</code></li>
         </ul>
 
         <h3>Run tasks from anywhere</h3>
