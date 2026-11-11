@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-11
+
 ### Added
 
 - The IDE opens `moon.yml` and `moon.yaml` with the file type **Moon**. These files show the moon icon. The JSON schemas continue to operate. The file type operates only when the YAML plugin is active. The usual files in `.moon/` keep the YAML file type. The YAML keys contributor of **Search Everywhere** does not find the keys in `moon.yml` and `moon.yaml`.
@@ -94,7 +96,8 @@
 - **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.
 - Speed search in the tree of the **Moon** tool window. Select the tree. Then type text to find a task by its ID, its project, or its description.
 
-[Unreleased]: https://github.com/artptr/moon-explorer/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/artptr/moon-explorer/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/artptr/moon-explorer/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/artptr/moon-explorer/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/artptr/moon-explorer/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/artptr/moon-explorer/compare/0.1.0...0.2.0
