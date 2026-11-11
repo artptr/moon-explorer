@@ -18,10 +18,10 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Keeps the tasks of the moon workspace for the IDE project.
- * [scope] is the coroutine scope of the service. The tool window uses it to collect [state].
+ * [project] is the IDE project of the service. [scope] is the coroutine scope of the service. The tool window uses it to collect [state].
  */
 @Service(Service.Level.PROJECT)
-class MoonTasksService(private val project: Project, val scope: CoroutineScope) {
+class MoonTasksService(internal val project: Project, val scope: CoroutineScope) {
 
     private val _state = MutableStateFlow<TasksState>(TasksState.Loading(null))
 

@@ -6,6 +6,7 @@ import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
+import io.github.artptr.moonexplorer.ui.awaitRunMarkersRefresher
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import java.nio.file.Path
@@ -29,7 +30,10 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             project.service<MoonSettings>().resetForTests()
-            if (::service.isInitialized) runBlocking { service.resetForTests() }
+            if (::service.isInitialized) {
+                runBlocking { service.resetForTests() }
+                service.awaitRunMarkersRefresher()
+            }
         } finally {
             super.tearDown()
         }
@@ -43,15 +47,20 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
  */
 fun MoonTasksService.prepareForTests() {
     runBlocking { resetForTests() }
+    awaitRunMarkersRefresher()
     projectDir = { TestData.workspace.toPath() }
     queryProjects = { CliResult.Success(TestData.recorded("query-projects.json")) }
     taskGraph = { CliResult.Success(TestData.recorded("task-graph.json")) }
 }
 
-/** Waits until the state is equal to [expected]. If this does not occur in 10 seconds, the test fails. */
+/**
+ * Waits until the state is equal to [expected]. Then waits until [io.github.artptr.moonexplorer.ui.RunMarkersRefresher] handled this state.
+ * If one of these does not occur in 10 seconds, the test fails.
+ */
 fun MoonTasksService.awaitState(expected: TasksState) {
     runBlocking { withTimeoutOrNull(10.seconds) { state.first { it == expected } } }
         ?: throw AssertionError("Expected $expected, but the state is ${state.value}")
+    awaitRunMarkersRefresher()
 }
 
 /** Waits until the deferred value completes. If this does not occur in 10 seconds, the test fails. */

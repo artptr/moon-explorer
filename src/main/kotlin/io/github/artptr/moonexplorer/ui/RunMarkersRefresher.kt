@@ -6,6 +6,7 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
@@ -14,11 +15,10 @@ import com.intellij.psi.PsiManager
 import io.github.artptr.moonexplorer.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Updates the run icons, the inheritance icons, and the Code Vision hints of the open moon configuration files after a load.
@@ -31,6 +31,8 @@ import java.nio.file.Path
  * The refresher examines the configuration files of the old data and of the new data. Thus the refresher also removes the icon of a removed task.
  * Only YAML files have these items. Thus the refresher examines only the YAML files. The refresher does not use YAML classes.
  * If a later contributor adds run icons for a different file format, add this format to [runMarkerPaths].
+ *
+ * If the update after a load fails, the refresher writes a warning to the log and continues. Thus the next load updates the files again.
  */
 @Service(Service.Level.PROJECT)
 class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
@@ -41,22 +43,46 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
      */
     internal var restart: (PsiFile) -> Unit = { DaemonCodeAnalyzer.getInstance(project).restart(it, this) }
 
+    /**
+     * The state of the service that the refresher handled last. The value is null before the refresher gets the first state.
+     * Tests wait until this value is the same instance as the current state of the service. Then the refresher does not start the analysis
+     * later in the test. Each change of the state makes a new instance. Thus the comparison of the instances also finds a change to an old value.
+     */
+    @Volatile
+    internal var handled: TasksState? = null
+        private set
+
     init {
         // The IDE makes a service one time. Thus only one coroutine monitors the state.
         val service = project.service<MoonTasksService>()
         scope.launch {
             var previous: TasksState.Loaded? = null
-            service.state.map { it.lastLoaded }.distinctUntilChanged().collect { loaded ->
-                val paths = runMarkerPaths(previous) + runMarkerPaths(loaded)
+            service.state.collect { state ->
+                val loaded = state.lastLoaded
+                // Only a change of the loaded data changes the icons and the hints.
+                val paths = if (loaded == previous) emptySet() else runMarkerPaths(previous) + runMarkerPaths(loaded)
                 previous = loaded
-                if (paths.isNotEmpty()) restartOpenFiles(paths)
+                if (paths.isNotEmpty()) {
+                    // An exception must not stop the collection. If the collection stops, no later load updates the files.
+                    try {
+                        restartOpenFiles(paths)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        LOG.warn("Cannot analyze the open moon configuration files again", e)
+                    }
+                }
+                handled = state
             }
         }
     }
 
     private suspend fun restartOpenFiles(paths: Set<Path>) {
+        // The EDT changes the list of the open files. A read action does not prevent this change.
+        // Thus the refresher gets the list on the EDT. The test editor manager can give a null item to a different thread.
+        val openFiles = withContext(Dispatchers.EDT) { FileEditorManager.getInstance(project).openFiles.toList() }
         val files = readAction {
-            FileEditorManager.getInstance(project).openFiles
+            openFiles
                 .filter { it.isValid && it.configFilePath() in paths }
                 .mapNotNull { PsiManager.getInstance(project).findFile(it) }
         }
@@ -70,6 +96,10 @@ class RunMarkersRefresher(private val project: Project, scope: CoroutineScope) {
                 restart(file)
             }
         }
+    }
+
+    private companion object {
+        private val LOG = logger<RunMarkersRefresher>()
     }
 }
 

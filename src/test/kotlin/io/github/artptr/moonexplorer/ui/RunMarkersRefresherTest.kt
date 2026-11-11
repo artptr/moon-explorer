@@ -14,11 +14,12 @@ import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
 
 class RunMarkersRefresherTest : MoonTasksServiceTestCase() {
 
     /** The files that the refresher analyzed again. The test does not start the real analysis. */
-    private lateinit var restarted: List<PsiFile>
+    private lateinit var restarted: MutableList<PsiFile>
 
     override fun setUp() {
         super.setUp()
@@ -78,5 +79,21 @@ class RunMarkersRefresherTest : MoonTasksServiceTestCase() {
         val state = TestData.recordedState()
         val paths = restarted.map { state.workspacePath(it.virtualFile.toNioPath()) }
         assertEquals(listOf(".moon/tasks/all.yml", "apps/web/moon.yml"), paths.distinct().sorted())
+    }
+
+    fun testRefresherContinuesAfterAnException() {
+        // An exception in the refresher stopped the collection of the state. Then no later load updated the open files.
+        val refresher = project.service<RunMarkersRefresher>()
+        val record = refresher.restart
+        val calls = AtomicInteger()
+        refresher.restart = { if (calls.getAndIncrement() == 0) throw IllegalStateException("The first restart fails") else record(it) }
+        open(".moon/tasks/all.yml")
+        // loadRecorded waits until the refresher handled the loaded data. Thus the first restart occurred.
+        service.loadRecorded()
+        assertTrue(calls.get() > 0)
+        restarted.clear()
+        // The removal of the tasks is a change of the loaded data. Thus the refresher examines the files of the old data.
+        service.loadNoWorkspace()
+        assertNotEmpty(restarted)
     }
 }
