@@ -4,7 +4,7 @@
     <name>Moon Explorer</name>
     <vendor url="https://github.com/artptr/moon-explorer">Artem Petrenkov</vendor>
     <description><![CDATA[
-        <p><b>Moon Explorer is a full IDE companion for <a href="https://moonrepo.dev">moon</a> workspaces in IntelliJ IDEA, WebStorm, and every other JetBrains IDE.</b></p>
+        <p><b>Moon Explorer is a full IDE companion for <a href="https://moonrepo.dev">moon</a> workspaces in IntelliJ IDEA, WebStorm, and every other IntelliJ-based JetBrains IDE.</b></p>
         <p>Browse every project and task in your monorepo, run any of them in a couple of keystrokes, and edit <code>moon.yml</code> and <code>.moon/tasks/</code> knowing exactly which projects each change will touch. No terminal, no digging through YAML, no global installation of moon.</p>
 
         <h3>Explore the workspace</h3>
@@ -13,14 +13,14 @@
             <li>Group by project or by task name, optionally inside <code>stack</code>, <code>layer</code>, or tag nodes</li>
             <li>Type to search task IDs, project IDs, and task descriptions</li>
             <li><b>Jump to Source</b> opens the line where a task is declared, including tasks inherited from <code>.moon/tasks/</code></li>
-            <li>Automatic refresh about a second after you change <code>moon.yml</code> or a file in <code>.moon/</code></li>
+            <li>Automatic refresh about a second after you change <code>moon.yml</code> or a configuration file in <code>.moon/</code></li>
         </ul>
 
         <h3>Run tasks from anywhere</h3>
         <ul>
             <li>Double-click a task in the tree, or select several tasks and run them in one <code>moon run</code></li>
             <li><b>Run in N Projects</b> and <b>Run Affected in N Projects</b> on a task name</li>
-            <li>Find and run tasks in <b>Search Everywhere</b>, or type <code>moon</code> in <b>Run Anything</b> for target completion and any moon command</li>
+            <li>Find and run tasks in <b>Search Everywhere</b>, or type <code>moon</code> in <b>Run Anything</b> for target completion and any moon command. The <b>Execute Moon Task</b> toolbar button opens it for you.</li>
             <li>Run icons in the gutter of <code>moon.yml</code> and of the files in <code>.moon/tasks/</code></li>
             <li>Standard IDE run configurations with several targets, <code>--affected</code>, <code>--force</code>, pass-through arguments, and environment variables</li>
         </ul>
@@ -28,15 +28,15 @@
         <h3>Understand task inheritance</h3>
         <ul>
             <li>Code Vision hints in <code>.moon/tasks/</code>: <b>Inherited by N projects</b>, <b>Merged in N projects</b>, and <b>N dependents</b></li>
-            <li>Hints in <code>moon.yml</code>: <b>N inherited tasks</b> and <b>Merged with all.yml</b>, with gutter icons that jump to the global task</li>
+            <li>Hints in <code>moon.yml</code>: <b>N inherited tasks</b> and <b>Merged with &lt;global file name&gt;</b>, with gutter icons that jump to the global task</li>
             <li>Completion, <b>Go to Declaration</b>, and an inspection with a quick fix for <code>workspace.inheritedTasks</code></li>
-            <li>A <b>Moon</b> file type for <code>moon.yml</code> and <code>moon.yaml</code>, with the JSON schema validation intact</li>
+            <li>A <b>Moon</b> file type for <code>moon.yml</code> and <code>moon.yaml</code>. The existing JSON schema support is unaffected.</li>
         </ul>
 
         <h3>Works with your setup</h3>
         <ul>
             <li>Finds moon automatically in <code>node_modules/.bin/</code>, in proto, or on <code>PATH</code></li>
-            <li>Uses only the IntelliJ Platform. The editor features need the bundled YAML plugin.</li>
+            <li>Uses only the IntelliJ Platform. The editor features work with YAML configuration files and need the YAML plugin that comes bundled with the IDE.</li>
             <li>Requires moon v2. Works offline and sends no telemetry.</li>
         </ul>
 

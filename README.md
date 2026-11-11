@@ -5,7 +5,7 @@
 [![Build](https://github.com/artptr/moon-explorer/actions/workflows/build.yml/badge.svg)](https://github.com/artptr/moon-explorer/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**Moon Explorer is a full IDE companion for [moon](https://moonrepo.dev) workspaces in IntelliJ IDEA, WebStorm, and every other JetBrains IDE.**
+**Moon Explorer is a full IDE companion for [moon](https://moonrepo.dev) workspaces in IntelliJ IDEA, WebStorm, and every other IntelliJ-based JetBrains IDE.**
 
 Browse every project and task in your monorepo, run any of them in a couple of keystrokes, and edit `moon.yml` and `.moon/tasks/` knowing exactly which projects each change will touch. No terminal, no digging through YAML, no global installation of moon.
 
@@ -39,14 +39,14 @@ Browse every project and task in your monorepo, run any of them in a couple of k
 
 - Any IntelliJ-based IDE, version 2025.3 or later: IntelliJ IDEA, WebStorm, PyCharm, GoLand, RustRover, and the rest
 - A moon v2 workspace (tested with moon 2.2.3 and later)
-- The bundled YAML plugin, for the editor features. Everything else works without it.
+- The YAML plugin that comes bundled with the IDE, for the editor features. Everything else works without it.
 
 **Install**
 
 1. Open **Settings | Plugins | Marketplace**.
 2. Search for **Moon Explorer** and click **Install**.
 
-Or install it from the [JetBrains Marketplace page](https://plugins.jetbrains.com/plugin/35204-moon-explorer). The IDE also suggests the plugin when you open a `moon.yml` file, and IDEs with JavaScript support (like WebStorm) suggest it when `package.json` lists `@moonrepo/cli`.
+Or install it from the [JetBrains Marketplace page](https://plugins.jetbrains.com/plugin/35204-moon-explorer).
 
 **First run**
 
@@ -64,9 +64,9 @@ The **Moon** tool window shows every project and task in the workspace as a tree
 
 - **Group the tree the way you think.** Group by project, or by task name to see every project that has a `lint` or a `build` task. Add an outer category by `stack`, `layer`, or tag to split frontend from backend, apps from libraries.
 - **Type to search.** Select the tree and start typing to match task IDs, project IDs, and task descriptions.
-- **Select Opened File** finds the project of the file in the editor, nested projects included.
+- **Select Opened File** finds the project of the file in the editor, nested projects included. It's available when the tree is grouped by project.
 - **Jump to Source** (F4 or Cmd+Down) opens the `moon.yml` of a project, or the exact line where a task is declared, including tasks inherited from `.moon/tasks/`.
-- **Always up to date.** The tree refreshes about a second after you change `moon.yml` or anything in `.moon/`, including changes from `git checkout` or other tools. If a refresh fails, you keep the last good tree and get a clear message about what went wrong.
+- **Always up to date.** The tree refreshes about a second after you change `moon.yml` or a configuration file in `.moon/` (the cache doesn't count), including changes from `git checkout` or other tools. If a refresh fails, you keep the last good tree, and the **Show Refresh Error** button tells you what went wrong.
 - Internal tasks stay hidden, the same as in `moon run`.
 
 ### Run tasks from anywhere
@@ -75,8 +75,9 @@ The **Moon** tool window shows every project and task in the workspace as a tree
 - **Across projects:** on a task-name node, use **Run in N Projects** or **Run Affected in N Projects**. The second one adds `--affected`, so moon runs the task only where your changes matter.
 - **From Search Everywhere** (double Shift): find any task by ID, project, or description and press Enter. The tool window doesn't even need to be open.
 - **From Run Anything** (double Ctrl): type `moon` to get completion for every `moon run <project>:<task>` target. Any other moon command works too, such as `moon check web`, `moon project-graph`, or `moon query projects`, with the moon executable the plugin found.
+- **From the toolbar:** click **Execute Moon Task** in the **Moon** tool window to open **Run Anything** with `moon ` already typed, then pick a target.
 - **From the editor:** task keys in `moon.yml` have run icons in the gutter. In `.moon/tasks/`, the icon runs the global task in every project that inherits it, only the affected ones, or one project you pick. Renames, includes, and excludes in `workspace.inheritedTasks` are respected.
-- **Full run configurations.** Each run is a standard IDE run configuration of type **moon**. Save it, share it, and adjust it:
+- **Full run configurations.** Each run is a standard IDE run configuration of type **moon**. Right-click a task and choose **Edit '\<target\>' Settings...** to save it, share it, and adjust it:
   - several targets in one configuration
   - **Run only the affected tasks** (`--affected`)
   - **Run again without the cache** (`--force`)
@@ -95,14 +96,16 @@ Global tasks in `.moon/tasks/` change the tasks of many projects at once. Moon E
 
 **In the `moon.yml` of a project:**
 
-- **N inherited tasks** above the `tasks` key, so you can see what the project gets for free.
-- **Merged with all.yml** on a local task that merges with a global one, plus a gutter icon that jumps to the global task.
+- **N inherited tasks** above the `tasks` key (or at the top of the file when there's no `tasks` key), so you can see what the project gets for free.
+- **Merged with \<global file name\>** (for example, **Merged with all.yml**) on a local task that merges with a global one. The gutter icon jumps to the global task, or opens a list when the task merges with several files or tasks.
 - In `workspace.inheritedTasks`, completion suggests the global task IDs that the project can inherit, and **Go to Declaration** opens the global task.
-- An inspection flags `include` and `exclude` entries that match no global task (a typo like `lnt`, for example), with a quick fix to remove them.
+- An inspection flags `include`, `exclude`, and `rename` entries that match no global task (a typo like `lnt`, for example), with a quick fix to remove them.
 
-`moon.yml` and `moon.yaml` get their own **Moon** file type with the moon icon, and the JSON schema validation keeps working.
+`moon.yml` and `moon.yaml` get their own **Moon** file type with the moon icon. The IDE's existing JSON schema support is unaffected.
 
-All this data comes from the moon CLI itself (`moon query projects` and `moon task-graph`). The plugin never guesses at inheritance rules, so what you see is what moon will run.
+These editor features work with YAML configuration files. `moon.json` and the other formats get no run icons or hints, and **Jump to Source** opens them at the first line.
+
+The task data comes from the moon CLI itself (`moon query projects` and `moon task-graph`). The plugin reads your configuration files only to place the hints and icons. It never guesses at inheritance rules, so what you see is what moon will run.
 
 ### Works with your setup
 
@@ -146,7 +149,7 @@ For anything else, [open an issue](https://github.com/artptr/moon-explorer/issue
 
 ## Privacy and error reports
 
-Moon Explorer runs fully offline and collects no telemetry. Its only source of data is the moon CLI on your machine.
+Moon Explorer runs fully offline and collects no telemetry. It sends nothing to a server: it reads only the output of the moon CLI and your local configuration files.
 
 If the plugin crashes or freezes the IDE, you can send a report to the maintainer: in the **IDE Internal Errors** dialog, click **Report to third-party plugin**.
 Reports go to JetBrains Marketplace, and only with your consent: either you send each one yourself, or you've turned on **Send error reports to JetBrains automatically** in the IDE.
