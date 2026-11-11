@@ -15,7 +15,7 @@
 - A global task with direct dependents has the hint **N dependents** in its file in `.moon/tasks/`. The list puts the dependents into groups by the target of the inherited task, for example `ui:lint`. The list also shows the internal tasks. Click an item to open the task key of the dependent. If the command `moon task-graph` fails, the IDE does not show this hint. The IDE shows the other hints.
 - The `moon.yml` file of a project shows a warning on an entry of `workspace.inheritedTasks` if no inherited file of the project contains the global task. Example: `exclude: ['lnt']`. The quick fix **Remove entry** removes the entry. If the entry is the last item of `include`, the list becomes `[]`. Thus the project continues to inherit no tasks. To disable the inspection, use **Settings | Editor | Inspections | Moon**.
 - In the entries of `workspace.inheritedTasks`, **Go to Declaration** opens the global task in the file in `.moon/tasks/`. If more than one file has the global task, the IDE shows a list of the files. The completion gives the global task IDs that the project can inherit.
-- JetBrains Marketplace finds the file names `moon.yml` and `moon.yaml`. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
+- The plugin gives the file names `moon.yml` and `moon.yaml` to JetBrains Marketplace. After the release, JetBrains Marketplace can use these names. Then an IDE without the plugin can suggest Moon Explorer when you open one of these files.
 
 ### Changed
 
@@ -29,7 +29,7 @@
 - The toolbar of the **Moon** tool window has the action **Moon Explorer Settings**. The action opens the **Settings** dialog on the page **Tools | Moon Explorer**. The action is always available. It is also available when the tool window shows an error.
 - The task keys in moon configuration files have run icons in the gutter. In the `moon.yml` file of a project, the icon runs `<project>:<task>`. The context menu of the task key also has the item **Run**. In a file in `.moon/tasks/`, the icon is different, and the tooltip shows the number of projects that inherit the task. Click the icon. In the popup, select **Run in N Projects**, **Run Affected in N Projects**, or one project.
 - The run icons use the tasks that the plugin loaded. A new task gets an icon after the plugin loads the tasks again. The run icons are only in YAML files. The YAML plugin is necessary for the run icons. If you disable the YAML plugin, all other functions operate.
-- You can send a report of a plugin error to the maintainer. In the **IDE Internal Errors** dialog, click **Report to third-party plugin**. The IDE can also send reports of UI freezes that the plugin causes. The IDE sends the reports to JetBrains Marketplace only if you agree.
+- You can send a report of a plugin error to the maintainer. In the **IDE Internal Errors** dialog, click **Report to the Third-Party Plugin**. The IDE can also send reports of UI freezes that the plugin causes. The IDE sends the reports to JetBrains Marketplace only if you agree.
 - A moon run configuration has the field **Arguments**. The configuration adds the arguments after `--`. moon gives these arguments to the task command, for example `moon run web:test -- src/app.test.ts`.
 - A moon run configuration has the option **Run again without the cache**. This option adds `--force`. The configuration puts `--affected` and `--force` before `--`.
 - A moon run configuration has the field **Environment variables**. The environment variables dialog has an option that adds the system environment variables. If you clear this option, the moon process gets only the variables of the configuration. Then add `PATH`. The npm package of moon uses `PATH` to find Node.js.
@@ -59,7 +59,8 @@
 - A moon run configuration can contain more than one target. Put spaces between the targets. The option **Run only the affected tasks** adds `--affected` to the command.
 - The task nodes and the project nodes in the **Moon** tool window have the action **Jump to Source**. Use the shortcut of **Jump to Source** (F4 or Cmd+Down) or the context menu. For a task, the IDE opens the configuration file of the project, for example `moon.yml`, or a file in `.moon/tasks/`. If the task is in more than one file, the IDE shows a list of the files. In a YAML file, the IDE shows the line of the task. In a file of a different format, and for a project, the IDE shows the first line.
 - The **Category** selection in the **Group By** menu of the **Moon** tool window has the option **Tag**. The tree shows a node for each tag. A project with two tags is in the two tag nodes. The projects without tags are in the "(none)" node.
-- Plugin suggestion: if an IDE project has `@moonrepo/cli` in `package.json`, the IDE suggests Moon Explorer. Only IDEs that have the JavaScript plugin show this suggestion. An example is WebStorm.
+- Plugin suggestion: the plugin declares the npm package `@moonrepo/cli` in `package.json` for IDEs with the JavaScript plugin, for example WebStorm.
+  **NOTE:** JetBrains did not approve this suggestion. Thus the IDE does not show it.
 
 ### Fixed
 
