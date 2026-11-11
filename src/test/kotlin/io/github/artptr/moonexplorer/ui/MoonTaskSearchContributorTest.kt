@@ -4,11 +4,13 @@ import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
+import com.intellij.psi.codeStyle.NameUtil
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.components.JBList
 import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertNotEquals
 
 class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
 
@@ -36,6 +38,31 @@ class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
         assertSameElements(targets("database migrations"), "db:migrate")
         assertContainsElements(targets("worker"), "worker:audit", "worker:build", "worker:check", "worker:start")
         assertContainsElements(targets("web:build"), "web:build")
+    }
+
+    fun testMatcherGivesNoMatchOnlyForATextThatDoesNotMatch() {
+        // The contributor uses this value of the platform matcher to skip a task. Refer to MoonTaskSearchContributor.NO_MATCH.
+        val matcher = NameUtil.buildMatcher("*storybook").build()
+        assertEquals(MoonTaskSearchContributor.NO_MATCH, matcher.matchingDegree("db:migrate", false))
+        assertNotEquals(MoonTaskSearchContributor.NO_MATCH, matcher.matchingDegree("ui:storybook", false))
+    }
+
+    fun testSearchPutsAMatchAtTheStartOfAWordBeforeAMatchInAWord() {
+        // "check" matches the start of a word in worker:check and in the descriptions of the lint and audit tasks.
+        // It matches in the word "typecheck" of the typecheck tasks. Search Everywhere puts the items with a higher weight first.
+        val sorted = search("check").sortedByDescending { it.weight }.map { it.item.target }
+        assertContainsElements(sorted.take(sorted.size - 3), "worker:check", "api:lint", "api:audit")
+        assertSameElements(sorted.takeLast(3), "admin:typecheck", "ui:typecheck", "utils:typecheck")
+    }
+
+    fun testSearchWeightIsTheMatchingDegreeOfTheSearchText() {
+        // Search Everywhere sorts the found tasks by the weight. Thus the order of the tasks comes from the matching degree.
+        val found = search("build")
+        assertNotEmpty(found)
+        val matcher = NameUtil.buildMatcher("*build").build()
+        for (item in found) {
+            assertEquals(item.item.target, matcher.matchingDegree(taskSearchText(item.item), false), item.weight)
+        }
     }
 
     fun testSearchFindsNothingForAnUnknownTextOrABlankPattern() {

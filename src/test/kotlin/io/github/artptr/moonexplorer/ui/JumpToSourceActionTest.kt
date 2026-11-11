@@ -4,15 +4,18 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.components.JBList
 import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.swing.JLabel
 
 class JumpToSourceActionTest : BasePlatformTestCase() {
 
@@ -168,6 +171,16 @@ class JumpToSourceActionTest : BasePlatformTestCase() {
         chosen!!(chooserFiles[1])
         waitForAction()
         assertEquals(".moon/tasks/all.yml" to lineOf(".moon/tasks/all.yml", "  lint:"), openedFileAndLine())
+    }
+
+    fun testChooserRendererShowsTheFileTypeIconAndTheLabel() {
+        val file = SourceFile(Path.of("/workspace/apps/web/moon.yml"), "lint")
+        val component = sourceFileRenderer { "apps/web/moon.yml" }
+            .getListCellRendererComponent(JBList(file), file, 0, false, false) as JLabel
+        assertEquals("apps/web/moon.yml", component.text)
+        val expectedIcon = FileTypeManager.getInstance().getFileTypeByFileName("moon.yml").icon
+        assertNotNull(expectedIcon)
+        assertSame(expectedIcon, component.icon)
     }
 
     fun testActionHasTheShortcutsOfJumpToSource() {
