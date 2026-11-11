@@ -5,15 +5,15 @@
     <vendor url="https://github.com/artptr/moon-explorer">Artem Petrenkov</vendor>
     <description><![CDATA[
         <p><b>Moon Explorer is a full IDE companion for <a href="https://moonrepo.dev">moon</a> workspaces in IntelliJ IDEA, WebStorm, and every other IntelliJ-based JetBrains IDE.</b></p>
-        <p>Browse every project and task in your monorepo, run any of them in a couple of keystrokes, and edit <code>moon.yml</code> and <code>.moon/tasks/</code> knowing exactly which projects each change will touch. No terminal, no digging through YAML, no global installation of moon.</p>
+        <p>Browse the projects and tasks in your monorepo, run any task in a couple of keystrokes, and edit <code>moon.yml</code> and <code>.moon/tasks/</code> knowing exactly which projects each change will touch. No terminal, no digging through YAML, no global installation of moon.</p>
 
         <h3>Explore the workspace</h3>
         <ul>
-            <li>A <b>Moon</b> tool window with every project and task of the workspace</li>
+            <li>A <b>Moon</b> tool window with the projects and their runnable tasks</li>
             <li>Group by project or by task name, optionally inside <code>stack</code>, <code>layer</code>, or tag nodes</li>
             <li>Type to search task IDs, project IDs, and task descriptions</li>
             <li><b>Jump to Source</b> opens the configuration file of a task, at the line of the task in YAML files, including tasks inherited from <code>.moon/tasks/</code></li>
-            <li>Automatic refresh about a second after you change a project configuration file or a configuration file in <code>.moon/</code></li>
+            <li>Refresh about a second after you change a project configuration file or a configuration file in <code>.moon/</code></li>
         </ul>
 
         <h3>Run tasks from anywhere</h3>
@@ -28,7 +28,7 @@
         <h3>Understand task inheritance</h3>
         <ul>
             <li>Code Vision hints in <code>.moon/tasks/</code>: <b>Inherited by N projects</b>, <b>Merged in N projects</b>, and <b>N dependents</b></li>
-            <li>Hints in <code>moon.yml</code>: <b>N inherited tasks</b> and <b>Merged with &lt;global file name&gt;</b>, with gutter icons that jump to the global task</li>
+            <li>Hints in <code>moon.yml</code>: <b>N inherited tasks</b>, and <b>Merged with &lt;global file name&gt;</b> with a gutter icon that jumps to the global task</li>
             <li>Completion, <b>Go to Declaration</b>, and an inspection with a quick fix for <code>workspace.inheritedTasks</code></li>
             <li>A <b>Moon</b> file type for <code>moon.yml</code> and <code>moon.yaml</code>. The existing JSON schema support is unaffected.</li>
         </ul>
@@ -37,7 +37,7 @@
         <ul>
             <li>Finds moon automatically in <code>node_modules/.bin/</code>, in proto, or on <code>PATH</code></li>
             <li>Uses only the IntelliJ Platform. The editor features work with YAML configuration files and need the YAML plugin that comes bundled with the IDE.</li>
-            <li>Requires moon v2. Works offline and sends no telemetry.</li>
+            <li>Requires moon v2. The plugin makes no network calls of its own and sends no telemetry.</li>
         </ul>
 
         <p><a href="https://github.com/artptr/moon-explorer#readme">Documentation</a> | <a href="https://github.com/artptr/moon-explorer/issues">Issues</a></p>

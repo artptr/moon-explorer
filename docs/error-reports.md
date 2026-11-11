@@ -5,7 +5,7 @@ This document tells how to analyze the exception reports and the freeze reports 
 ## 1. How the reports get to the maintainer
 
 `plugin.xml` registers the error handler `JetBrainsMarketplaceErrorReportSubmitter` of the IntelliJ Platform.
-When the plugin causes an exception, the **IDE Internal Errors** dialog shows **Report to third-party plugin**.
+When the plugin causes an exception, the **IDE Internal Errors** dialog shows **Report to the Third-Party Plugin**.
 The user can click this button to send the report.
 If the setting **Send error reports to JetBrains automatically** is on, the IDE sends the reports automatically.
 The IDE sends a report only if the user agrees.
