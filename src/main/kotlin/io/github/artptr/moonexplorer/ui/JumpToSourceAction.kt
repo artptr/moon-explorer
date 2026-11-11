@@ -13,13 +13,15 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.ColoredListCellRenderer
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.swing.JList
+import javax.swing.ListCellRenderer
 
 /**
  * Opens the configuration file of the selected task or project. The action has the shortcuts of **Jump to Source**.
@@ -111,13 +113,21 @@ private fun showFileChooser(
 ) {
     JBPopupFactory.getInstance().createPopupChooserBuilder(files)
         .setTitle(title)
-        .setRenderer(
-            SimpleListCellRenderer.create { cell, file: SourceFile, _ ->
-                cell.icon = FileTypeManager.getInstance().getFileTypeByFileName(file.path.fileName.toString()).icon
-                cell.text = label(file)
-            },
-        )
+        .setRenderer(sourceFileRenderer(label))
         .setItemChosenCallback(onChosen)
         .createPopup()
         .showInBestPositionFor(dataContext)
 }
+
+/**
+ * Shows the icon of the file type and the text that `label` gives for a file.
+ * The renderer does not use `listCellRenderer { }`, because `LcrRow` is experimental API.
+ */
+internal fun sourceFileRenderer(label: (SourceFile) -> String): ListCellRenderer<SourceFile> =
+    object : ColoredListCellRenderer<SourceFile>() {
+        override fun customizeCellRenderer(list: JList<out SourceFile>, value: SourceFile?, index: Int, selected: Boolean, hasFocus: Boolean) {
+            if (value == null) return
+            icon = FileTypeManager.getInstance().getFileTypeByFileName(value.path.fileName.toString()).icon
+            append(label(value))
+        }
+    }

@@ -55,9 +55,10 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
         for (task in tasks.allTasks) {
             progressIndicator.checkCanceled()
             val text = taskSearchText(task)
-            // The fragments tell if the text matches. The degree uses them. Thus the matcher examines the text only one time.
-            val fragments = matcher.matchingFragments(text) ?: continue
-            if (!consumer.process(FoundItemDescriptor(task, matcher.matchingDegree(text, false, fragments)))) return
+            // If the text does not match, the degree is NO_MATCH. Thus the matcher examines the text only one time.
+            val degree = matcher.matchingDegree(text, false)
+            if (degree == NO_MATCH) continue
+            if (!consumer.process(FoundItemDescriptor(task, degree))) return
         }
     }
 
@@ -93,10 +94,16 @@ class MoonTaskSearchContributor(private val project: Project) : WeightedSearchEv
         override fun isAvailable(project: Project?): Boolean = project != null
     }
 
-    private companion object {
-        const val ID = "MoonExplorer.Tasks"
+    internal companion object {
+        private const val ID = "MoonExplorer.Tasks"
+
+        /**
+         * The degree that `MinusculeMatcher.matchingDegree` gives when the text does not match.
+         * The platform does not declare a constant for this value. `MoonTaskSearchContributorTest` does a check of this value.
+         */
+        const val NO_MATCH = Int.MIN_VALUE
 
         /** The position of the group in the **All** tab. A lower value moves the group up. The platform groups use values from 100 to 400. */
-        const val SORT_WEIGHT = 500
+        private const val SORT_WEIGHT = 500
     }
 }
