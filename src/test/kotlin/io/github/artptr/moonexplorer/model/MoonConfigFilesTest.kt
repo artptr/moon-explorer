@@ -18,7 +18,8 @@ class MoonConfigFilesTest {
 
     private fun vfsPath(path: Path) = FileUtil.toSystemIndependentName(path.toString())
 
-    private fun changed(file: String, data: ConfigWatch = watch) = MoonConfigFiles.isConfigChange(vfsPath(root.resolve(file)), data)
+    private fun changed(file: String, data: ConfigWatch = watch, structural: Boolean = true) =
+        MoonConfigFiles.isConfigChange(vfsPath(root.resolve(file)), data, structural)
 
     @Test
     fun projectConfigFileIsAChange() {
@@ -95,5 +96,37 @@ class MoonConfigFilesTest {
         assertFalse(changed("apps/web/.moon/workspace.yml", data = nested))
         // A workspace file above the root also applies. The refresh then finds the same root. This rare case does not need a special rule.
         assertTrue(MoonConfigFiles.isConfigChange(vfsPath(root.parent.resolve(".moon/workspace.yml")), nested))
+    }
+
+    @Test
+    fun contentChangeOfAProjectDirectoryIsNotAChange() {
+        assertFalse(changed("apps/web", structural = false))
+        assertFalse(changed("apps", structural = false))
+        assertTrue(changed("apps/web/moon.yml", structural = false))
+        assertTrue(changed(".moon/tasks/all.yml", structural = false))
+    }
+
+    @Test
+    fun fileInADirectoryNextToTheRootIsNotAChange() {
+        // The name of this directory starts with the name of the root.
+        val other = root.resolveSibling("repo-other")
+        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve("moon.yml")), watch))
+        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve(".moon/tasks/all.yml")), watch))
+        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve("apps/web")), watch))
+    }
+
+    @Test
+    fun nameThatOnlyEndsLikeAConfigFileIsNotAChange() {
+        val nested = ConfigWatch(root, root.resolve("apps/web"), watch.sources)
+        assertFalse(changed("apps/web/xmoon.yml", data = nested))
+        assertFalse(changed("apps/web/.xmoon/workspace.yml", data = nested))
+        assertFalse(changed("apps/web/.moon/xworkspace.yml", data = nested))
+    }
+
+    @Test
+    fun directoryWithANameThatStartsLikeTheMoonDirectoryIsNotTheMoonDirectory() {
+        assertFalse(changed(".moonx/tasks.yml"))
+        assertTrue(changed(".moon/cachex/a.yml"))
+        assertTrue(changed(".moon"))
     }
 }
