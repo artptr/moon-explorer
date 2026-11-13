@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
@@ -32,7 +33,8 @@ class MoonConfigFileListener(private val project: Project) : BulkFileListener {
             is VFileMoveEvent -> MoonConfigFiles.isConfigChange(event.oldPath, watch) || MoonConfigFiles.isConfigChange(event.newPath, watch)
             is VFilePropertyChangeEvent -> event.propertyName == VirtualFile.PROP_NAME &&
                 (MoonConfigFiles.isConfigChange(event.oldPath, watch) || MoonConfigFiles.isConfigChange(event.newPath, watch))
-            else -> MoonConfigFiles.isConfigChange(event.path, watch)
+            // A change of the content cannot make or delete a directory. Thus the function does not look for a project directory.
+            else -> MoonConfigFiles.isConfigChange(event.path, watch, structural = event !is VFileContentChangeEvent)
         }
     }
 }
