@@ -113,6 +113,8 @@ class MoonConfigFilesTest {
         assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve("moon.yml")), watch))
         assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve(".moon/tasks/all.yml")), watch))
         assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve("apps/web")), watch))
+        // This path does not go through the check of the root. The plugin compares the directory of the workspace file with the project directory.
+        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve(".moon/workspace.yml")), watch))
     }
 
     @Test
@@ -128,5 +130,18 @@ class MoonConfigFilesTest {
         assertFalse(changed(".moonx/tasks.yml"))
         assertTrue(changed(".moon/cachex/a.yml"))
         assertTrue(changed(".moon"))
+    }
+
+    @Test
+    fun workspaceInTheRootOfTheFileSystemOperates() {
+        // The path of the root of the file system, for example `/` or `C:/`, already ends with `/`.
+        val fsRoot = root.root
+        val atFsRoot = ConfigWatch(fsRoot, fsRoot)
+        fun changedAtFsRoot(file: String) = MoonConfigFiles.isConfigChange(vfsPath(fsRoot.resolve(file)), atFsRoot)
+        assertTrue(changedAtFsRoot(".moon/workspace.yml"))
+        assertTrue(changedAtFsRoot(".moon/tasks/all.yml"))
+        assertTrue(changedAtFsRoot("apps/web/moon.yml"))
+        assertFalse(changedAtFsRoot(".moon/cache/states/x.json"))
+        assertFalse(changedAtFsRoot("README.md"))
     }
 }

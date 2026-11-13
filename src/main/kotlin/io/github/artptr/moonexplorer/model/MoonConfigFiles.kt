@@ -1,6 +1,6 @@
 package io.github.artptr.moonexplorer.model
 
-import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator.MOON_DIR
@@ -55,8 +55,11 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
         /** Adds [name] to [dir]. A root directory, for example `/` or `C:/`, already ends with `/`. */
         fun child(dir: String, name: String): String = if (dir.endsWith('/')) "$dir$name" else "$dir/$name"
 
-        /** Gives a key for [sourceDirs]. On a file system that ignores the case of names, the key also ignores the case. */
-        fun sourceDirKey(path: String): String = if (SystemInfoRt.isFileSystemCaseSensitive) path else path.lowercase()
+        /**
+         * Gives a key for [sourceDirs]. If the IDE uses file names that ignore the case, for example on macOS, the key also ignores the case.
+         * [FileUtil.startsWith] uses the same setting. Thus the root and the project directories use the same rule.
+         */
+        fun sourceDirKey(path: String): String = if (SystemInfo.isFileSystemCaseSensitive) path else path.lowercase()
     }
 }
 
@@ -74,7 +77,8 @@ object MoonConfigFiles {
      * For a move or a rename, call the function for the old path and for the new path.
      * A project directory or one of its parent directories applies. Thus the deletion of a project applies, also without an event for its `moon.yml`.
      * Set [structural] to false for a change of the content of a file. Such a change cannot make or delete a directory.
-     * The function does not read files. It compares only strings and makes no new objects for most paths. Thus you can call it in a VFS listener.
+     * The function does not read files and makes no [Path]. It compares only strings. Thus you can call it in a VFS listener.
+     * For a change of the content of a file that is not a configuration file, it makes no new object.
      *
      * **NOTE:** If `git checkout` makes a new project directory, the VFS can send an event only for the directory, not for its `moon.yml`.
      * The function does not see the `moon.yml` file. A later change or a manual refresh corrects the tree.
@@ -84,11 +88,8 @@ object MoonConfigFiles {
         if (isWorkspaceFileForProject(path, watch.projectDirPrefix)) return true
         val root = watch.rootPrefix ?: return false
         if (!FileUtil.startsWith(path, root)) return false
-        val moonDir = watch.moonDirPrefix
-        if (moonDir != null && FileUtil.startsWith(path, moonDir)) {
-            val cache = watch.moonCachePrefix
-            return cache == null || !FileUtil.startsWith(path, cache)
-        }
+        // The root is not null. Thus the two directories in the root are also not null.
+        if (FileUtil.startsWith(path, watch.moonDirPrefix!!)) return !FileUtil.startsWith(path, watch.moonCachePrefix!!)
         if (PROJECT_FILE_SUFFIXES.any { path.endsWith(it) }) return true
         return structural && watch.isSourceDir(path)
     }
@@ -100,7 +101,7 @@ object MoonConfigFiles {
     private fun isWorkspaceFileForProject(path: String, projectDir: String?): Boolean {
         if (projectDir == null) return false
         val suffix = WORKSPACE_FILE_SUFFIXES.firstOrNull { path.endsWith(it) } ?: return false
-        // The VFS path of a root directory, for example `/`, can lose its last `/` here. Then the directory is empty or `C:`.
+        // For `/.moon/workspace.yml`, the substring is empty. For `C:/.moon/workspace.yml`, it is `C:`.
         val dir = path.substring(0, path.length - suffix.length).ifEmpty { "/" }
         return FileUtil.startsWith(projectDir, dir)
     }
