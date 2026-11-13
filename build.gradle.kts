@@ -121,6 +121,14 @@ changelog {
     versionPrefix = ""
 }
 
+// The sandbox IDE opens the test workspace. The option --args replaces this argument.
+// A Gradle run configuration in IDEA does not give --args. Thus each run task has this argument by default.
+val testWorkspace = layout.projectDirectory.dir("src/test/testData/workspace").asFile.absolutePath
+
+tasks.runIde {
+    args(testWorkspace)
+}
+
 // Runs the plugin in the local WebStorm installation. Set the path with the property `webStormPath`.
 intellijPlatformTesting {
     runIde {
@@ -129,6 +137,9 @@ intellijPlatformTesting {
                 providers.gradleProperty("webStormPath")
                     .getOrElse("${System.getProperty("user.home")}/Applications/WebStorm.app"),
             )
+            task {
+                args(testWorkspace)
+            }
         }
     }
 }
