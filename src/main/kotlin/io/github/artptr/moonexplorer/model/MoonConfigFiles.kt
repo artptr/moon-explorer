@@ -33,7 +33,7 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
 
     /**
      * The project directories of [sources] and all their parent directories in [root]. A source that is not a valid path on this computer
-     * is not in the set. The VFS listener does one lookup for each event, not one comparison for each project.
+     * is not in the set. The VFS listener does one lookup for each structural event, not one comparison for each project.
      * Use [isSourceDir] to do the lookup.
      */
     private val sourceDirs: Set<String> = this.root?.let { r ->
@@ -56,8 +56,9 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
         fun child(dir: String, name: String): String = if (dir.endsWith('/')) "$dir$name" else "$dir/$name"
 
         /**
-         * Gives a key for [sourceDirs]. If the IDE uses file names that ignore the case, for example on macOS, the key also ignores the case.
-         * [FileUtil.startsWith] uses the same setting. Thus the root and the project directories use the same rule.
+         * Gives a key for [sourceDirs]. If the file system ignores the case of names, for example on macOS, the key also ignores the case.
+         * [FileUtil.startsWith] uses the same setting. Thus the prefixes of the root and of the project directories use the same rule.
+         * The names of the configuration files, for example `moon.yml`, continue to use the case.
          */
         fun sourceDirKey(path: String): String = if (SystemInfo.isFileSystemCaseSensitive) path else path.lowercase()
     }
@@ -86,10 +87,12 @@ object MoonConfigFiles {
     fun isConfigChange(path: String, watch: ConfigWatch, structural: Boolean = true): Boolean {
         // A new workspace file can make a workspace or a nearer workspace root, for example after `moon init` in a subdirectory.
         if (isWorkspaceFileForProject(path, watch.projectDirPrefix)) return true
+        // The root and its two directories are null only together.
         val root = watch.rootPrefix ?: return false
+        val moonDir = watch.moonDirPrefix ?: return false
+        val moonCache = watch.moonCachePrefix ?: return false
         if (!FileUtil.startsWith(path, root)) return false
-        // The root is not null. Thus the two directories in the root are also not null.
-        if (FileUtil.startsWith(path, watch.moonDirPrefix!!)) return !FileUtil.startsWith(path, watch.moonCachePrefix!!)
+        if (FileUtil.startsWith(path, moonDir)) return !FileUtil.startsWith(path, moonCache)
         if (PROJECT_FILE_SUFFIXES.any { path.endsWith(it) }) return true
         return structural && watch.isSourceDir(path)
     }

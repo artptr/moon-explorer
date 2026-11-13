@@ -133,7 +133,7 @@ class MoonConfigFilesTest {
     }
 
     @Test
-    fun workspaceInTheRootOfTheFileSystemOperates() {
+    fun workspaceInTheFileSystemRootIsAChange() {
         // The path of the root of the file system, for example `/` or `C:/`, already ends with `/`.
         val fsRoot = root.root
         val atFsRoot = ConfigWatch(fsRoot, fsRoot)
