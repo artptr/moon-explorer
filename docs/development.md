@@ -26,14 +26,16 @@ The plugin finds `moon` in `node_modules/.bin/` of the workspace, in the proto d
 Before you start the sandbox IDE, make sure that this `moon` is moon 2.2.3 or later.
 
 1. Run `./gradlew runIde`.
-2. In the sandbox IDE, open a moon workspace.
-3. Open the **Moon** tool window.
+2. Open the **Moon** tool window.
 
-To open the test workspace in the sandbox IDE, do these steps:
+The sandbox IDE opens the test workspace `src/test/testData/workspace/`.
+This also occurs when you start the task from the Gradle tool window in IntelliJ IDEA.
 
-1. Run `./gradlew runIde`.
-2. In the sandbox IDE, open the directory `src/test/testData/workspace/`.
-3. Open the **Moon** tool window.
+To open a different moon workspace, give its path with the option `--args`. Example:
+
+```bash
+./gradlew runIde --args="/path/to/workspace"
+```
 
 ### 3.1 Run the plugin in a local WebStorm
 
@@ -43,13 +45,10 @@ The default path is `~/Applications/WebStorm.app`. To use a different path, set 
 To use the moon version of the test workspace, do these steps:
 
 1. In `src/test/testData/workspace/`, run `npm ci`.
-2. In the root directory of the repository, run this command:
-
-   ```bash
-   ./gradlew runWebStorm --args="$PWD/src/test/testData/workspace"
-   ```
-
+2. Run `./gradlew runWebStorm`.
 3. Open the **Moon** tool window.
+
+The task `runWebStorm` also opens the test workspace. The option `--args` changes the workspace, as for `runIde`.
 
 The plugin finds `node_modules/.bin/moon` in the test workspace. Thus it is not necessary to add it to `PATH`.
 
