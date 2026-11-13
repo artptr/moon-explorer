@@ -1,7 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.util.containers.CollectionFactory
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator.MOON_DIR
 import io.github.artptr.moonexplorer.cli.MoonWorkspaceLocator.PROJECT_CONFIG
@@ -19,50 +19,45 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
     val root: Path? = root?.toAbsolutePath()?.normalize()
     val projectDir: Path? = projectDir?.toAbsolutePath()?.normalize()
 
-    /** The root with `/` as the separator. */
-    internal val rootPrefix: String? = this.root?.let(::vfsPath)
+    /** The root and its directories as strings, or null if [root] is null. */
+    internal val rootDirs: RootDirs? = this.root?.let { RootDirs(vfsPath(it)) }
 
     /** The project directory with `/` as the separator. */
     internal val projectDirPrefix: String? = this.projectDir?.let(::vfsPath)
 
-    /** The directory `.moon` in the root. */
-    internal val moonDirPrefix: String? = rootPrefix?.let { child(it, MOON_DIR) }
-
-    /** The directory `.moon/cache` in the root. moon writes to this directory. A change in it does not change the configuration. */
-    internal val moonCachePrefix: String? = moonDirPrefix?.let { child(it, CACHE_DIR) }
-
     /**
      * The project directories of [sources] and all their parent directories in [root]. A source that is not a valid path on this computer
      * is not in the set. The VFS listener does one lookup for each structural event, not one comparison for each project.
-     * Use [isSourceDir] to do the lookup.
+     * The set uses the same case rule as [FileUtil.startsWith]. Thus the prefixes of the root and of the project directories use the same rule.
+     * The names of the configuration files, for example `moon.yml`, continue to use the case.
      */
-    private val sourceDirs: Set<String> = this.root?.let { r ->
+    internal val sourceDirs: Set<String> = CollectionFactory.createFilePathSet().also { set ->
+        val r = this.root ?: return@also
         sources.asSequence()
             .mapNotNull { resolveInRoot(r, it.source) }
             .flatMap { dir -> generateSequence(dir) { it.parent }.takeWhile { it.startsWith(r) } }
-            .map { sourceDirKey(vfsPath(it)) }
-            .toHashSet()
-    }.orEmpty()
+            .mapTo(set, ::vfsPath)
+    }
 
-    /** Gives true if [path] is a project directory of [sources] or one of their parent directories in [root]. */
-    internal fun isSourceDir(path: String): Boolean = sourceDirs.isNotEmpty() && sourceDirKey(path) in sourceDirs
+    /** The workspace root and the directories in it that [MoonConfigFiles] examines. All values use `/` as the separator. */
+    internal class RootDirs(val root: String) {
+        /** The directory `.moon` in the root. */
+        val moonDir: String = child(root, MOON_DIR)
 
-    private companion object {
-        const val CACHE_DIR = "cache"
+        /** The directory `.moon/cache` in the root. moon writes to this directory. A change in it does not change the configuration. */
+        val moonCache: String = child(moonDir, CACHE_DIR)
 
-        fun vfsPath(path: Path): String = FileUtil.toSystemIndependentName(path.toString())
+        private companion object {
+            const val CACHE_DIR = "cache"
 
-        /** Adds [name] to [dir]. A root directory, for example `/` or `C:/`, already ends with `/`. */
-        fun child(dir: String, name: String): String = if (dir.endsWith('/')) "$dir$name" else "$dir/$name"
-
-        /**
-         * Gives a key for [sourceDirs]. If the file system ignores the case of names, for example on macOS, the key also ignores the case.
-         * [FileUtil.startsWith] uses the same setting. Thus the prefixes of the root and of the project directories use the same rule.
-         * The names of the configuration files, for example `moon.yml`, continue to use the case.
-         */
-        fun sourceDirKey(path: String): String = if (SystemInfo.isFileSystemCaseSensitive) path else path.lowercase()
+            /** Adds [name] to [dir]. A root directory, for example `/` or `C:/`, already ends with `/`. */
+            fun child(dir: String, name: String): String = if (dir.endsWith('/')) "$dir$name" else "$dir/$name"
+        }
     }
 }
+
+/** Gives [path] with `/` as the separator, as in the paths of the VFS. */
+internal fun vfsPath(path: Path): String = FileUtil.toSystemIndependentName(path.toString())
 
 /** Finds the changes of the moon configuration files after which the tree shows old tasks. */
 object MoonConfigFiles {
@@ -87,14 +82,11 @@ object MoonConfigFiles {
     fun isConfigChange(path: String, watch: ConfigWatch, structural: Boolean = true): Boolean {
         // A new workspace file can make a workspace or a nearer workspace root, for example after `moon init` in a subdirectory.
         if (isWorkspaceFileForProject(path, watch.projectDirPrefix)) return true
-        // The root and its two directories are null only together.
-        val root = watch.rootPrefix ?: return false
-        val moonDir = watch.moonDirPrefix ?: return false
-        val moonCache = watch.moonCachePrefix ?: return false
-        if (!FileUtil.startsWith(path, root)) return false
-        if (FileUtil.startsWith(path, moonDir)) return !FileUtil.startsWith(path, moonCache)
+        val dirs = watch.rootDirs ?: return false
+        if (!FileUtil.startsWith(path, dirs.root)) return false
+        if (FileUtil.startsWith(path, dirs.moonDir)) return !FileUtil.startsWith(path, dirs.moonCache)
         if (PROJECT_FILE_SUFFIXES.any { path.endsWith(it) }) return true
-        return structural && watch.isSourceDir(path)
+        return structural && path in watch.sourceDirs
     }
 
     /**

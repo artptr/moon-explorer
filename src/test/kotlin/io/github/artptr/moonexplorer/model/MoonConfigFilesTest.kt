@@ -1,6 +1,5 @@
 package io.github.artptr.moonexplorer.model
 
-import com.intellij.openapi.util.io.FileUtil
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,10 +15,10 @@ class MoonConfigFilesTest {
         listOf(ProjectSource("web", "apps/web"), ProjectSource("icons", "packages/ui/icons")),
     )
 
-    private fun vfsPath(path: Path) = FileUtil.toSystemIndependentName(path.toString())
+    private fun changed(file: String, data: ConfigWatch = watch, structural: Boolean = true) = changedAt(root.resolve(file), data, structural)
 
-    private fun changed(file: String, data: ConfigWatch = watch, structural: Boolean = true) =
-        MoonConfigFiles.isConfigChange(vfsPath(root.resolve(file)), data, structural)
+    private fun changedAt(path: Path, data: ConfigWatch = watch, structural: Boolean = true) =
+        MoonConfigFiles.isConfigChange(vfsPath(path), data, structural)
 
     @Test
     fun projectConfigFileIsAChange() {
@@ -54,8 +53,8 @@ class MoonConfigFilesTest {
 
     @Test
     fun fileOutsideTheRootIsNotAChange() {
-        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(Path.of("/work/other/moon.yml").toAbsolutePath()), watch))
-        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(Path.of("/work/other/.moon/workspace.yml").toAbsolutePath()), watch))
+        assertFalse(changedAt(Path.of("/work/other/moon.yml").toAbsolutePath()))
+        assertFalse(changedAt(Path.of("/work/other/.moon/workspace.yml").toAbsolutePath()))
     }
 
     @Test
@@ -95,7 +94,7 @@ class MoonConfigFilesTest {
         // The plugin does not look in other directories.
         assertFalse(changed("apps/web/.moon/workspace.yml", data = nested))
         // A workspace file above the root also applies. The refresh then finds the same root. This rare case does not need a special rule.
-        assertTrue(MoonConfigFiles.isConfigChange(vfsPath(root.parent.resolve(".moon/workspace.yml")), nested))
+        assertTrue(changedAt(root.parent.resolve(".moon/workspace.yml"), nested))
     }
 
     @Test
@@ -110,11 +109,11 @@ class MoonConfigFilesTest {
     fun fileInADirectoryNextToTheRootIsNotAChange() {
         // The name of this directory starts with the name of the root.
         val other = root.resolveSibling("repo-other")
-        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve("moon.yml")), watch))
-        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve(".moon/tasks/all.yml")), watch))
-        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve("apps/web")), watch))
+        assertFalse(changedAt(other.resolve("moon.yml")))
+        assertFalse(changedAt(other.resolve(".moon/tasks/all.yml")))
+        assertFalse(changedAt(other.resolve("apps/web")))
         // This path does not go through the check of the root. The plugin compares the directory of the workspace file with the project directory.
-        assertFalse(MoonConfigFiles.isConfigChange(vfsPath(other.resolve(".moon/workspace.yml")), watch))
+        assertFalse(changedAt(other.resolve(".moon/workspace.yml")))
     }
 
     @Test
@@ -137,7 +136,7 @@ class MoonConfigFilesTest {
         // The path of the root of the file system, for example `/` or `C:/`, already ends with `/`.
         val fsRoot = root.root
         val atFsRoot = ConfigWatch(fsRoot, fsRoot)
-        fun changedAtFsRoot(file: String) = MoonConfigFiles.isConfigChange(vfsPath(fsRoot.resolve(file)), atFsRoot)
+        fun changedAtFsRoot(file: String) = changedAt(fsRoot.resolve(file), atFsRoot)
         assertTrue(changedAtFsRoot(".moon/workspace.yml"))
         assertTrue(changedAtFsRoot(".moon/tasks/all.yml"))
         assertTrue(changedAtFsRoot("apps/web/moon.yml"))
