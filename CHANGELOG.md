@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- The moon configuration files get JSON schemas without a manual step. These files are `moon.yml`, `.moon/workspace.yml`, `.moon/toolchains.yml`, `.moon/extensions.yml`, all files in `.moon/tasks/`, and `template.yml` in the template directories. An incorrect key gives a warning, and code completion shows the keys. The same applies to the JSON forms of these files.
+- The schemas come from `.moon/cache/schemas/`. Thus they agree with the moon version of the workspace and operate without a network connection. If the files do not exist, the plugin runs `moon sync config-schemas --force` one time. If moon fails, the IDE uses the schemas on the moon website. The schemas operate only when the JSON plugin is active.
+- After each load of the tasks, the plugin runs `moon templates --json` to find the template directories.
+
 ## [0.5.0] - 2026-11-11
 
 ### Added

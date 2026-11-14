@@ -3,6 +3,8 @@ package io.github.artptr.moonexplorer.model
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.schema.MoonSchemaService
+import io.github.artptr.moonexplorer.schema.prepareForTests
 import io.github.artptr.moonexplorer.settings.MoonSettings
 import io.github.artptr.moonexplorer.settings.resetForTests
 import io.github.artptr.moonexplorer.testData.TestData
@@ -30,6 +32,7 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             project.service<MoonSettings>().resetForTests()
+            runBlocking { project.service<MoonSchemaService>().resetForTests() }
             if (::service.isInitialized) {
                 runBlocking { service.resetForTests() }
                 service.awaitRunMarkersRefresher()
@@ -46,6 +49,8 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
  * The tests that need other output change these values. Call [MoonTasksService.resetForTests] in tearDown, or use [MoonTasksServiceTestCase].
  */
 fun MoonTasksService.prepareForTests() {
+    // Stop the schema service first. Thus it does not start moon for the test workspace. The tests of the schemas start it again.
+    project.service<MoonSchemaService>().prepareForTests()
     runBlocking { resetForTests() }
     awaitRunMarkersRefresher()
     projectDir = { TestData.workspace.toPath() }

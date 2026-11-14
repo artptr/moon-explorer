@@ -57,6 +57,23 @@ object MoonCli {
         run(executable, workspaceRoot, timeoutMillis, "task-graph", "--json")
 
     /**
+     * Runs `moon templates --json` with [executable] in [workspaceRoot]. The output contains the root directory of each template.
+     * If the caller cancels the coroutine, or if moon does not complete in [timeoutMillis], the function stops the moon process.
+     * Call this function on a background thread.
+     */
+    suspend fun templates(executable: Path, workspaceRoot: Path, timeoutMillis: Int): CliResult =
+        run(executable, workspaceRoot, timeoutMillis, "templates", "--json")
+
+    /**
+     * Runs `moon sync config-schemas --force` with [executable] in [workspaceRoot]. moon writes the JSON schemas of its configuration files
+     * to `.moon/cache/schemas/`. The option `--force` is necessary, because moon does not write the files again if its cache tells that they exist.
+     * If the caller cancels the coroutine, or if moon does not complete in [timeoutMillis], the function stops the moon process.
+     * Call this function on a background thread.
+     */
+    suspend fun syncConfigSchemas(executable: Path, workspaceRoot: Path, timeoutMillis: Int): CliResult =
+        run(executable, workspaceRoot, timeoutMillis, "sync", "config-schemas", "--force")
+
+    /**
      * Makes the command line `moon <args>` in [workspaceRoot], for example `moon query projects`.
      * The output keeps its colors, because the console of the Run tool window shows them.
      */

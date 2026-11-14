@@ -27,6 +27,8 @@ dependencies {
         intellijIdea(providers.gradleProperty("platformVersion"))
         // This dependency is optional. Refer to docs/adr/0004-yaml-plugin-optional-dependency.md.
         bundledPlugin("org.jetbrains.plugins.yaml")
+        // This dependency is optional. Refer to docs/adr/0006-json-schema-provider.md.
+        bundledPlugin("com.intellij.modules.json")
         testFramework(TestFrameworkType.Platform)
     }
 }

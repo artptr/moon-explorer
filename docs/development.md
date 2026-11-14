@@ -62,6 +62,8 @@ The test data contains only sample data. Do not copy data from other workspaces.
 | `workspace/` | A moon v2 workspace with sample projects and tasks |
 | `moon/` | The recorded output of the moon CLI for the test workspace |
 | `moon/moon-version.txt` | The version of moon that the script used to record the output |
+| `moon/templates.json` | The output of `moon templates --json`. The script replaces the path of the workspace with `/workspace`. |
+| `moon/schemas/` | The JSON schemas that `moon sync config-schemas --force` writes to `.moon/cache/schemas/`. The tests of the schema provider copy these files to a copy of the workspace. |
 | `gutter-workspace/` | A small workspace for `MoonTaskGutterIntegrationTest`. The test copies it to a temporary directory and gives its own output of `moon query projects`. The script does not record output for this workspace. |
 
 The unit tests read the recorded output. They do not start the moon CLI.
@@ -86,6 +88,7 @@ The test workspace contains these items:
 - The project `config` has no tasks.
 - The project `icons` in `packages/ui/icons` is a nested project in the project `ui`. The key `sources` in `.moon/workspace.yml` adds it.
 - `build` tasks with the optional output `dist`. The commands do not make output files. Thus `moon run` completes for each task.
+- The template `package` in `templates/package/`. moon finds templates in this directory by default. The template does not change the output of `moon query projects`.
 
 **NOTE:** To add a nested project, use the map form of `projects` and put the project ID and the path in `sources`. If you add the nested project to the list form of `projects` or to `projects.globs`, moon also adds the directory `packages` as a project.
 

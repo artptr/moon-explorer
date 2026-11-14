@@ -10,7 +10,7 @@
 | Target platform | IntelliJ Platform 2025.3 and later |
 | JDK | 21 |
 | Platform dependencies | `com.intellij.modules.platform` and `com.intellij.modules.lang` (all IntelliJ-based IDEs). **Search Everywhere** and **Run Anything** are in the `lang` module. |
-| Optional dependency | `org.jetbrains.plugins.yaml` (the YAML plugin) for the run icons in the gutter and the file type of `moon.yml` and `moon.yaml`. Refer to [ADR 0004](adr/0004-yaml-plugin-optional-dependency.md) and [ADR 0005](adr/0005-yaml-file-type-and-task-hints.md). |
+| Optional dependencies | `org.jetbrains.plugins.yaml` (the YAML plugin) for the run icons in the gutter and the file type of `moon.yml` and `moon.yaml`. Refer to [ADR 0004](adr/0004-yaml-plugin-optional-dependency.md) and [ADR 0005](adr/0005-yaml-file-type-and-task-hints.md). `com.intellij.modules.json` (the JSON plugin) for the JSON schemas of the moon configuration files. Refer to [ADR 0006](adr/0006-json-schema-provider.md). |
 
 ## 2. Current structure
 
@@ -25,6 +25,10 @@ The parser of the moon JSON output is in the model layer. Thus the CLI layer doe
 
 The `settings` package contains the settings state and the settings page.
 The `yaml` package contains the classes that use the YAML plugin. Only this package can use the classes of `org.jetbrains.yaml`. The file `META-INF/moon-explorer-yaml.xml` registers the extensions of this package. The IDE loads this file only when the YAML plugin is active. The test `YamlImportBoundaryTest` finds a use of a YAML class in a different package.
+
+The `schema` package contains the mapping of the moon configuration files to the JSON schemas, and the service that keeps this mapping. It does not use the JSON plugin.
+
+The `json` package contains the classes that use the JSON plugin. Only this package can use the classes of `com.jetbrains.jsonSchema`. The file `META-INF/moon-explorer-json.xml` registers the extensions of this package and the startup activity of the `schema` package. The IDE loads this file only when the JSON plugin is active. The test `JsonImportBoundaryTest` finds a use of a JSON class in a different package.
 
 The `run` package contains the run configuration for moon tasks. The configuration runs this command in the workspace root: `moon run <targets> [--affected] [--force] [-- <arguments>]`. moon gives the arguments after `--` to the task command. Thus the options of moon are before `--`. The configuration also sets the environment variables of the moon process.
 
@@ -63,6 +67,7 @@ The `run` package contains the run configuration for moon tasks. The configurati
 | Find and run a task in the **All** tab of **Search Everywhere** | `ui.MoonTaskSearchContributor` | `plugin.xml` (`searchEverywhereContributor`) |
 | Complete and run moon commands in **Run Anything**. `moon run <target>` uses a run configuration. Other moon commands use `run.MoonCommandRunner`. If the IDE project has no moon workspace, the provider does not complete or run moon commands | `ui.MoonRunAnythingProvider`, `run.MoonCommandRunner`, notification group `Moon Explorer commands` | `plugin.xml` (`runAnything.executionProvider`, `notificationGroup`) |
 | Action **Execute Moon Task** in the group `MoonExplorer.TasksToolbar`. The action opens **Run Anything** with the text `moon ` through `RunAnythingManager.show`, the same as the Gradle action **Execute Gradle Task**. The action is available after the plugin loads the tasks, also if the workspace has no tasks | `ui.ExecuteMoonTaskAction` | `plugin.xml` |
+| JSON schemas of the moon configuration files. The provider gives the local schemas in `.moon/cache/schemas/` to `moon.yml`, to the files in `.moon/`, and to `template.yml` in the template directories. If a schema file does not exist, the service runs `moon sync config-schemas --force` one time. If moon fails, the provider uses the schemas on the moon website. After each load, the service runs `moon templates --json` to find the template directories. Refer to [ADR 0006](adr/0006-json-schema-provider.md) | `schema.MoonSchemaService`, `schema.SchemaMapping`, `schema.TemplatesParser`, `schema.MoonSchemaStartupActivity`, `json.MoonJsonSchemaProviderFactory`, `json.MoonSchemaResetter` | `moon-explorer-json.xml` (`JavaScript.JsonSchema.ProviderFactory`, `postStartupActivity`, `projectListeners`). `MoonSchemaService` is a light service. |
 | Start of the `moon` executable | `cli.MoonCli` | None |
 | Resource bundle | `MoonExplorerBundle` | `plugin.xml` |
 | Moon icon for the classic UI (`icons/`), for the new UI (`icons/expui/`), and the outline for the tool window. The icons come from the moon repository (MIT License) | `MoonIcons` | None. The tool window in `plugin.xml` refers to `MoonIcons.ToolWindow`. |
@@ -79,6 +84,7 @@ The `run` package contains the run configuration for moon tasks. The configurati
 5. After a successful result, the plugin runs `moon task-graph --json` in the same load. The tree and the run icons do not use this output. Thus they do not wait for this command.
 6. The service adds the task graph to the state. Until the command completes, the state keeps the task graph of the last load. If the command fails, the state has no task graph. The load does not fail.
 7. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.
+8. When the JSON plugin is active, `schema.MoonSchemaService` monitors the state. After a load completes, it runs `moon templates --json`. Then the JSON schema service of the IDE finds the schemas again. Refer to [ADR 0006](adr/0006-json-schema-provider.md).
 
 **NOTE:** The `cli` and `model` packages give the cause of a failure as a type, for example `MoonFailure.ExitCode` or `OutputProblem.NoProjects`. `TasksLoader` changes each `CliFailure` into a `MoonFailure` of the model layer. Thus the `ui` package does not use the `cli` package. The `ui` package gets the text for each cause from `MoonExplorerBundle`. Some messages also contain an error text from moon, from the IntelliJ Platform, or from the JSON parser. The bundle message contains this text without change.
 

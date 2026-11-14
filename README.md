@@ -25,6 +25,7 @@ Browse the projects and tasks in your monorepo, run any task in a couple of keys
   - [Explore the workspace](#explore-the-workspace)
   - [Run tasks from anywhere](#run-tasks-from-anywhere)
   - [Understand task inheritance](#understand-task-inheritance)
+  - [Validate configuration files](#validate-configuration-files)
   - [Works with your setup](#works-with-your-setup)
 - [Settings](#settings)
 - [Troubleshooting](#troubleshooting)
@@ -101,18 +102,35 @@ Global tasks in `.moon/tasks/` change the tasks of many projects at once. Moon E
 - In `workspace.inheritedTasks`, completion suggests the global task IDs that the project can inherit, and **Go to Declaration** opens the global task (or a list, when several files have it).
 - An inspection flags `include`, `exclude`, and `rename` entries that match no global task (a typo like `lnt`, for example), with a quick fix to remove them.
 
-`moon.yml` and `moon.yaml` get their own **Moon** file type with the moon icon. The IDE's existing JSON schema support is unaffected. One side effect: **Search Everywhere** no longer lists the YAML keys of these files.
+`moon.yml` and `moon.yaml` get their own **Moon** file type with the moon icon. JSON schemas still work for them. One side effect: **Search Everywhere** no longer lists the YAML keys of these files.
 
 These editor features work with YAML configuration files. `moon.json` and the other formats get no run icons or hints, and **Jump to Source** opens them at the first line.
 
 The task data comes from the moon CLI itself (`moon query projects` and `moon task-graph`). The plugin reads your configuration files to connect that data to the editor: to place the hints and icons, and to provide completion, navigation, and the inspection. It never guesses at inheritance rules, so what you see is what moon will run.
+
+### Validate configuration files
+
+Every moon configuration file gets its JSON schema automatically. No **Apply schema** banner, no manual mapping:
+
+- `moon.yml` of each project
+- `.moon/workspace.yml`, `.moon/toolchains.yml`, and `.moon/extensions.yml`
+- every file in `.moon/tasks/`, including subdirectories
+- `template.yml` in each template directory that `moon templates` reports
+
+Unknown keys and wrong value types get a warning, and code completion suggests the keys. The JSON forms of these files (`moon.json`, `.moon/workspace.json`, and so on) get the same schemas.
+
+The schemas come from `.moon/cache/schemas/`, so they match your moon version and work offline. moon writes them during `moon sync` and `moon run`. If they're missing, the plugin runs `moon sync config-schemas --force` once. If that fails too, the IDE falls back to the schemas on moonrepo.dev, which needs a network connection.
+
+In `.moon/toolchains.yml` and `.moon/extensions.yml`, moon's schemas accept any key as a toolchain or extension ID. So only wrong value types get a warning there, and completion offers only the fixed keys like `extends`.
+
+Schemas need the bundled JSON plugin. If you disable it, everything else keeps working.
 
 ### Works with your setup
 
 - **Finds moon automatically.** It looks in `node_modules/.bin/` of the workspace first, then in proto, then on `PATH`. No global install needed.
 - **Any IntelliJ-based JetBrains IDE.** It uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are optional.
 - **Native IDE building blocks.** Tool windows, run configurations, Search Everywhere, Run Anything, Code Vision, inspections. Your shortcuts and habits carry over.
-- **Works offline.** The plugin makes no network calls of its own and sends no telemetry.
+- **Works offline.** The plugin makes no network calls of its own and sends no telemetry. The one exception is the schema fallback described above, and the IDE only downloads those if you allow remote JSON schemas.
 
 ## Settings
 
@@ -149,7 +167,7 @@ For anything else, [open an issue](https://github.com/artptr/moon-explorer/issue
 
 ## Privacy and error reports
 
-Moon Explorer makes no network calls of its own and collects no telemetry. It reads only local data: the output of the moon CLI and your configuration files. The only network action it starts is the error report that you choose to send, as described below. moon itself can download a toolchain when the plugin runs it.
+Moon Explorer makes no network calls of its own and collects no telemetry. It reads only local data: the output of the moon CLI and your configuration files. The only network action it starts is the error report that you choose to send, as described below. moon itself can download a toolchain when the plugin runs it. If moon can't write its local JSON schemas, the IDE may download them from moonrepo.dev instead (see [Validate configuration files](#validate-configuration-files)).
 
 If the plugin crashes or freezes the IDE, you can send a report to the maintainer: in the **IDE Internal Errors** dialog, click **Report to the Third-Party Plugin**.
 Reports go to JetBrains Marketplace, and only with your consent: either you send each one yourself, or the IDE is set to **Send error reports to JetBrains automatically**.
@@ -174,7 +192,7 @@ Some features live in the IDE itself rather than in the plugin.
 | Run `moon check` for a project | Type `moon check <project>` in **Run Anything** |
 | Report of the last run | Not available. The **Run** tool window shows the output of each run. |
 | Action, project, and task graphs | Type `moon action-graph`, `moon project-graph`, or `moon task-graph` in **Run Anything** |
-| Validation of moon config files with JSON schemas | Partial. Click **Apply schema** in each file that shows the banner. Files directly in `.moon/tasks/` and `template.yml` get no schema. Offline, only schemas in the IDE cache work. Workaround: map the files to the local schemas in `.moon/cache/schemas/` by hand. |
+| Validation of moon config files with JSON schemas | Automatic for `moon.yml`, the files in `.moon/`, and `template.yml`, using moon's local schemas. Works offline. See [Validate configuration files](#validate-configuration-files). |
 | MCP server for AI agents | Not available in the plugin. Use `moon mcp`, or the IDE's own MCP server to start run configurations. |
 | Tree updates when `moon.yml` or a file in `.moon/` changes | Automatic, about 1 second after a change to a project configuration file (for example, `moon.yml`) or a configuration file in `.moon/` (except the cache). If a checkout adds a new project directory, click **Refresh**. |
 | Refresh command | The **Refresh** button in the tool window toolbar |

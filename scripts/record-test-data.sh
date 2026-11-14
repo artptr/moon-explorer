@@ -33,6 +33,14 @@ for target in api:audit web:lint web:build; do
   npx moon task "$target" --json > "$tmp/task-${target/:/-}.json"
 done
 
+# The output of moon templates contains the absolute path of each template root.
+npx moon templates --json | sed "s|$workspace|/workspace|g" > "$tmp/templates.json"
+
+# moon writes the JSON schemas of the configuration files to .moon/cache/schemas. The script removed the cache. Thus use --force.
+npx moon sync config-schemas --force
+mkdir -p "$tmp/schemas"
+cp "$workspace/.moon/cache/schemas/"*.json "$tmp/schemas/"
+
 # The recorded files must not contain paths of this computer.
 if grep -rqF "$root" "$tmp"; then
   echo "error: the recorded files contain the path $root" >&2
@@ -40,6 +48,7 @@ if grep -rqF "$root" "$tmp"; then
 fi
 
 mkdir -p "$out"
-cp "$tmp"/* "$out/"
+rm -rf "$out/schemas"
+cp -R "$tmp"/* "$out/"
 
 echo "Recorded the output of $(cat "$out/moon-version.txt") in $out"
