@@ -40,7 +40,7 @@ The team examined IntelliJ IDEA 2025.3.6.2 on 2026-11-14:
 
 ### Option A: Local schemas, then `moon sync`, then the moon website
 
-Use the files in `.moon/cache/schemas/`. If a file does not exist, run `moon sync config-schemas --force` one time. If moon fails, use the URLs in `https://moonrepo.dev/schemas/v2/`.
+Use the files in `.moon/cache/schemas/`. If a file does not exist, run `moon sync config-schemas --force`. If moon fails, use the URLs in `https://moonrepo.dev/schemas/v2/`.
 
 - Good: The schemas agree with the moon version of the workspace.
 - Good: The schemas operate without a network connection when moon is available.
@@ -74,17 +74,21 @@ Obey these rules:
    - `template.<ext>` in the root directory of a template from `moon templates --json`: `template.json`
 
    `<ext>` is `yml`, `yaml`, `json`, or `jsonc`. The IDE does not examine TOML, HCL, and Pkl with a JSON schema. The files in `.moon/cache/` get no schema.
-6. Run `moon sync config-schemas --force` only if a schema file does not exist. Run it one time for each workspace root.
-7. Run `moon templates --json` after each load that completes. Do not run it again when the plugin adds the task graph to the state.
-8. After each change of the mapping or of the schema files, call `JsonSchemaService.reset()`. Then restart the daemon.
+6. Examine the schema files for a new workspace root and after each new load. Run `moon sync config-schemas --force` only if a schema file does not exist.
+   After a fallback to the moon website, use the local files again when they exist.
+7. Run `moon templates --json` after each new load. A new load is a `Loaded` state with a new root or new tasks, or a `Loaded` state after a different state.
+   Do not run the command again when the plugin adds the task graph to the state.
+8. Let only the last job of each type change the mapping. A moon process can complete after the cancellation of its job.
+9. After each change of the mapping or of the schema files, call `JsonSchemaService.reset()`. This method also restarts the daemon.
 
 ## Consequences
 
 - When the JSON plugin is active, all moon configuration files of the workspace get a schema without a manual step. The YAML files and the JSON files get the same schemas.
-- When the JSON plugin is disabled, the IDE shows no schemas for the moon files. All other functions operate.
+- When the JSON plugin is disabled, the IDE shows no schemas for the moon files. The YAML plugin has a necessary dependency on the JSON plugin. Thus the IDE also disables the YAML plugin, and the functions of ADR 0004 and ADR 0005 stop. The tool window, the run configurations, **Search Everywhere**, and **Run Anything** operate.
 - The schemas of `.moon/toolchains.yml` and `.moon/extensions.yml` accept all keys as IDs. Thus only a value with an incorrect type gives a warning in these files.
 - The team did not examine a file that has a mapping from **Apply schema** of an earlier IDE session. The user can remove such a mapping in **Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings**.
 - `moon templates` can get templates from a Git repository or from npm, if the workspace configuration has such a location. Then moon uses the network. The plugin does not make this decision. The workspace configuration makes it.
 - A new template directory gets the schema after the next load that changes the state, or after the IDE project opens again. A change of `generator.templates` alone does not change the output of `moon query projects`.
-- If the user deletes `.moon/cache/schemas/` after the plugin examined it, the files get no schema until moon writes the files again. For example, `moon run` writes them.
+- If the user deletes `.moon/cache/schemas/`, the plugin runs `moon sync` after the next load.
+- If `moon sync` continues to fail, the plugin runs it after each load. A load runs `moon query projects` successfully. Thus moon is available, and a failure of `moon sync` is not usual.
 - The tests add the copy of the workspace to the content of the test project. Without this step, the daemon does not show the schema warnings.

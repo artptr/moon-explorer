@@ -78,10 +78,11 @@ data class SchemaMapping(val root: String, val templateDirs: Set<String>, val so
         if (!FileUtil.startsWith(path, root)) return null
         val parent = path.substring(0, slash)
         val baseName = path.substring(slash + 1, dot)
+        // moon writes the files in .moon/cache/. A template from a remote location can also be in this directory.
+        if (FileUtil.startsWith(path, moonCache)) return null
         if (baseName == TEMPLATE_CONFIG && parent in templateDirs) return MoonSchema.TEMPLATE
         if (FileUtil.startsWith(path, moonDir)) {
             return when {
-                FileUtil.startsWith(path, moonCache) -> null
                 FileUtil.startsWith(path, moonTasks) -> MoonSchema.TASKS
                 !FileUtil.pathsEqual(parent, moonDir) -> null
                 baseName == WORKSPACE_CONFIG -> MoonSchema.WORKSPACE

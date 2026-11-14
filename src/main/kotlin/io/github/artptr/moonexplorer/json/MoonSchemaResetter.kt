@@ -1,6 +1,5 @@
 package io.github.artptr.moonexplorer.json
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
@@ -14,7 +13,7 @@ import io.github.artptr.moonexplorer.schema.MoonSchemaListener
 class MoonSchemaResetter(private val project: Project) : MoonSchemaListener {
     override fun schemasChanged() {
         if (project.isDisposed) return
+        // The reset also restarts the daemon. Thus the IDE examines the open files again.
         project.service<JsonSchemaService>().reset()
-        DaemonCodeAnalyzer.getInstance(project).restart(this)
     }
 }

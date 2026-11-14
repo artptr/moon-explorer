@@ -6,10 +6,15 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
+import io.github.artptr.moonexplorer.model.TasksState
+import io.github.artptr.moonexplorer.model.awaitWithTimeout
 import io.github.artptr.moonexplorer.model.loadJson
 import io.github.artptr.moonexplorer.model.loadNoWorkspace
 import io.github.artptr.moonexplorer.model.vfsPath
 import io.github.artptr.moonexplorer.testData.TestData
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -72,8 +77,77 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         schemas.syncSchemas = { syncCalls.incrementAndGet(); CliResult.Failed("moon failed") }
         load()
         assertEquals(SchemaSource.REMOTE, schemas.awaitMapping { it?.source == SchemaSource.REMOTE }!!.source)
-        assertEquals(1, syncCalls.get())
+        // The service runs moon sync for the new root. It can run it again for the load, if the first run completed before the load.
+        assertTrue(syncCalls.get() in 1..2)
     }
+
+    fun testNewLoadUsesLocalSchemasAgainAfterRemoteFallback() {
+        copyWorkspace(root, schemas = false)
+        schemas.syncSchemas = { syncCalls.incrementAndGet(); CliResult.Failed("moon failed") }
+        val loaded = TestData.loadedState(TestData.recordedTasks(), root)
+        schemas.update(loaded, root)
+        schemas.awaitMapping { it?.source == SchemaSource.REMOTE }
+        // moon writes the files later, for example in moon run. The next load finds them, also if moon sync continues to fail.
+        copyRecordedSchemas(root)
+        schemas.update(TasksState.Loading(loaded), root)
+        schemas.update(loaded, root)
+        val mapping = schemas.awaitMapping { it?.source == SchemaSource.LOCAL }!!
+        assertNotNull(LocalFileSystem.getInstance().findFileByPath(mapping.localSchemaPath(MoonSchema.PROJECT)))
+    }
+
+    fun testNewLoadRunsMoonSyncAgainAfterRemoteFallback() {
+        copyWorkspace(root, schemas = false)
+        schemas.syncSchemas = { if (syncCalls.incrementAndGet() == 1) CliResult.Failed("moon failed") else { copyRecordedSchemas(it); CliResult.Success("") } }
+        val loaded = TestData.loadedState(TestData.recordedTasks(), root)
+        schemas.update(loaded, root)
+        schemas.awaitMapping { it?.source == SchemaSource.REMOTE }
+        schemas.update(TasksState.Loading(loaded), root)
+        schemas.update(loaded, root)
+        assertEquals(SchemaSource.LOCAL, schemas.awaitMapping { it?.source == SchemaSource.LOCAL }!!.source)
+        assertEquals(2, syncCalls.get())
+    }
+
+    fun testNewRootAfterLoadedStateLoadsTemplates() {
+        // A StateFlow can skip the Loading state. Then the service gets two Loaded states with different roots, one after the other.
+        val first = root.resolve("first").also { copyWorkspace(it) }
+        val second = root.resolve("second").also { copyWorkspace(it) }
+        schemas.update(TestData.loadedState(TestData.recordedTasks(), first), first)
+        schemas.awaitMapping { it?.templateDirs?.contains(vfsPath(first.resolve("templates/package"))) == true }
+        schemas.update(TestData.loadedState(TestData.recordedTasks(), second), second)
+        val mapping = schemas.awaitMapping { it?.root == vfsPath(second) && it.templateDirs.isNotEmpty() }!!
+        assertEquals(setOf(vfsPath(second.resolve("templates/package"))), mapping.templateDirs.toSet())
+        assertEquals(2, templateCalls.get())
+    }
+
+    fun testOldTemplatesJobDoesNotChangeTheMapping() {
+        copyWorkspace(root)
+        val release = CompletableDeferred<Unit>()
+        val oldJobDone = CompletableDeferred<Unit>()
+        schemas.templates = {
+            if (templateCalls.incrementAndGet() == 1) {
+                // A moon process that completes after the cancellation of its job.
+                try {
+                    withContext(NonCancellable) { release.await() }
+                    CliResult.Success("""{"old":{"root":${quote(root.resolve("old").toString())}}}""")
+                } finally {
+                    oldJobDone.complete(Unit)
+                }
+            } else {
+                CliResult.Success(recordedTemplates(it))
+            }
+        }
+        val loaded = TestData.loadedState(TestData.recordedTasks(), root)
+        schemas.update(loaded, root)
+        schemas.update(TasksState.Loading(loaded), root)
+        schemas.update(loaded, root)
+        val expected = setOf(vfsPath(root.resolve("templates/package")))
+        schemas.awaitMapping { it?.templateDirs?.toSet() == expected }
+        release.complete(Unit)
+        oldJobDone.awaitWithTimeout()
+        assertEquals(expected, schemas.awaitMapping { true }!!.templateDirs.toSet())
+    }
+
+    private fun quote(text: String) = "\"" + text.replace("\\", "\\\\") + "\""
 
     fun testSyncWithoutAllFilesUsesRemoteSchemas() {
         copyWorkspace(root, schemas = false)

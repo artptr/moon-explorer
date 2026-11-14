@@ -2,6 +2,7 @@ package io.github.artptr.moonexplorer.schema
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.ControlFlowException
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -29,9 +30,10 @@ private val LOG = logger<MoonSchemaService>()
  * The service monitors the state of [MoonTasksService]:
  *
  * 1. When the workspace root changes, the service makes a new [SchemaMapping] for the root.
- *    If `.moon/cache/schemas/` does not contain all schema files, the service runs `moon sync config-schemas --force` one time for the root.
- *    If moon fails, the mapping uses the schemas on the moon website ([SchemaSource.REMOTE]).
- * 2. After each load that completes, the service runs `moon templates --json` and adds the template directories to the mapping.
+ * 2. For a new root and after each new load, the service examines `.moon/cache/schemas/`. If a schema file does not exist,
+ *    the service runs `moon sync config-schemas --force`. If moon fails, the mapping uses the schemas on the moon website ([SchemaSource.REMOTE]).
+ *    When the files exist again, the mapping uses them ([SchemaSource.LOCAL]).
+ * 3. After each new load, the service runs `moon templates --json` and adds the template directories to the mapping.
  *
  * After each change, the service sends [MoonSchemaListener.schemasChanged]. The service does not use the classes of the JSON plugin.
  * [project] is the IDE project of the service. [scope] is the coroutine scope of the service.
@@ -64,10 +66,17 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
     private var templatesJob: Job? = null
     private var syncJob: Job? = null
 
+    /**
+     * The number of the last job of each type. A job changes the mapping only if its number is the last number.
+     * Thus an old job that completes after a new job started does not change the mapping. For example, a moon process can complete after the cancellation.
+     */
+    private var templatesRun = 0L
+    private var syncRun = 0L
+
     /** The workspace root of [mapping]. */
     private var root: Path? = null
 
-    /** The last state that the service examined. The service runs `moon templates` only when the state changes to [TasksState.Loaded]. */
+    /** The last state that the service examined. The service runs `moon templates` only for a new load. */
     private var lastState: TasksState? = null
 
     /** Starts to monitor the state of [MoonTasksService]. A second call does nothing. */
@@ -81,23 +90,40 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
         }
     }
 
-    private fun update(state: TasksState, newRoot: Path?) {
+    /**
+     * Examines the next [state] of [MoonTasksService] for the workspace root [newRoot]. The collector of [start] calls this function.
+     * Tests call it directly to give a sequence of states.
+     */
+    internal fun update(state: TasksState, newRoot: Path?) {
         val changed = synchronized(this) {
             val previous = lastState
             lastState = state
             var changed = false
-            if (newRoot != root) {
+            val rootChanged = newRoot != root
+            if (rootChanged) {
                 root = newRoot
                 templatesJob?.cancel()
+                templatesJob = null
                 syncJob?.cancel()
+                syncJob = null
                 changed = setMapping(newRoot?.let { SchemaMapping.of(it) })
-                if (newRoot != null) syncJob = scope.launch { syncLocalSchemas(newRoot) }
             }
-            // A load that completes gives Loaded. The service adds the task graph later with a second Loaded state.
-            // Thus a Loaded state after a Loaded state does not apply.
-            if (newRoot != null && state is TasksState.Loaded && previous !is TasksState.Loaded) {
-                templatesJob?.cancel()
-                templatesJob = scope.launch { loadTemplates(newRoot) }
+            if (newRoot != null) {
+                // The service adds the task graph with a second Loaded state. This state has the same tasks, thus it is not a new load.
+                // A StateFlow can skip a state. Thus a new root or new tasks after a Loaded state is also a new load.
+                val newLoad = state is TasksState.Loaded &&
+                    (rootChanged || previous !is TasksState.Loaded || previous.tasks !== state.tasks)
+                // Examine the schema files for a new root, also if the load fails. Examine them again after each new load.
+                // Thus the mapping uses the local files again after moon wrote them, for example after a failed sync.
+                if ((rootChanged || newLoad) && syncJob?.isActive != true) {
+                    val run = ++syncRun
+                    syncJob = scope.launch { syncLocalSchemas(newRoot, run) }
+                }
+                if (newLoad) {
+                    templatesJob?.cancel()
+                    val run = ++templatesRun
+                    templatesJob = scope.launch { loadTemplates(newRoot, run) }
+                }
             }
             changed
         }
@@ -112,29 +138,39 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
     }
 
     /**
-     * Changes the mapping with [change] if the mapping is for [root]. A different root means that a new workspace replaced it.
+     * Changes the mapping with [change] if the mapping is for [root] and [isLastRun] gives true. A different root means that a new workspace replaced it.
      * If [always] is true, the function sends the message also if the mapping did not change.
      */
-    private fun changeMapping(root: Path, always: Boolean = false, change: (SchemaMapping) -> SchemaMapping = { it }) {
+    private fun changeMapping(root: Path, isLastRun: () -> Boolean, always: Boolean = false, change: (SchemaMapping) -> SchemaMapping) {
         val changed = synchronized(this) {
             val current = _mapping.value
-            if (this.root != root || current == null) return
+            if (this.root != root || current == null || !isLastRun()) return
             setMapping(change(current)) || always
         }
         if (changed) publish()
     }
 
-    /** Sends the message outside the lock of the service. The listeners can call other services. */
+    /**
+     * Sends the message outside the lock of the service. The listeners can call other services.
+     * An exception in a listener does not stop the collector of [start].
+     */
     private fun publish() {
-        if (!project.isDisposed) project.messageBus.syncPublisher(MoonSchemaListener.TOPIC).schemasChanged()
+        if (project.isDisposed) return
+        try {
+            project.messageBus.syncPublisher(MoonSchemaListener.TOPIC).schemasChanged()
+        } catch (e: Exception) {
+            if (e is ControlFlowException || e is CancellationException) throw e
+            LOG.error("A listener of the moon schemas failed", e)
+        }
     }
 
     /**
      * Makes sure that `.moon/cache/schemas/` in [root] contains the schema files. If a file does not exist, runs `moon sync config-schemas --force`.
-     * If moon fails, the mapping uses [SchemaSource.REMOTE].
+     * If moon fails, the mapping uses [SchemaSource.REMOTE]. If the files exist, the mapping uses [SchemaSource.LOCAL]. [run] is the number of this job.
      */
-    private suspend fun syncLocalSchemas(root: Path) {
+    private suspend fun syncLocalSchemas(root: Path, run: Long) {
         val dir = SchemaMapping.of(root).schemasDir.let(Path::of)
+        val isLastRun = { syncRun == run }
         val sync = withContext(Dispatchers.IO) {
             if (hasAllSchemas(dir)) return@withContext SyncResult.EXISTED
             val result = syncSchemas(root)
@@ -144,28 +180,30 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
                 else -> SyncResult.FAILED.also { LOG.info("moon sync config-schemas did not write all schema files to $dir") }
             }
         }
-        when (sync) {
-            // The mapping already uses the files.
-            SyncResult.EXISTED -> Unit
-            SyncResult.FAILED -> changeMapping(root) { it.copy(source = SchemaSource.REMOTE) }
-            SyncResult.WRITTEN -> {
-                // The VFS does not know the new files yet. The JSON schema provider finds the files in the VFS.
-                // The refresh is asynchronous. A synchronous refresh on this thread waits for the EDT.
-                suspendCancellableCoroutine { continuation ->
-                    LocalFileSystem.getInstance().refreshNioFiles(listOf(dir), true, true) { continuation.resume(Unit) }
-                }
-                // The mapping did not change, but the files exist now. Thus send the message also if the mapping is the same.
-                changeMapping(root, always = true)
-            }
+        if (sync == SyncResult.FAILED) {
+            changeMapping(root, isLastRun) { it.copy(source = SchemaSource.REMOTE) }
+            return
         }
+        // The files existed before, and the mapping already uses them.
+        if (sync == SyncResult.EXISTED && mapping.value?.source == SchemaSource.LOCAL) return
+        // The VFS can have old data about the directory. The JSON schema provider finds the files in the VFS.
+        // The refresh is asynchronous. A synchronous refresh on this thread waits for the EDT.
+        suspendCancellableCoroutine { continuation ->
+            LocalFileSystem.getInstance().refreshNioFiles(listOf(dir), true, true) { continuation.resume(Unit) }
+        }
+        // If the mapping did not change, the files are new. Thus send the message also if the mapping is the same.
+        changeMapping(root, isLastRun, always = true) { it.copy(source = SchemaSource.LOCAL) }
     }
 
     private enum class SyncResult { EXISTED, WRITTEN, FAILED }
 
     private fun hasAllSchemas(dir: Path): Boolean = MoonSchema.entries.all { Files.isRegularFile(dir.resolve(it.fileName)) }
 
-    /** Runs `moon templates --json` in [root] and sets the template directories of the mapping. If moon fails, the mapping keeps its directories. */
-    private suspend fun loadTemplates(root: Path) {
+    /**
+     * Runs `moon templates --json` in [root] and sets the template directories of the mapping. If moon fails, the mapping keeps its directories.
+     * [run] is the number of this job.
+     */
+    private suspend fun loadTemplates(root: Path, run: Long) {
         val dirs = withContext(Dispatchers.IO) {
             when (val result = templates(root)) {
                 is CliResult.Success -> try {
@@ -181,7 +219,7 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
             }
         } ?: return
         val templateDirs = SchemaMapping.templateDirSet(dirs.map { vfsPath(it.toAbsolutePath().normalize()) })
-        changeMapping(root) { it.copy(templateDirs = templateDirs) }
+        changeMapping(root, { templatesRun == run }) { it.copy(templateDirs = templateDirs) }
     }
 
     /** Runs [command] in [root] with the executable of [MoonExecutableService] and the time limit of [MoonSettings]. */

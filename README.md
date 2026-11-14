@@ -114,23 +114,27 @@ Every moon configuration file gets its JSON schema automatically. No **Apply sch
 
 - `moon.yml` of each project
 - `.moon/workspace.yml`, `.moon/toolchains.yml`, and `.moon/extensions.yml`
-- every file in `.moon/tasks/`, including subdirectories
+- every YAML or JSON file in `.moon/tasks/`, including subdirectories
 - `template.yml` in each template directory that `moon templates` reports
 
 Unknown keys and wrong value types get a warning, and code completion suggests the keys. The JSON forms of these files (`moon.json`, `.moon/workspace.json`, and so on) get the same schemas.
 
-The schemas come from `.moon/cache/schemas/`, so they match your moon version and work offline. moon writes them during `moon sync` and `moon run`. If they're missing, the plugin runs `moon sync config-schemas --force` once. If that fails too, the IDE falls back to the schemas on moonrepo.dev, which needs a network connection.
+The schemas come from `.moon/cache/schemas/`, so they match your moon version and work offline. moon writes them during `moon sync` and `moon run`. If they're missing, the plugin runs `moon sync config-schemas --force`. If that fails too, the IDE falls back to the schemas on moonrepo.dev, which needs a network connection and permission to download remote schemas. After the next refresh where the local files exist, the plugin switches back to them.
+
+Schemas apply only to YAML and JSON (including JSONC). The IDE can't check TOML, HCL, or Pkl configuration files against a JSON schema.
 
 In `.moon/toolchains.yml` and `.moon/extensions.yml`, moon's schemas accept any key as a toolchain or extension ID. So only wrong value types get a warning there, and completion offers only the fixed keys like `extends`.
 
-Schemas need the bundled JSON plugin. If you disable it, everything else keeps working.
+Schemas need the bundled JSON plugin. The YAML plugin depends on it too, so disabling the JSON plugin also turns off the YAML editor features (run icons, hints, the **Moon** file type). The tool window, run configurations, Search Everywhere, and Run Anything keep working.
+
+To find template folders, the plugin runs `moon templates --json` after each refresh. If your `generator.templates` setting points to a Git repository or an npm package, moon may go to the network for that.
 
 ### Works with your setup
 
 - **Finds moon automatically.** It looks in `node_modules/.bin/` of the workspace first, then in proto, then on `PATH`. No global install needed.
 - **Any IntelliJ-based JetBrains IDE.** It uses only the IntelliJ Platform. WebStorm and the JavaScript plugin are optional.
 - **Native IDE building blocks.** Tool windows, run configurations, Search Everywhere, Run Anything, Code Vision, inspections. Your shortcuts and habits carry over.
-- **Works offline.** The plugin makes no network calls of its own and sends no telemetry. The one exception is the schema fallback described above, and the IDE only downloads those if you allow remote JSON schemas.
+- **Works offline.** The plugin makes no network calls of its own and sends no telemetry. Two things can still reach the network: the IDE's schema fallback (only if you allow remote JSON schemas), and moon itself when your workspace uses remote templates.
 
 ## Settings
 
@@ -167,7 +171,7 @@ For anything else, [open an issue](https://github.com/artptr/moon-explorer/issue
 
 ## Privacy and error reports
 
-Moon Explorer makes no network calls of its own and collects no telemetry. It reads only local data: the output of the moon CLI and your configuration files. The only network action it starts is the error report that you choose to send, as described below. moon itself can download a toolchain when the plugin runs it. If moon can't write its local JSON schemas, the IDE may download them from moonrepo.dev instead (see [Validate configuration files](#validate-configuration-files)).
+Moon Explorer makes no network calls of its own and collects no telemetry. It reads only local data: the output of the moon CLI and your configuration files. The only network action it starts is the error report that you choose to send, as described below. moon itself can download a toolchain when the plugin runs it. If moon can't write its local JSON schemas, the IDE may download them from moonrepo.dev instead. And if `generator.templates` points to a Git repository or an npm package, `moon templates`, which the plugin runs after each refresh, may fetch those templates (see [Validate configuration files](#validate-configuration-files)).
 
 If the plugin crashes or freezes the IDE, you can send a report to the maintainer: in the **IDE Internal Errors** dialog, click **Report to the Third-Party Plugin**.
 Reports go to JetBrains Marketplace, and only with your consent: either you send each one yourself, or the IDE is set to **Send error reports to JetBrains automatically**.

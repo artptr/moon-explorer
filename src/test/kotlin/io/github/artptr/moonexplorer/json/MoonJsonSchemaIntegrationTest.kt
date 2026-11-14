@@ -12,6 +12,7 @@ import com.intellij.testFramework.PsiTestUtil
 import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
 import com.jetbrains.jsonSchema.extension.SchemaType
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
+import com.jetbrains.jsonSchema.impl.inspections.JsonSchemaComplianceInspection
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.loadJson
@@ -128,6 +129,15 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         assertContainsElements(completionAt(".moon/extensions.yml", "<caret>\n"), "extends")
     }
 
+    fun testJsonFilesGetSchemasAndWarnings() {
+        myFixture.enableInspections(JsonSchemaComplianceInspection())
+        val mapping = prepareWorkspace(EXTRA_FILES + mapOf("apps/api/moon.json" to "{}\n", ".moon/tasks/extra.jsonc" to "{}\n"))
+        assertEquals(listOf(mapping.localSchemaPath(MoonSchema.PROJECT)), schemaFilesFor("apps/api/moon.json"))
+        assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TASKS)), schemaFilesFor(".moon/tasks/extra.jsonc"))
+        assertEquals(listOf("\"badProjectKey\""), jsonWarningsIn("apps/api/moon.json", "{\n  \"badProjectKey\": true\n}\n"))
+        assertEquals(listOf("\"badTasksKey\""), jsonWarningsIn(".moon/tasks/extra.jsonc", "{\n  // A comment.\n  \"badTasksKey\": true\n}\n"))
+    }
+
     fun testFailedSyncUsesTheRemoteSchemas() {
         schemas.syncSchemas = { CliResult.Failed("moon failed") }
         prepareWorkspace(schemaFiles = false)
@@ -136,6 +146,10 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         assertTrue(provider.isAvailable(file("apps/web/moon.yml")))
         assertEquals(SchemaType.remoteSchema, provider.schemaType)
         assertEquals("https://moonrepo.dev/schemas/v2/project.json", provider.remoteSource)
+        // The JSON schema service gives the file of the URL, as for a URL in the user mappings. The JSON plugin downloads the file only if
+        // the IDE lets it download remote schemas. In the tests, the JSON plugin does not download files.
+        val files = JsonSchemaService.Impl.get(project).getSchemaFilesForFile(file("apps/web/moon.yml"))
+        assertEquals(listOf("https://moonrepo.dev/schemas/v2/project.json"), files.map { it.url })
     }
 
     fun testFactoryIsRegistered() {
@@ -157,6 +171,12 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
     private fun warningsIn(path: String, text: String): List<String> {
         myFixture.configureFromExistingVirtualFile(write(path, text))
         return myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }.map { it.text }
+    }
+
+    /** Writes [text] to [path], opens the file, and gives the text of each warning of the JSON schema inspection. */
+    private fun jsonWarningsIn(path: String, text: String): List<String> {
+        myFixture.configureFromExistingVirtualFile(write(path, text))
+        return myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "JsonSchemaCompliance" }.map { it.text }
     }
 
     /** Writes [text] to [path], puts the caret at `<caret>`, and gives the strings of the completion. */

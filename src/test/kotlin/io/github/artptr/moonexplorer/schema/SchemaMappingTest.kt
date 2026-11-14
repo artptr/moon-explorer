@@ -48,6 +48,9 @@ class SchemaMappingTest {
         assertNull(schema("/ws/templates/package/nested/template.yml"))
         // A different file in a template directory gets no schema.
         assertNull(schema("/ws/templates/package/other.yml"))
+        // moon keeps the templates from a remote location in .moon/cache/. The files in this directory get no schema.
+        val cached = SchemaMapping("/ws", SchemaMapping.templateDirSet(listOf("/ws/.moon/cache/templates/remote")), SchemaSource.LOCAL)
+        assertNull(cached.schemaFor("/ws/.moon/cache/templates/remote/template.yml"))
     }
 
     @Test

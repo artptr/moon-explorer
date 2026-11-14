@@ -6,9 +6,9 @@
 
 ### Added
 
-- The moon configuration files get JSON schemas without a manual step. These files are `moon.yml`, `.moon/workspace.yml`, `.moon/toolchains.yml`, `.moon/extensions.yml`, all files in `.moon/tasks/`, and `template.yml` in the template directories. An incorrect key gives a warning, and code completion shows the keys. The same applies to the JSON forms of these files.
-- The schemas come from `.moon/cache/schemas/`. Thus they agree with the moon version of the workspace and operate without a network connection. If the files do not exist, the plugin runs `moon sync config-schemas --force` one time. If moon fails, the IDE uses the schemas on the moon website. The schemas operate only when the JSON plugin is active.
-- After each load of the tasks, the plugin runs `moon templates --json` to find the template directories.
+- The moon configuration files get JSON schemas without a manual step. These files are `moon.yml`, `.moon/workspace.yml`, `.moon/toolchains.yml`, `.moon/extensions.yml`, all YAML and JSON files in `.moon/tasks/`, and `template.yml` in the template directories. An incorrect key gives a warning, and code completion shows the keys. The same applies to the JSON forms of these files.
+- The schemas come from `.moon/cache/schemas/`. Thus they agree with the moon version of the workspace and operate without a network connection. If the files do not exist, the plugin runs `moon sync config-schemas --force`. If moon fails, the IDE uses the schemas on the moon website until the files exist. The IDE downloads these schemas only if it can download remote schemas. The schemas operate only when the JSON plugin is active. The YAML plugin needs the JSON plugin. Thus if you disable the JSON plugin, the functions for YAML files also stop.
+- After each load of the tasks, the plugin runs `moon templates --json` to find the template directories. If the workspace configuration has a template location in a Git repository or in npm, moon can use the network for this command.
 
 ## [0.5.0] - 2026-11-11
 
