@@ -1,6 +1,5 @@
 package io.github.artptr.moonexplorer.json
 
-import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -28,32 +27,45 @@ class MoonJsonSchemaProviderFactory : JsonSchemaProviderFactory, DumbAware {
 }
 
 /**
- * How the JSON plugin of the IDE gets the remote schema of a provider. The JSON plugin changed this procedure in build 263 (2026.3).
+ * How the JSON plugin of the IDE gets the remote schema of a provider. The JSON plugin changed this procedure in the 2026.3 release.
  * In each procedure, the JSON plugin downloads the schema only if the IDE can download remote schemas.
  */
 enum class RemoteSchemaPath {
     /**
-     * Before build 263. The provider gives the file of the URL from [JsonFileResolver.urlToFile].
+     * The old procedure: 2026.2 and earlier, and the 2026.3 EAP build 263.7031.23. The provider gives the file of the URL from [JsonFileResolver.urlToFile].
      * Before the JSON plugin reads this file, it calls `JsonFileResolver.startFetchingHttpFileIfNeeded`. This function starts the download.
      * If the provider gives no file, the provider gets no schema.
      */
     SCHEMA_FILE,
 
     /**
-     * Build 263 and later. The provider gives no file. Then the JSON plugin gets the URL from [JsonSchemaFileProvider.getRemoteSource]
-     * and downloads it with `JsonSchemaRemoteContentService`. If the provider gives the file of the URL, the JSON plugin does not download it.
+     * The new procedure: the 2026.3 release (build 263.7307.44) and later. The provider gives no file.
+     * Then the JSON plugin gets the URL from [JsonSchemaFileProvider.getRemoteSource] and downloads it with [REMOTE_CONTENT_SERVICE].
+     * If the provider gives the file of the URL, the JSON plugin does not download it.
      */
     REMOTE_SOURCE;
 
     companion object {
-        /** The first IDE build that uses [REMOTE_SOURCE]. */
-        const val REMOTE_SOURCE_BUILD = 263
+        /**
+         * The class that downloads the remote schemas in the new procedure. Only the IDE builds with the new procedure have this class.
+         * The procedure changed in a build after 263.7031.23. Thus the branch number of the build does not identify the procedure.
+         */
+        const val REMOTE_CONTENT_SERVICE = "com.jetbrains.jsonSchema.remote.http.JsonSchemaRemoteContentService"
 
-        /** Gives the procedure of the IDE build with the branch number [baselineVersion], for example 253 for 2025.3. */
-        fun forBuild(baselineVersion: Int): RemoteSchemaPath = if (baselineVersion >= REMOTE_SOURCE_BUILD) REMOTE_SOURCE else SCHEMA_FILE
+        /** Gives the procedure of the IDE. [hasClass] tells if the JSON plugin has the class with the given name. */
+        fun detect(hasClass: (String) -> Boolean): RemoteSchemaPath = if (hasClass(REMOTE_CONTENT_SERVICE)) REMOTE_SOURCE else SCHEMA_FILE
 
         /** The procedure of this IDE. */
-        val current: RemoteSchemaPath by lazy { forBuild(ApplicationInfo.getInstance().build.baselineVersion) }
+        val current: RemoteSchemaPath by lazy { detect(::jsonPluginHasClass) }
+
+        private fun jsonPluginHasClass(name: String): Boolean = try {
+            Class.forName(name, false, JsonFileResolver::class.java.classLoader)
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: LinkageError) {
+            false
+        }
     }
 }
 

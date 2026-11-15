@@ -46,7 +46,7 @@ Use the files in `.moon/cache/schemas/`. If a file does not exist, run `moon syn
 - Good: The schemas operate without a network connection when moon is available.
 - Bad: The plugin starts a moon command that writes files to `.moon/cache/`. moon also writes these files when it runs a task.
 - Bad: If moon fails, the IDE downloads the schemas from the network. The IDE does this only if the user lets the IDE download remote schemas.
-  The JSON plugin changed the procedure for the remote schemas of a provider in build 263 (2026.3). Rule 10 gives the two procedures.
+  The JSON plugin changed the procedure for the remote schemas of a provider in the 2026.3 release. Rule 10 gives the two procedures.
 
 ### Option B: Local schemas, then the moon website
 
@@ -82,10 +82,12 @@ Obey these rules:
 8. Let only the last job of each type change the mapping. A moon process can complete after the cancellation of its job.
    Cancel the old job with the lock of the service before you start the next job. A job changes the mapping only if the job is active, with the same lock.
 9. After each change of the mapping or of the schema files, call `JsonSchemaService.reset()`. This method also restarts the daemon.
-10. For a remote schema, give the URL in `getRemoteSource()`. Select the result of `getSchemaFile()` from the IDE build. The class `RemoteSchemaPath` does this:
-    - Before build 263: give the file from `JsonFileResolver.urlToFile`. Before the JSON plugin reads the file, it calls `JsonFileResolver.startFetchingHttpFileIfNeeded`. If the provider gives no file, the file gets no schema.
-    - Build 263 and later: give no file. Then the JSON plugin downloads the URL of `getRemoteSource()` with `JsonSchemaRemoteContentService`. If the provider gives the file of the URL, the JSON plugin does not download it.
+10. For a remote schema, give the URL in `getRemoteSource()`. Select the result of `getSchemaFile()` from the procedure of the JSON plugin. The class `RemoteSchemaPath` does this:
+    - The old procedure: give the file from `JsonFileResolver.urlToFile`. Before the JSON plugin reads the file, it calls `JsonFileResolver.startFetchingHttpFileIfNeeded`. If the provider gives no file, the file gets no schema.
+    - The new procedure: give no file. Then the JSON plugin downloads the URL of `getRemoteSource()` with `JsonSchemaRemoteContentService`. If the provider gives the file of the URL, the JSON plugin does not download it.
 
+    The 2026.2 builds and earlier builds use the old procedure. The 2026.3 EAP build 263.7031.23 also uses the old procedure. The 2026.3 release, build 263.7307.44, uses the new procedure.
+    Thus the branch number 263 does not identify the procedure. Use the new procedure only if the JSON plugin has the class `JsonSchemaRemoteContentService`.
     In each procedure, the JSON plugin downloads the schema only if the IDE can download remote schemas.
 
 ## Consequences
@@ -101,5 +103,7 @@ Obey these rules:
 - If `moon sync` completes but does not write all schema files, the plugin also runs it after each load. For example, a different moon version can write different schema files.
 - A template directory outside the workspace root can also be outside the content of the IDE project. The IDE can hide the schema warnings in such a file.
 - The URLs in `https://moonrepo.dev/schemas/v2/` are for moon v2. If moon changes these URLs, the plugin must change them.
-- The tests use build 253. Thus they do a check of the download procedure before build 263 only. In the tests of build 253, the IDE cannot download remote schemas. The team did a manual test of the procedure of build 263 with a fake HTTP transport.
+- The tests use build 253. In these tests, the IDE cannot download remote schemas. Thus the tests do a check of the result of `getSchemaFile()` and of the disabled download. They do not do a check of a download.
+  The team did a manual test of the download in the new procedure, with build 263.7307.200 and a fake HTTP transport.
+- If the JSON plugin changes the name of `JsonSchemaRemoteContentService`, the plugin uses the old procedure. Then the remote fallback gives no schema. A unit test compares the procedure with a second signal, the function `startFetchingHttpFileIfNeeded`, for the IDE of the build.
 - The tests add the copy of the workspace to the content of the test project. Without this step, the daemon does not show the schema warnings.

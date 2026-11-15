@@ -157,25 +157,27 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
             assertEquals(path.name, SchemaType.remoteSchema, provider.schemaType)
             assertEquals(path.name, url, provider.remoteSource)
         }
-        // From build 263, the JSON plugin downloads the URL of getRemoteSource only if the provider gives no file.
+        // In the new procedure, the JSON plugin downloads the URL of getRemoteSource only if the provider gives no file.
         assertNull(MoonJsonSchemaFileProvider(schemas, MoonSchema.PROJECT, RemoteSchemaPath.REMOTE_SOURCE).schemaFile)
         assertEquals(url, MoonJsonSchemaFileProvider(schemas, MoonSchema.PROJECT, RemoteSchemaPath.SCHEMA_FILE).schemaFile?.url)
     }
 
-    fun testRemoteSchemaFileObeysTheRemoteSetting() {
-        // The test IDE is older than build 263. Thus the JSON plugin uses the file of the URL.
-        assertEquals(RemoteSchemaPath.SCHEMA_FILE, RemoteSchemaPath.current)
+    /**
+     * The tests cannot download remote schemas. Thus this test does a check of the disabled download only.
+     * It does not do a check of a download. Refer to ADR 0006.
+     */
+    fun testNoRemoteSchemaWhenTheIdeCannotDownloadIt() {
         schemas.syncSchemas = { CliResult.Failed("moon failed") }
         prepareWorkspace(schemaFiles = false)
         val jsonSchemas = JsonSchemaService.Impl.get(project)
-        val files = jsonSchemas.getSchemaFilesForFile(file("apps/web/moon.yml"))
-        assertEquals(listOf("https://moonrepo.dev/schemas/v2/project.json"), files.map { it.url })
-        // The JSON plugin downloads the file only if the IDE can download remote schemas. In the tests of this IDE, the IDE cannot do this.
-        // Thus the request for the schema does not start a download, and the file gets no schema.
-        val remote = files.single() as HttpVirtualFile
-        assertNull(jsonSchemas.getSchemaObject(file("apps/web/moon.yml")))
         assertFalse(JsonFileResolver.isRemoteEnabled(project))
-        assertEquals(RemoteFileState.DOWNLOADING_NOT_STARTED, remote.fileInfo?.state)
+        assertNull(jsonSchemas.getSchemaObject(file("apps/web/moon.yml")))
+        if (RemoteSchemaPath.current == RemoteSchemaPath.SCHEMA_FILE) {
+            // The provider gives the file of the URL. The request for the schema does not start a download.
+            val files = jsonSchemas.getSchemaFilesForFile(file("apps/web/moon.yml"))
+            assertEquals(listOf("https://moonrepo.dev/schemas/v2/project.json"), files.map { it.url })
+            assertEquals(RemoteFileState.DOWNLOADING_NOT_STARTED, (files.single() as HttpVirtualFile).fileInfo?.state)
+        }
     }
 
     fun testOpenFileGetsTheSchemaAfterTheMappingChanges() {
