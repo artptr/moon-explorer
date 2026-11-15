@@ -40,7 +40,12 @@ class MoonJsonSchemaFileProvider(private val service: MoonSchemaService, val sch
 
     override fun getName(): String = MoonExplorerBundle.message(schema.nameKey)
 
-    /** Gives the local schema file, or the file of the remote URL. Gives null if the local file does not exist yet. */
+    /**
+     * Gives the local schema file, or the file of the remote URL. Gives null if the local file does not exist yet.
+     * The JSON plugin does not download the file of the URL immediately. Before the JSON plugin reads a schema file, it calls
+     * `JsonFileResolver.startFetchingHttpFileIfNeeded`. This function starts the download only if the IDE can download remote schemas.
+     * The schemas in the user mappings of the IDE use the same procedure.
+     */
     override fun getSchemaFile(): VirtualFile? {
         val mapping = service.mapping.value ?: return null
         return when (mapping.source) {

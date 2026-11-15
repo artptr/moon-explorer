@@ -54,6 +54,16 @@ class SchemaMappingTest {
     }
 
     @Test
+    fun templateDirectoryOutsideTheWorkspace() {
+        val outside = SchemaMapping("/ws", SchemaMapping.templateDirSet(listOf("/shared/templates/lib")), SchemaSource.LOCAL)
+        assertEquals(MoonSchema.TEMPLATE, outside.schemaFor("/shared/templates/lib/template.yml"))
+        // Only template.<ext> gets a schema outside the workspace root.
+        assertNull(outside.schemaFor("/shared/templates/lib/moon.yml"))
+        assertNull(outside.schemaFor("/shared/templates/lib/other.yml"))
+        assertNull(outside.schemaFor("/shared/templates/template.yml"))
+    }
+
+    @Test
     fun otherFilesHaveNoSchema() {
         // moon writes the files in .moon/cache/.
         assertNull(schema("/ws/.moon/cache/schemas/project.json"))

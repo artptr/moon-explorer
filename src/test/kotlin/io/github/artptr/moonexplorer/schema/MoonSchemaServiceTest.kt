@@ -4,6 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
+import com.intellij.testFramework.PlatformTestUtil
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.TasksState
@@ -13,6 +14,7 @@ import io.github.artptr.moonexplorer.model.loadNoWorkspace
 import io.github.artptr.moonexplorer.model.vfsPath
 import io.github.artptr.moonexplorer.testData.TestData
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
@@ -119,13 +121,66 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         assertEquals(2, templateCalls.get())
     }
 
+    fun testOnlyAnActiveJobChangesTheMapping() {
+        copyWorkspace(root)
+        // A Loading state gives the root, but does not start moon templates. The schema files exist. Thus the sync job stops without a change.
+        schemas.update(TasksState.Loading(null), root)
+        PlatformTestUtil.waitWithEventsDispatching("The jobs of the schema service did not stop", schemas::jobsCompletedForTests, 10)
+        val sent = messages.get()
+        val toRemote = { mapping: SchemaMapping -> mapping.copy(source = SchemaSource.REMOTE) }
+        // A cancelled job, for example a job of an old load.
+        schemas.changeMapping(root, Job().apply { cancel() }, always = true, toRemote)
+        // An active job for a different root.
+        val job = Job()
+        try {
+            schemas.changeMapping(root.resolve("other"), job, always = true, toRemote)
+            assertEquals(SchemaSource.LOCAL, schemas.mapping.value!!.source)
+            assertEquals(sent, messages.get())
+            schemas.changeMapping(root, job, change = toRemote)
+            assertEquals(SchemaSource.REMOTE, schemas.mapping.value!!.source)
+            assertEquals(sent + 1, messages.get())
+        } finally {
+            job.cancel()
+        }
+    }
+
+    fun testOldSyncJobDoesNotChangeTheMappingOfANewRoot() {
+        val first = root.resolve("first").also { copyWorkspace(it, schemas = false) }
+        val second = root.resolve("second").also { copyWorkspace(it) }
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val oldJobDone = CompletableDeferred<Unit>()
+        schemas.syncSchemas = {
+            syncCalls.incrementAndGet()
+            started.complete(Unit)
+            // A moon process that fails after the cancellation of its job.
+            try {
+                withContext(NonCancellable) { release.await() }
+                CliResult.Failed("moon failed")
+            } finally {
+                oldJobDone.complete(Unit)
+            }
+        }
+        schemas.update(TasksState.Loading(null), first)
+        started.awaitWithTimeout()
+        schemas.update(TasksState.Loading(null), second)
+        release.complete(Unit)
+        oldJobDone.awaitWithTimeout()
+        PlatformTestUtil.waitWithEventsDispatching("The jobs of the schema service did not stop", schemas::jobsCompletedForTests, 10)
+        val mapping = schemas.mapping.value!!
+        assertEquals(vfsPath(second), mapping.root)
+        assertEquals(SchemaSource.LOCAL, mapping.source)
+        assertEquals(1, syncCalls.get())
+    }
+
     fun testOldTemplatesJobDoesNotChangeTheMapping() {
         copyWorkspace(root)
         val release = CompletableDeferred<Unit>()
         val oldJobDone = CompletableDeferred<Unit>()
         schemas.templates = {
             if (templateCalls.incrementAndGet() == 1) {
-                // A moon process that completes after the cancellation of its job.
+                // A moon process that completes after the cancellation of its job. The cancellation stops the job at the end of withContext.
+                // testOnlyAnActiveJobChangesTheMapping does a check of a cancelled job that did not stop.
                 try {
                     withContext(NonCancellable) { release.await() }
                     CliResult.Success("""{"old":{"root":${quote(root.resolve("old").toString())}}}""")

@@ -61,26 +61,28 @@ data class SchemaMapping(val root: String, val templateDirs: Set<String>, val so
 
     /**
      * Gives the schema of the moon configuration file [path], or null if [path] is not a moon configuration file of this workspace.
+     * A file of this workspace is in [root] or in a directory of [templateDirs].
      * [path] is a path of the VFS, with `/` as the separator. The function does not read files.
      *
      * - `moon.<ext>` in the workspace, but not in `.moon/`: [MoonSchema.PROJECT]
      * - `.moon/workspace.<ext>`, `.moon/toolchains.<ext>`, and `.moon/extensions.<ext>`: [MoonSchema.WORKSPACE], [MoonSchema.TOOLCHAINS], and [MoonSchema.EXTENSIONS]
      * - All files in `.moon/tasks/` and in its subdirectories: [MoonSchema.TASKS]
-     * - `template.<ext>` in a directory of [templateDirs]: [MoonSchema.TEMPLATE]
+     * - `template.<ext>` in a directory of [templateDirs]: [MoonSchema.TEMPLATE]. This directory can be outside [root].
      *
-     * `<ext>` is an extension of [SCHEMA_EXTENSIONS]. The files in `.moon/cache/` get no schema.
+     * `<ext>` is an extension of [SCHEMA_EXTENSIONS]. The files in `.moon/cache/` of [root] get no schema.
      */
     fun schemaFor(path: String): MoonSchema? {
         val slash = path.lastIndexOf('/')
         val dot = path.lastIndexOf('.')
         // A name without a base name, for example `.yml`, is not a configuration file.
         if (dot <= slash + 1 || SCHEMA_SUFFIXES.none(path::endsWith)) return null
-        if (!FileUtil.startsWith(path, root)) return null
-        val parent = path.substring(0, slash)
-        val baseName = path.substring(slash + 1, dot)
         // moon writes the files in .moon/cache/. A template from a remote location can also be in this directory.
         if (FileUtil.startsWith(path, moonCache)) return null
+        val parent = path.substring(0, slash)
+        val baseName = path.substring(slash + 1, dot)
+        // A template directory can be outside the workspace root, for example `generator.templates: ['../templates']`.
         if (baseName == TEMPLATE_CONFIG && parent in templateDirs) return MoonSchema.TEMPLATE
+        if (!FileUtil.startsWith(path, root)) return null
         if (FileUtil.startsWith(path, moonDir)) {
             return when {
                 FileUtil.startsWith(path, moonTasks) -> MoonSchema.TASKS

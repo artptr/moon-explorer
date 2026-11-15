@@ -66,13 +66,6 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
     private var templatesJob: Job? = null
     private var syncJob: Job? = null
 
-    /**
-     * The number of the last job of each type. A job changes the mapping only if its number is the last number.
-     * Thus an old job that completes after a new job started does not change the mapping. For example, a moon process can complete after the cancellation.
-     */
-    private var templatesRun = 0L
-    private var syncRun = 0L
-
     /** The workspace root of [mapping]. */
     private var root: Path? = null
 
@@ -116,13 +109,12 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
                 // Examine the schema files for a new root, also if the load fails. Examine them again after each new load.
                 // Thus the mapping uses the local files again after moon wrote them, for example after a failed sync.
                 if ((rootChanged || newLoad) && syncJob?.isActive != true) {
-                    val run = ++syncRun
-                    syncJob = scope.launch { syncLocalSchemas(newRoot, run) }
+                    syncJob = scope.launch { syncLocalSchemas(newRoot) }
                 }
                 if (newLoad) {
+                    // Cancel the old job with the lock. Thus the old job cannot change the mapping after this point. Refer to changeMapping.
                     templatesJob?.cancel()
-                    val run = ++templatesRun
-                    templatesJob = scope.launch { loadTemplates(newRoot, run) }
+                    templatesJob = scope.launch { loadTemplates(newRoot) }
                 }
             }
             changed
@@ -138,13 +130,15 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
     }
 
     /**
-     * Changes the mapping with [change] if the mapping is for [root] and [isLastRun] gives true. A different root means that a new workspace replaced it.
-     * If [always] is true, the function sends the message also if the mapping did not change.
+     * Changes the mapping with [change] if the mapping is for [root] and [job] is active. A different root means that a new workspace replaced it.
+     * The service cancels a job with the lock before it starts the next job of the same type. Thus only the last job of each type changes the mapping,
+     * also if a moon process completes after the cancellation of its job. If [always] is true, the function sends the message also if the mapping did not change.
+     * [job] is the job that calls the function. Tests call the function directly.
      */
-    private fun changeMapping(root: Path, isLastRun: () -> Boolean, always: Boolean = false, change: (SchemaMapping) -> SchemaMapping) {
+    internal fun changeMapping(root: Path, job: Job, always: Boolean = false, change: (SchemaMapping) -> SchemaMapping) {
         val changed = synchronized(this) {
             val current = _mapping.value
-            if (this.root != root || current == null || !isLastRun()) return
+            if (this.root != root || current == null || !job.isActive) return
             setMapping(change(current)) || always
         }
         if (changed) publish()
@@ -166,11 +160,11 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
 
     /**
      * Makes sure that `.moon/cache/schemas/` in [root] contains the schema files. If a file does not exist, runs `moon sync config-schemas --force`.
-     * If moon fails, the mapping uses [SchemaSource.REMOTE]. If the files exist, the mapping uses [SchemaSource.LOCAL]. [run] is the number of this job.
+     * If moon fails, the mapping uses [SchemaSource.REMOTE]. If the files exist, the mapping uses [SchemaSource.LOCAL].
      */
-    private suspend fun syncLocalSchemas(root: Path, run: Long) {
+    private suspend fun syncLocalSchemas(root: Path) {
+        val job = currentCoroutineContext().job
         val dir = SchemaMapping.of(root).schemasDir.let(Path::of)
-        val isLastRun = { syncRun == run }
         val sync = withContext(Dispatchers.IO) {
             if (hasAllSchemas(dir)) return@withContext SyncResult.EXISTED
             val result = syncSchemas(root)
@@ -181,7 +175,7 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
             }
         }
         if (sync == SyncResult.FAILED) {
-            changeMapping(root, isLastRun) { it.copy(source = SchemaSource.REMOTE) }
+            changeMapping(root, job) { it.copy(source = SchemaSource.REMOTE) }
             return
         }
         // The files existed before, and the mapping already uses them.
@@ -192,7 +186,7 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
             LocalFileSystem.getInstance().refreshNioFiles(listOf(dir), true, true) { continuation.resume(Unit) }
         }
         // If the mapping did not change, the files are new. Thus send the message also if the mapping is the same.
-        changeMapping(root, isLastRun, always = true) { it.copy(source = SchemaSource.LOCAL) }
+        changeMapping(root, job, always = true) { it.copy(source = SchemaSource.LOCAL) }
     }
 
     private enum class SyncResult { EXISTED, WRITTEN, FAILED }
@@ -201,9 +195,9 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
 
     /**
      * Runs `moon templates --json` in [root] and sets the template directories of the mapping. If moon fails, the mapping keeps its directories.
-     * [run] is the number of this job.
      */
-    private suspend fun loadTemplates(root: Path, run: Long) {
+    private suspend fun loadTemplates(root: Path) {
+        val job = currentCoroutineContext().job
         val dirs = withContext(Dispatchers.IO) {
             when (val result = templates(root)) {
                 is CliResult.Success -> try {
@@ -219,7 +213,7 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
             }
         } ?: return
         val templateDirs = SchemaMapping.templateDirSet(dirs.map { vfsPath(it.toAbsolutePath().normalize()) })
-        changeMapping(root, { templatesRun == run }) { it.copy(templateDirs = templateDirs) }
+        changeMapping(root, job) { it.copy(templateDirs = templateDirs) }
     }
 
     /** Runs [command] in [root] with the executable of [MoonExecutableService] and the time limit of [MoonSettings]. */

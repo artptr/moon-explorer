@@ -7,12 +7,16 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.impl.http.HttpVirtualFile
+import com.intellij.openapi.vfs.impl.http.RemoteFileState
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.PsiTestUtil
 import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
 import com.jetbrains.jsonSchema.extension.SchemaType
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import com.jetbrains.jsonSchema.impl.inspections.JsonSchemaComplianceInspection
+import com.jetbrains.jsonSchema.remote.JsonFileResolver
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.loadJson
@@ -55,8 +59,12 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         }
     }
 
-    /** Copies the workspace, adds [extraFiles], loads the tasks, and waits for the mapping with the template directory. */
-    private fun prepareWorkspace(extraFiles: Map<String, String> = EXTRA_FILES, schemaFiles: Boolean = true): SchemaMapping {
+    /** Copies the workspace, adds [extraFiles], loads the tasks, and waits for a mapping that agrees with [ready]. */
+    private fun prepareWorkspace(
+        extraFiles: Map<String, String> = EXTRA_FILES,
+        schemaFiles: Boolean = true,
+        ready: (SchemaMapping) -> Boolean = { it.templateDirs.isNotEmpty() || it.source == SchemaSource.REMOTE },
+    ): SchemaMapping {
         copyWorkspace(root, schemaFiles)
         extraFiles.forEach { (path, text) -> root.resolve(path).createParentDirectories().writeText(text) }
         val rootFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!.also { it.refresh(false, true) }
@@ -65,7 +73,7 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, rootFile) }
         schemas.start()
         service.loadJson(TestData.recorded("query-projects.json"), root)
-        return schemas.awaitMapping { it?.templateDirs?.isNotEmpty() == true || it?.source == SchemaSource.REMOTE }!!
+        return schemas.awaitMapping { it != null && ready(it) }!!
     }
 
     private fun file(path: String): VirtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root.resolve(path)) ?: error("No file $path")
@@ -146,10 +154,35 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         assertTrue(provider.isAvailable(file("apps/web/moon.yml")))
         assertEquals(SchemaType.remoteSchema, provider.schemaType)
         assertEquals("https://moonrepo.dev/schemas/v2/project.json", provider.remoteSource)
-        // The JSON schema service gives the file of the URL, as for a URL in the user mappings. The JSON plugin downloads the file only if
-        // the IDE lets it download remote schemas. In the tests, the JSON plugin does not download files.
-        val files = JsonSchemaService.Impl.get(project).getSchemaFilesForFile(file("apps/web/moon.yml"))
+        // The JSON schema service gives the file of the URL, as for a URL in the user mappings.
+        val jsonSchemas = JsonSchemaService.Impl.get(project)
+        val files = jsonSchemas.getSchemaFilesForFile(file("apps/web/moon.yml"))
         assertEquals(listOf("https://moonrepo.dev/schemas/v2/project.json"), files.map { it.url })
+        // The JSON plugin downloads the file only if the IDE can download remote schemas. In the tests, the IDE cannot do this.
+        // Thus the request for the schema does not start a download, and the file gets no schema.
+        val remote = files.single() as HttpVirtualFile
+        assertNull(jsonSchemas.getSchemaObject(file("apps/web/moon.yml")))
+        assertFalse(JsonFileResolver.isRemoteEnabled(project))
+        assertEquals(RemoteFileState.DOWNLOADING_NOT_STARTED, remote.fileInfo?.state)
+    }
+
+    fun testOpenFileGetsTheSchemaAfterTheMappingChanges() {
+        // The first load gives no template directories.
+        schemas.templates = { CliResult.Success("{}") }
+        val mapping = prepareWorkspace { it.root.isNotEmpty() }
+        PlatformTestUtil.waitWithEventsDispatching("The jobs of the schema service did not stop", schemas::jobsCompletedForTests, 10)
+        assertEquals(emptySet<String>(), schemas.mapping.value!!.templateDirs)
+        val path = "templates/package/template.yml"
+        assertEquals(listOf<String>(), warningsIn(path, "title: 'Package'\ndescription: 'A package.'\nbadTemplateKey: true\n"))
+        // The next load gives the template directory. The file stays open, and the IDE finds its schema again.
+        schemas.templates = { CliResult.Success(recordedTemplates(it)) }
+        service.loadJson(TestData.recorded("query-projects.json"), root)
+        schemas.awaitMapping { it?.templateDirs?.isNotEmpty() == true }
+        PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+        assertEquals(file(path), myFixture.file.virtualFile)
+        assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TEMPLATE)), schemaFilesFor(path))
+        val warnings = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }
+        assertEquals(listOf("badTemplateKey"), warnings.map { it.text })
     }
 
     fun testFactoryIsRegistered() {

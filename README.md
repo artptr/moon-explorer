@@ -115,11 +115,11 @@ Every moon configuration file gets its JSON schema automatically. No **Apply sch
 - `moon.yml` of each project
 - `.moon/workspace.yml`, `.moon/toolchains.yml`, and `.moon/extensions.yml`
 - every YAML or JSON file in `.moon/tasks/`, including subdirectories
-- `template.yml` in each template directory that `moon templates` reports
+- `template.yml` in each template directory that `moon templates` reports, even outside the workspace
 
 Unknown keys and wrong value types get a warning, and code completion suggests the keys. The JSON forms of these files (`moon.json`, `.moon/workspace.json`, and so on) get the same schemas.
 
-The schemas come from `.moon/cache/schemas/`, so they match your moon version and work offline. moon writes them during `moon sync` and `moon run`. If they're missing, the plugin runs `moon sync config-schemas --force`. If that fails too, the IDE falls back to the schemas on moonrepo.dev, which needs a network connection and permission to download remote schemas. After the next refresh where the local files exist, the plugin switches back to them.
+The schemas come from `.moon/cache/schemas/`, so they match your moon version and work offline. moon writes them during `moon sync` and `moon run`. If they're missing, the plugin runs `moon sync config-schemas --force`. If that fails too, the IDE falls back to the schemas on moonrepo.dev, which needs a network connection and permission to download remote schemas. After the next load where the local files exist, the plugin switches back to them.
 
 Schemas apply only to YAML and JSON (including JSONC). The IDE can't check TOML, HCL, or Pkl configuration files against a JSON schema.
 
@@ -127,7 +127,7 @@ In `.moon/toolchains.yml` and `.moon/extensions.yml`, moon's schemas accept any 
 
 Schemas need the bundled JSON plugin. The YAML plugin depends on it too, so disabling the JSON plugin also turns off the YAML editor features (run icons, hints, the **Moon** file type). The tool window, run configurations, Search Everywhere, and Run Anything keep working.
 
-To find template folders, the plugin runs `moon templates --json` after each refresh. If your `generator.templates` setting points to a Git repository or an npm package, moon may go to the network for that.
+To find template folders, the plugin runs `moon templates --json` after each load. If your `generator.templates` setting points to a Git repository or an npm package, moon may go to the network for that.
 
 ### Works with your setup
 

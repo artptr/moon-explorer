@@ -46,6 +46,7 @@ Use the files in `.moon/cache/schemas/`. If a file does not exist, run `moon syn
 - Good: The schemas operate without a network connection when moon is available.
 - Bad: The plugin starts a moon command that writes files to `.moon/cache/`. moon also writes these files when it runs a task.
 - Bad: If moon fails, the IDE downloads the schemas from the network. The IDE does this only if the user lets the IDE download remote schemas.
+  The provider gives the file of the URL, as the user mappings of the IDE do. Before the JSON plugin reads this file, it calls `JsonFileResolver.startFetchingHttpFileIfNeeded`. This function obeys the setting.
 
 ### Option B: Local schemas, then the moon website
 
@@ -67,18 +68,19 @@ Obey these rules:
 2. Put the classes that use the classes of the JSON plugin in the package `io.github.artptr.moonexplorer.json`. The test `JsonImportBoundaryTest` does a check of this rule.
 3. Put the logic that does not use the JSON plugin in the package `io.github.artptr.moonexplorer.schema`. This logic includes the mapping of the files, the moon commands, and the state.
 4. Add the JSON plugin to the build with `bundledPlugin("com.intellij.modules.json")` in `build.gradle.kts`.
-5. Give the schemas only to files in the workspace root of the last load. Identify a file from its path, as in rule 14 of ADR 0005:
-   - `moon.<ext>` outside `.moon/`: the project schema `project.json`
+5. Give the schemas only to the files of the workspace of the last load. Identify a file from its path, as in rule 14 of ADR 0005:
+   - `moon.<ext>` in the workspace root, but outside `.moon/`: the project schema `project.json`
    - `.moon/workspace.<ext>`, `.moon/toolchains.<ext>`, and `.moon/extensions.<ext>`: `workspace.json`, `toolchains.json`, and `extensions.json`
    - All files in `.moon/tasks/` and in its subdirectories: `tasks.json`
-   - `template.<ext>` in the root directory of a template from `moon templates --json`: `template.json`
+   - `template.<ext>` in the root directory of a template from `moon templates --json`: `template.json`. This directory can be outside the workspace root.
 
-   `<ext>` is `yml`, `yaml`, `json`, or `jsonc`. The IDE does not examine TOML, HCL, and Pkl with a JSON schema. The files in `.moon/cache/` get no schema.
+   `<ext>` is `yml`, `yaml`, `json`, or `jsonc`. The IDE does not examine TOML, HCL, and Pkl with a JSON schema. The files in `.moon/cache/` of the workspace root get no schema.
 6. Examine the schema files for a new workspace root and after each new load. Run `moon sync config-schemas --force` only if a schema file does not exist.
    After a fallback to the moon website, use the local files again when they exist.
 7. Run `moon templates --json` after each new load. A new load is a `Loaded` state with a new root or new tasks, or a `Loaded` state after a different state.
    Do not run the command again when the plugin adds the task graph to the state.
 8. Let only the last job of each type change the mapping. A moon process can complete after the cancellation of its job.
+   Cancel the old job with the lock of the service before you start the next job. A job changes the mapping only if the job is active, with the same lock.
 9. After each change of the mapping or of the schema files, call `JsonSchemaService.reset()`. This method also restarts the daemon.
 
 ## Consequences
@@ -91,4 +93,7 @@ Obey these rules:
 - A new template directory gets the schema after the next load that changes the state, or after the IDE project opens again. A change of `generator.templates` alone does not change the output of `moon query projects`.
 - If the user deletes `.moon/cache/schemas/`, the plugin runs `moon sync` after the next load.
 - If `moon sync` continues to fail, the plugin runs it after each load. A load runs `moon query projects` successfully. Thus moon is available, and a failure of `moon sync` is not usual.
+- If `moon sync` completes but does not write all schema files, the plugin also runs it after each load. For example, a different moon version can write different schema files.
+- A template directory outside the workspace root can also be outside the content of the IDE project. The IDE can hide the schema warnings in such a file.
+- The URLs in `https://moonrepo.dev/schemas/v2/` are for moon v2. If moon changes these URLs, the plugin must change them.
 - The tests add the copy of the workspace to the content of the test project. Without this step, the daemon does not show the schema warnings.
