@@ -25,6 +25,7 @@ import io.github.artptr.moonexplorer.testData.TestData
 import org.jetbrains.yaml.schema.YamlJsonSchemaHighlightingInspection
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.writeText
@@ -149,16 +150,27 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
     fun testFailedSyncUsesTheRemoteSchemas() {
         schemas.syncSchemas = { CliResult.Failed("moon failed") }
         prepareWorkspace(schemaFiles = false)
-        val providers = MoonJsonSchemaProviderFactory().getProviders(project).filterIsInstance<MoonJsonSchemaFileProvider>()
-        val provider = providers.single { it.schema == MoonSchema.PROJECT }
-        assertTrue(provider.isAvailable(file("apps/web/moon.yml")))
-        assertEquals(SchemaType.remoteSchema, provider.schemaType)
-        assertEquals("https://moonrepo.dev/schemas/v2/project.json", provider.remoteSource)
-        // The JSON schema service gives the file of the URL, as for a URL in the user mappings.
+        val url = "https://moonrepo.dev/schemas/v2/project.json"
+        for (path in RemoteSchemaPath.entries) {
+            val provider = MoonJsonSchemaFileProvider(schemas, MoonSchema.PROJECT, path)
+            assertTrue(path.name, provider.isAvailable(file("apps/web/moon.yml")))
+            assertEquals(path.name, SchemaType.remoteSchema, provider.schemaType)
+            assertEquals(path.name, url, provider.remoteSource)
+        }
+        // From build 263, the JSON plugin downloads the URL of getRemoteSource only if the provider gives no file.
+        assertNull(MoonJsonSchemaFileProvider(schemas, MoonSchema.PROJECT, RemoteSchemaPath.REMOTE_SOURCE).schemaFile)
+        assertEquals(url, MoonJsonSchemaFileProvider(schemas, MoonSchema.PROJECT, RemoteSchemaPath.SCHEMA_FILE).schemaFile?.url)
+    }
+
+    fun testRemoteSchemaFileObeysTheRemoteSetting() {
+        // The test IDE is older than build 263. Thus the JSON plugin uses the file of the URL.
+        assertEquals(RemoteSchemaPath.SCHEMA_FILE, RemoteSchemaPath.current)
+        schemas.syncSchemas = { CliResult.Failed("moon failed") }
+        prepareWorkspace(schemaFiles = false)
         val jsonSchemas = JsonSchemaService.Impl.get(project)
         val files = jsonSchemas.getSchemaFilesForFile(file("apps/web/moon.yml"))
         assertEquals(listOf("https://moonrepo.dev/schemas/v2/project.json"), files.map { it.url })
-        // The JSON plugin downloads the file only if the IDE can download remote schemas. In the tests, the IDE cannot do this.
+        // The JSON plugin downloads the file only if the IDE can download remote schemas. In the tests of this IDE, the IDE cannot do this.
         // Thus the request for the schema does not start a download, and the file gets no schema.
         val remote = files.single() as HttpVirtualFile
         assertNull(jsonSchemas.getSchemaObject(file("apps/web/moon.yml")))
@@ -181,6 +193,25 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
         assertEquals(file(path), myFixture.file.virtualFile)
         assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TEMPLATE)), schemaFilesFor(path))
+        val warnings = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }
+        assertEquals(listOf("badTemplateKey"), warnings.map { it.text })
+    }
+
+    fun testTemplateOutsideTheWorkspaceGetsTheSchema() {
+        val external = FileUtil.createTempDirectory("moon-external-templates", null, true).toPath().toRealPath()
+        VfsRootAccess.allowRootAccess(testRootDisposable, external.toString())
+        val template = external.resolve("lib").createDirectories().resolve("template.yml")
+        template.writeText("title: 'Library'\ndescription: 'A library.'\nbadTemplateKey: true\n")
+        // For example, `generator.templates: ['../shared']` in the workspace configuration.
+        schemas.templates = { CliResult.Success("""{"lib":{"root":"${template.parent.toString().replace("\\", "\\\\")}"}}""") }
+        // The external directory is in the content of the IDE project. Otherwise the daemon does not show the schema warnings.
+        val externalFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(external)!!.also { it.refresh(false, true) }
+        PsiTestUtil.addContentRoot(module, externalFile)
+        Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, externalFile) }
+        val mapping = prepareWorkspace()
+        val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(template)!!
+        assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TEMPLATE)), JsonSchemaService.Impl.get(project).getSchemaFilesForFile(file).map { it.path })
+        myFixture.configureFromExistingVirtualFile(file)
         val warnings = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }
         assertEquals(listOf("badTemplateKey"), warnings.map { it.text })
     }

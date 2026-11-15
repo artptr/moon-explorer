@@ -115,7 +115,7 @@ Every moon configuration file gets its JSON schema automatically. No **Apply sch
 - `moon.yml` of each project
 - `.moon/workspace.yml`, `.moon/toolchains.yml`, and `.moon/extensions.yml`
 - every YAML or JSON file in `.moon/tasks/`, including subdirectories
-- `template.yml` in each template directory that `moon templates` reports, even outside the workspace
+- `template.yml` in each template directory that `moon templates` reports, even outside the workspace. Templates that moon keeps in `.moon/cache/` are skipped. For a template folder outside your IDE project, the IDE may hide the warnings
 
 Unknown keys and wrong value types get a warning, and code completion suggests the keys. The JSON forms of these files (`moon.json`, `.moon/workspace.json`, and so on) get the same schemas.
 
