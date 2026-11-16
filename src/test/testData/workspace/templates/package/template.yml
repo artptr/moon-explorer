@@ -1,0 +1,3 @@
+# A template for code generation. moon finds it in the default directory ./templates.
+title: 'Package'
+description: 'A new library package with a moon.yml file.'

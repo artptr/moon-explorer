@@ -159,9 +159,9 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
 
     /**
      * Runs [command] in [root] with the executable of [MoonExecutableService].
-     * Each call gets the current time limit from [timeoutMillis].
+     * Each call gets the current time limit from [timeoutMillis]. The schema service also uses this function.
      */
-    private suspend fun runMoon(root: Path, command: suspend (Path, Path, Int) -> CliResult): CliResult {
+    internal suspend fun runMoon(root: Path, command: suspend (Path, Path, Int) -> CliResult): CliResult {
         val search = project.service<MoonExecutableService>().findInWorkspace(root)
         val executable = search.executable ?: return CliResult.NotFound(search.examined)
         return command(executable, root, timeoutMillis())

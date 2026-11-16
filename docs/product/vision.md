@@ -290,7 +290,7 @@ If you change the column "Moon Explorer", also change the README.
 | A run of `moon check` for a project | **Run Anything** runs `moon check <project>`. | An action in the tree is in section 7. |
 | A report of the last run | No | Issue [#77](https://github.com/artptr/moon-explorer/issues/77) records this function. |
 | The action graph, the project graph, and the task graph | **Run Anything** runs `moon action-graph`, `moon project-graph`, and `moon task-graph`. | An action that starts the moon commands is in section 7. The plugin does not show the graph itself. Refer to section 8. |
-| A check of the moon configuration files with JSON schemas | The IDE gets the schemas from SchemaStore. The user must click **Apply schema** for each file. Some files get no schema. | The SchemaStore schemas do not give a good result. Refer to section 11.1. Issue [#186](https://github.com/artptr/moon-explorer/issues/186) records a schema provider. |
+| A check of the moon configuration files with JSON schemas | A schema provider gives the local schemas of moon to `moon.yml`, to the files in `.moon/`, and to `template.yml` in the template directories. The provider operates only when the JSON plugin is active. | Complete. Issue [#186](https://github.com/artptr/moon-explorer/issues/186) added the schema provider. Refer to section 11.1 and to [ADR 0006](../adr/0006-json-schema-provider.md). |
 | An MCP server for AI agents | No | The team does not plan this function. Refer to principle 7 in section 5. |
 | An update of the tree when `moon.yml` or a file in `.moon/` changes | An automatic refresh 1 second after the change | Complete. Issue [#20](https://github.com/artptr/moon-explorer/issues/20) records this function. If the refresh fails, the tree keeps the last tasks and a notification shows the error. |
 | An action that updates the tree | The **Refresh** action | Complete. |
@@ -309,7 +309,8 @@ The SchemaStore schemas do not give a good result:
 - The files directly in `.moon/tasks/` and `template.yml` get no schema.
 - Without a network connection, a file gets a schema only if the schema is in the cache of the IDE.
 
-Issue [#186](https://github.com/artptr/moon-explorer/issues/186) records a schema provider that uses the local schemas of moon.
+Issue [#186](https://github.com/artptr/moon-explorer/issues/186) added a schema provider that uses the local schemas of moon. Refer to [ADR 0006](../adr/0006-json-schema-provider.md).
+The tables in this section give the result without the schema provider.
 
 Issue [#78](https://github.com/artptr/moon-explorer/issues/78) did the check on 2026-11-10 with WebStorm 2026.3 and moon 2.6.4. The SchemaStore catalog changes, and thus the result can change.
 The check opened a copy of `src/test/testData/workspace/` in the sandbox WebStorm. Refer to [development.md](../development.md), section 3.1.

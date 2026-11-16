@@ -20,3 +20,4 @@ Do not delete an ADR. To change a decision, write a new ADR. Set the status of t
 | [0003](0003-agents-md-as-agent-instructions.md) | Use AGENTS.md as the source of agent instructions | Accepted |
 | [0004](0004-yaml-plugin-optional-dependency.md) | Use the YAML plugin as an optional dependency | Accepted |
 | [0005](0005-yaml-file-type-and-task-hints.md) | Apply the YAML dependency to the file type and the task hints | Accepted |
+| [0006](0006-json-schema-provider.md) | Give JSON schemas for the moon configuration files | Proposed |

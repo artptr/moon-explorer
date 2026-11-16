@@ -30,14 +30,20 @@
             <li>Code Vision hints in <code>.moon/tasks/</code>: <b>Inherited by N projects</b>, <b>Merged in N projects</b>, and <b>N dependents</b></li>
             <li>Hints in <code>moon.yml</code>: <b>N inherited tasks</b>, and <b>Merged with &lt;global file name&gt;</b> with a gutter icon that jumps to the global task</li>
             <li>Completion, <b>Go to Declaration</b>, and an inspection with a quick fix for <code>workspace.inheritedTasks</code></li>
-            <li>A <b>Moon</b> file type for <code>moon.yml</code> and <code>moon.yaml</code>. The existing JSON schema support is unaffected.</li>
+            <li>A <b>Moon</b> file type for <code>moon.yml</code> and <code>moon.yaml</code></li>
+        </ul>
+
+        <h3>Validate configuration files</h3>
+        <ul>
+            <li>JSON schemas for <code>moon.yml</code>, the files in <code>.moon/</code>, and <code>template.yml</code>, with no <b>Apply schema</b> step</li>
+            <li>Warnings for unknown keys and completion of keys, from the local schemas of your moon version</li>
         </ul>
 
         <h3>Works with your setup</h3>
         <ul>
             <li>Finds moon automatically in <code>node_modules/.bin/</code>, in proto, or on <code>PATH</code></li>
             <li>Uses only the IntelliJ Platform. The editor features work with YAML configuration files and need the YAML plugin that comes bundled with the IDE.</li>
-            <li>Requires moon v2. The plugin makes no network calls of its own and sends no telemetry.</li>
+            <li>Requires moon v2. The plugin makes no network calls of its own and sends no telemetry. If moon cannot write its local schemas, the IDE can download them from moonrepo.dev.</li>
         </ul>
 
         <p><a href="https://github.com/artptr/moon-explorer#readme">Documentation</a> | <a href="https://github.com/artptr/moon-explorer/issues">Issues</a></p>
@@ -47,6 +53,8 @@
     <depends>com.intellij.modules.lang</depends>
     <!-- This dependency gives the run icons in the YAML configuration files and the file type of moon.yml and moon.yaml. Refer to docs/adr/0004-yaml-plugin-optional-dependency.md and docs/adr/0005-yaml-file-type-and-task-hints.md. -->
     <depends optional="true" config-file="moon-explorer-yaml.xml">org.jetbrains.plugins.yaml</depends>
+    <!-- This dependency gives the JSON schemas of the moon configuration files. Refer to docs/adr/0006-json-schema-provider.md. -->
+    <depends optional="true" config-file="moon-explorer-json.xml">com.intellij.modules.json</depends>
 
     <resource-bundle>messages.MoonExplorerBundle</resource-bundle>
 

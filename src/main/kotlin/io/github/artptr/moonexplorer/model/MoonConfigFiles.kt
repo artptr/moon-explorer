@@ -39,25 +39,27 @@ class ConfigWatch(root: Path?, projectDir: Path?, val sources: List<ProjectSourc
             .mapTo(set, ::vfsPath)
     }
 
-    /** The workspace root and the directories in it that [MoonConfigFiles] examines. All values use `/` as the separator. */
+    /**
+     * The workspace root and the directories in it that [MoonConfigFiles] and the schema mapping examine. All values use `/` as the separator.
+     */
     internal class RootDirs(val root: String) {
         /** The directory `.moon` in the root. */
-        val moonDir: String = child(root, MOON_DIR)
+        val moonDir: String = vfsChild(root, MOON_DIR)
 
         /** The directory `.moon/cache` in the root. moon writes to this directory. A change in it does not change the configuration. */
-        val moonCache: String = child(moonDir, CACHE_DIR)
+        val moonCache: String = vfsChild(moonDir, CACHE_DIR)
 
         private companion object {
             const val CACHE_DIR = "cache"
-
-            /** Adds [name] to [dir]. A root directory, for example `/` or `C:/`, already ends with `/`. */
-            fun child(dir: String, name: String): String = if (dir.endsWith('/')) "$dir$name" else "$dir/$name"
         }
     }
 }
 
 /** Gives [path] with `/` as the separator, as in the paths of the VFS. */
 internal fun vfsPath(path: Path): String = FileUtil.toSystemIndependentName(path.toString())
+
+/** Adds [name] to the VFS path [dir]. A root directory, for example `/` or `C:/`, already ends with `/`. */
+internal fun vfsChild(dir: String, name: String): String = if (dir.endsWith('/')) "$dir$name" else "$dir/$name"
 
 /** Finds the changes of the moon configuration files after which the tree shows old tasks. */
 object MoonConfigFiles {

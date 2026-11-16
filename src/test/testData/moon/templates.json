@@ -1,0 +1,14 @@
+{
+  "package": {
+    "assets": {},
+    "config": {
+      "$schema": "",
+      "description": "A new library package with a moon.yml file.",
+      "title": "Package"
+    },
+    "files": {},
+    "id": "package",
+    "root": "/workspace/templates/package",
+    "templates": []
+  }
+}
