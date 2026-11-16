@@ -130,26 +130,27 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     private class Merge(val key: ConfigKey, val text: String, val list: HintList, val strategies: Map<String, String>?)
 
     private fun merges(): List<Merge> {
-        val local = projectId?.let(index::project)?.merged.orEmpty()
-        val localMerges = syntax.taskKeys.mapNotNull { key ->
-            val task = local[key.id] ?: return@mapNotNull null
-            Merge(key, mergedWithText(task), globalTaskList(key, task), task.strategies)
+        val project = projectId
+        val local = project?.let(index::project)?.merged.orEmpty()
+        val localMerges = if (project == null) emptyList() else syntax.taskKeys.mapNotNull { key ->
+            val globalTasks = local[key.id] ?: return@mapNotNull null
+            Merge(key, mergedWithText(globalTasks), globalTaskList(key, globalTasks), state.mergeStrategies(project, key.id))
         }
         return localMerges + mergedInLists().map { (key, list) -> Merge(key, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list, null) }
     }
 
     /** The text gives only the file names. The list gives the paths from the workspace root. */
-    private fun mergedWithText(task: MergedTask): String =
-        MoonExplorerBundle.message("hint.mergedWith", task.globalTasks.flatMap { it.files }.distinct().joinToString(", ") { it.fileName.toString() })
+    private fun mergedWithText(globalTasks: List<InheritedTask>): String =
+        MoonExplorerBundle.message("hint.mergedWith", globalTasks.flatMap { it.files }.distinct().joinToString(", ") { it.fileName.toString() })
 
     /**
-     * The list of the global tasks that merge with the local task [key]. The title gives the global ID, because a project can rename the task.
+     * The list of the global tasks [globalTasks] that merge with the local task [key]. The title gives the global ID, because a project can rename the task.
      * If more than one global task merges, the list has a group for each global ID.
      */
-    private fun globalTaskList(key: ConfigKey, task: MergedTask): HintList {
-        val globalIds = task.globalTasks.map { it.globalId }.distinct()
+    private fun globalTaskList(key: ConfigKey, globalTasks: List<InheritedTask>): HintList {
+        val globalIds = globalTasks.map { it.globalId }.distinct()
         val group = globalIds.size > 1
-        val items = task.globalTasks.flatMap { global ->
+        val items = globalTasks.flatMap { global ->
             global.files.map { globalFileItem(it, global.globalId, global.globalId.takeIf { group }) }
         }
         val title = if (group) MoonExplorerBundle.message("hint.globalTasks.title", key.id) else MoonExplorerBundle.message("hint.globalTask.title", globalIds.single())
@@ -170,7 +171,9 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         globalTaskKeys().mapNotNull { (key, task) ->
             val merged = task.mergedIn
             if (merged.isEmpty()) return@mapNotNull null
-            val items = merged.map { HintItem(withStrategies(it.projectId, it.strategies), projectSourceFile(state, it.projectId, it.localId)) }
+            val items = merged.map {
+                HintItem(withStrategies(it.projectId, state.mergeStrategies(it.projectId, it.localId)), projectSourceFile(state, it.projectId, it.localId))
+            }
             key to HintList(MoonExplorerBundle.message("hint.mergedIn.title", key.id), items)
         }
 
@@ -180,10 +183,12 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
      */
     fun dependentsHints(): List<ConfigHint> =
         globalTaskKeys().mapNotNull { (key, task) ->
-            if (task.dependentCount == 0) return@mapNotNull null
-            val items = task.dependents.flatMap { (target, tasks) -> tasks.map { dependentItem(target, it) } }
+            val dependents = state.dependents(task)
+            val count = dependentCount(dependents)
+            if (count == 0) return@mapNotNull null
+            val items = dependents.flatMap { (target, tasks) -> tasks.map { dependentItem(target, it) } }
             val list = HintList(MoonExplorerBundle.message("hint.dependents.title", key.id), items)
-            ConfigHint(key.element, MoonExplorerBundle.message("hint.dependents", task.dependentCount), list, key.id)
+            ConfigHint(key.element, MoonExplorerBundle.message("hint.dependents", count), list, key.id)
         }
 
     /**

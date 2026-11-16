@@ -41,10 +41,28 @@ class TasksLoaderTest {
     }
 
     @Test
-    fun stateKeepsTheLastTaskGraph() {
+    fun newResultKeepsTheLastTaskGraph() {
         val graph = TaskGraph(mapOf("a:b" to setOf("c:d")))
-        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, graph) } as TasksState.Loaded
+        val last = TestData.loadedState(WorkspaceTasks(emptyList()), taskGraph = graph)
+        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) } as TasksState.Loaded
+        assertNotSame(last, state)
+        assertEquals(TestData.recordedTasks(), state.tasks)
         assertEquals(graph, state.taskGraph)
+    }
+
+    @Test
+    fun sameResultGivesTheLastInstance() {
+        val last = TestData.loadedState(TestData.recordedTasks())
+        assertSame(last, runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) })
+    }
+
+    @Test
+    fun differentRootGivesANewState() {
+        // The tasks are the same, but the root is different. Thus the configuration files are different too.
+        val last = TestData.loadedState(TestData.recordedTasks(), temp.root.toPath())
+        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) } as TasksState.Loaded
+        assertNotSame(last, state)
+        assertEquals(workspace.toAbsolutePath().normalize(), state.root)
     }
 
     @Test

@@ -36,5 +36,5 @@ internal fun taskKeyAt(element: PsiElement): TaskKey? {
 internal fun taskKeyTargetsAt(element: PsiElement): TaskKeyTargets? {
     val key = taskKeyAt(element) ?: return null
     val state = element.project.service<MoonTasksService>().state.value.lastLoaded ?: return null
-    return state.taskKeyIndex.targets(key.file, key.taskId)
+    return state.inheritanceIndex.targets(key.file, key.taskId)
 }
