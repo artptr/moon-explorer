@@ -8,7 +8,10 @@ import java.nio.file.Path
 /** Tests the mapping of the moon configuration files to the schemas, for each file type. */
 class SchemaMappingTest {
 
-    private val mapping = SchemaMapping("/ws", SchemaMapping.templateDirSet(listOf("/ws/templates/package")), SchemaSource.LOCAL)
+    private val mapping = mappingWith("/ws/templates/package")
+
+    /** Makes a local mapping for the root `/ws` and the template directories [templateDirs]. */
+    private fun mappingWith(vararg templateDirs: String) = SchemaMapping("/ws", SchemaMapping.templateDirSet(templateDirs.toList()), SchemaSource.LOCAL)
 
     private fun schema(path: String) = mapping.schemaFor(path)
 
@@ -49,13 +52,13 @@ class SchemaMappingTest {
         // A different file in a template directory gets no schema.
         assertNull(schema("/ws/templates/package/other.yml"))
         // moon keeps the templates from a remote location in .moon/cache/. The files in this directory get no schema.
-        val cached = SchemaMapping("/ws", SchemaMapping.templateDirSet(listOf("/ws/.moon/cache/templates/remote")), SchemaSource.LOCAL)
+        val cached = mappingWith("/ws/.moon/cache/templates/remote")
         assertNull(cached.schemaFor("/ws/.moon/cache/templates/remote/template.yml"))
     }
 
     @Test
     fun templateDirectoryOutsideTheWorkspace() {
-        val outside = SchemaMapping("/ws", SchemaMapping.templateDirSet(listOf("/shared/templates/lib")), SchemaSource.LOCAL)
+        val outside = mappingWith("/shared/templates/lib")
         assertEquals(MoonSchema.TEMPLATE, outside.schemaFor("/shared/templates/lib/template.yml"))
         // Only template.<ext> gets a schema outside the workspace root.
         assertNull(outside.schemaFor("/shared/templates/lib/moon.yml"))

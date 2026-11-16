@@ -7,18 +7,29 @@ import org.junit.Test
 /** Tests the choice of the procedure for the remote schemas. */
 class RemoteSchemaPathTest {
 
+    /** A resolver of the old procedure. */
+    @Suppress("unused")
+    private object OldResolver {
+        @JvmStatic
+        fun startFetchingHttpFileIfNeeded() = Unit
+    }
+
     @Test
-    fun procedureFromTheClassesOfTheJsonPlugin() {
-        assertEquals(RemoteSchemaPath.SCHEMA_FILE, RemoteSchemaPath.detect { false })
-        assertEquals(RemoteSchemaPath.SCHEMA_FILE, RemoteSchemaPath.detect { it != RemoteSchemaPath.REMOTE_CONTENT_SERVICE })
-        assertEquals(RemoteSchemaPath.REMOTE_SOURCE, RemoteSchemaPath.detect { it == RemoteSchemaPath.REMOTE_CONTENT_SERVICE })
+    fun procedureFromTheFunctionsOfTheResolver() {
+        assertEquals(RemoteSchemaPath.SCHEMA_FILE, RemoteSchemaPath.detect(OldResolver::class.java))
+        assertEquals(RemoteSchemaPath.REMOTE_SOURCE, RemoteSchemaPath.detect(Any::class.java))
     }
 
     @Test
     fun procedureAgreesWithTheJsonPluginOfTheTestIde() {
-        // Only the old procedure has startFetchingHttpFileIfNeeded. This is true for 2025.3, 2026.1, 2026.2, 263.7031.23, and 263.7307.44.
-        val oldProcedure = JsonFileResolver::class.java.methods.any { it.name == "startFetchingHttpFileIfNeeded" }
-        val expected = if (oldProcedure) RemoteSchemaPath.SCHEMA_FILE else RemoteSchemaPath.REMOTE_SOURCE
+        // Only the new procedure has JsonSchemaRemoteContentService. This is true for 2025.3, 2026.1, 2026.2, 263.7031.23, and 263.7307.44.
+        val newProcedure = try {
+            Class.forName("com.jetbrains.jsonSchema.remote.http.JsonSchemaRemoteContentService", false, JsonFileResolver::class.java.classLoader)
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        }
+        val expected = if (newProcedure) RemoteSchemaPath.REMOTE_SOURCE else RemoteSchemaPath.SCHEMA_FILE
         assertEquals(expected, RemoteSchemaPath.current)
     }
 }

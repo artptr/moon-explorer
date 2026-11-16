@@ -4,7 +4,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
-import com.intellij.testFramework.PlatformTestUtil
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.TasksState
@@ -78,7 +77,7 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         copyWorkspace(root, schemas = false)
         schemas.syncSchemas = { syncCalls.incrementAndGet(); CliResult.Failed("moon failed") }
         load()
-        assertEquals(SchemaSource.REMOTE, schemas.awaitMapping { it?.source == SchemaSource.REMOTE }!!.source)
+        schemas.awaitMapping { it?.source == SchemaSource.REMOTE }
         // The service runs moon sync for the new root. It can run it again for the load, if the first run completed before the load.
         assertTrue(syncCalls.get() in 1..2)
     }
@@ -105,7 +104,7 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         schemas.awaitMapping { it?.source == SchemaSource.REMOTE }
         schemas.update(TasksState.Loading(loaded), root)
         schemas.update(loaded, root)
-        assertEquals(SchemaSource.LOCAL, schemas.awaitMapping { it?.source == SchemaSource.LOCAL }!!.source)
+        schemas.awaitMapping { it?.source == SchemaSource.LOCAL }
         assertEquals(2, syncCalls.get())
     }
 
@@ -125,7 +124,7 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         copyWorkspace(root)
         // A Loading state gives the root, but does not start moon templates. The schema files exist. Thus the sync job stops without a change.
         schemas.update(TasksState.Loading(null), root)
-        PlatformTestUtil.waitWithEventsDispatching("The jobs of the schema service did not stop", schemas::jobsCompletedForTests, 10)
+        schemas.awaitJobs()
         val sent = messages.get()
         val toRemote = { mapping: SchemaMapping -> mapping.copy(source = SchemaSource.REMOTE) }
         // A cancelled job, for example a job of an old load.
@@ -166,7 +165,7 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         schemas.update(TasksState.Loading(null), second)
         release.complete(Unit)
         oldJobDone.awaitWithTimeout()
-        PlatformTestUtil.waitWithEventsDispatching("The jobs of the schema service did not stop", schemas::jobsCompletedForTests, 10)
+        schemas.awaitJobs()
         val mapping = schemas.mapping.value!!
         assertEquals(vfsPath(second), mapping.root)
         assertEquals(SchemaSource.LOCAL, mapping.source)
@@ -183,7 +182,7 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
                 // testOnlyAnActiveJobChangesTheMapping does a check of a cancelled job that did not stop.
                 try {
                     withContext(NonCancellable) { release.await() }
-                    CliResult.Success("""{"old":{"root":${quote(root.resolve("old").toString())}}}""")
+                    CliResult.Success("""{"old":{"root":${jsonString(root.resolve("old").toString())}}}""")
                 } finally {
                     oldJobDone.complete(Unit)
                 }
@@ -202,14 +201,12 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         assertEquals(expected, schemas.awaitMapping { true }!!.templateDirs.toSet())
     }
 
-    private fun quote(text: String) = "\"" + text.replace("\\", "\\\\") + "\""
-
     fun testSyncWithoutAllFilesUsesRemoteSchemas() {
         copyWorkspace(root, schemas = false)
         // moon completes, but writes no files. For example, the moon version is older and has other schema files.
         schemas.syncSchemas = { CliResult.Success("") }
         load()
-        assertEquals(SchemaSource.REMOTE, schemas.awaitMapping { it?.source == SchemaSource.REMOTE }!!.source)
+        schemas.awaitMapping { it?.source == SchemaSource.REMOTE }
     }
 
     fun testFailedTemplatesGiveNoTemplateDirectories() {

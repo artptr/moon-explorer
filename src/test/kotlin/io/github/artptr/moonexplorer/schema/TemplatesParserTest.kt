@@ -18,7 +18,7 @@ class TemplatesParserTest {
     @Test
     fun entriesWithoutValidRootAreIgnored() {
         val root = Path.of("/ws/templates/a").toAbsolutePath()
-        val json = """{"a":{"root":${quote(root.toString())}},"b":{"root":"relative/dir"},"c":{"root":1},"d":{},"e":"text"}"""
+        val json = """{"a":{"root":${jsonString(root.toString())}},"b":{"root":"relative/dir"},"c":{"root":1},"d":{},"e":"text"}"""
         assertEquals(listOf(root), TemplatesParser.parse(json))
     }
 
@@ -32,6 +32,4 @@ class TemplatesParserTest {
     fun invalidJson() {
         assertThrows(MoonOutputException::class.java) { TemplatesParser.parse("{") }
     }
-
-    private fun quote(text: String) = "\"" + text.replace("\\", "\\\\") + "\""
 }

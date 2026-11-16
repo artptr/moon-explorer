@@ -1,13 +1,13 @@
 package io.github.artptr.moonexplorer.schema
 
+import com.google.gson.JsonPrimitive
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.testFramework.PlatformTestUtil
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.testData.TestData
-import com.intellij.testFramework.PlatformTestUtil
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.file.Path
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Stops the service and removes its mapping. Then sets fakes that do not start moon. The service does not start.
@@ -24,18 +24,25 @@ fun MoonSchemaService.prepareForTests() {
  * The function runs the events of the EDT while it waits. The refresh of the VFS after `moon sync` needs the EDT.
  */
 fun MoonSchemaService.awaitMapping(predicate: (SchemaMapping?) -> Boolean): SchemaMapping? {
-    val deadline = System.nanoTime() + 10.seconds.inWholeNanoseconds
-    while (!(predicate(mapping.value) && jobsCompletedForTests())) {
-        if (System.nanoTime() > deadline) throw AssertionError("The mapping did not change as expected. The mapping is ${mapping.value}")
-        PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
-        Thread.sleep(10)
-    }
+    PlatformTestUtil.waitWithEventsDispatching(
+        { "The mapping did not change as expected. The mapping is ${mapping.value}" },
+        { predicate(mapping.value) && jobsCompletedForTests() },
+        10,
+    )
     return mapping.value
 }
 
+/** Waits until the jobs of the service stop. If this does not occur in 10 seconds, the test fails. */
+fun MoonSchemaService.awaitJobs() {
+    awaitMapping { true }
+}
+
+/** Gives [text] as a JSON string, with the quotes. For example, a path in the fake output of moon. */
+fun jsonString(text: String): String = JsonPrimitive(text).toString()
+
 /** The output of `moon templates --json` for [root]. The recorded file has the template `package` in `/workspace/templates/package`. */
 fun recordedTemplates(root: Path): String =
-    TestData.recorded("templates.json").replace("\"/workspace", "\"" + root.toString().replace("\\", "\\\\"))
+    TestData.recorded("templates.json").replace("\"/workspace", jsonString(root.toString()).dropLast(1))
 
 /**
  * Copies the test workspace to [target], without `node_modules/`, `.moon/cache/`, `.idea/`, and the `package.json` files.
@@ -55,5 +62,5 @@ private val PACKAGE_FILES = setOf("package.json", "package-lock.json")
 
 /** Copies the recorded schemas to `.moon/cache/schemas/` in [root]. */
 fun copyRecordedSchemas(root: Path) {
-    FileUtil.copyDir(File(TestData.moon, "schemas"), root.resolve(".moon/cache/schemas").toFile())
+    FileUtil.copyDir(File(TestData.moon, "schemas"), File(SchemaMapping.of(root).schemasDir))
 }

@@ -11,9 +11,6 @@ import io.github.artptr.moonexplorer.cli.MoonCli
 import io.github.artptr.moonexplorer.model.MoonOutputException
 import io.github.artptr.moonexplorer.model.MoonTasksService
 import io.github.artptr.moonexplorer.model.TasksState
-import io.github.artptr.moonexplorer.model.vfsPath
-import io.github.artptr.moonexplorer.settings.MoonExecutableService
-import io.github.artptr.moonexplorer.settings.MoonSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,8 +43,8 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
     /** The current mapping, or null if the IDE project has no moon workspace. The JSON schema provider reads this value for each file. */
     val mapping: StateFlow<SchemaMapping?> = _mapping.asStateFlow()
 
-    private val defaultTemplates: suspend (Path) -> CliResult = { runMoon(it, MoonCli::templates) }
-    private val defaultSyncSchemas: suspend (Path) -> CliResult = { runMoon(it, MoonCli::syncConfigSchemas) }
+    private val defaultTemplates: suspend (Path) -> CliResult = { project.service<MoonTasksService>().runMoon(it, MoonCli::templates) }
+    private val defaultSyncSchemas: suspend (Path) -> CliResult = { project.service<MoonTasksService>().runMoon(it, MoonCli::syncConfigSchemas) }
 
     /**
      * Runs `moon templates --json` in a workspace root. Tests change this value to a fake.
@@ -212,15 +209,8 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
                 }
             }
         } ?: return
-        val templateDirs = SchemaMapping.templateDirSet(dirs.map { vfsPath(it.toAbsolutePath().normalize()) })
+        val templateDirs = SchemaMapping.templateDirsOf(dirs)
         changeMapping(root, job) { it.copy(templateDirs = templateDirs) }
-    }
-
-    /** Runs [command] in [root] with the executable of [MoonExecutableService] and the time limit of [MoonSettings]. */
-    private suspend fun runMoon(root: Path, command: suspend (Path, Path, Int) -> CliResult): CliResult {
-        val search = project.service<MoonExecutableService>().findInWorkspace(root)
-        val executable = search.executable ?: return CliResult.NotFound(search.examined)
-        return command(executable, root, project.service<MoonSettings>().timeoutSeconds * 1000)
     }
 
     /**

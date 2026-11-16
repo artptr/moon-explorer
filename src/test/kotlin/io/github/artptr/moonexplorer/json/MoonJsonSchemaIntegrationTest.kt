@@ -68,10 +68,8 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
     ): SchemaMapping {
         copyWorkspace(root, schemaFiles)
         extraFiles.forEach { (path, text) -> root.resolve(path).createParentDirectories().writeText(text) }
-        val rootFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root)!!.also { it.refresh(false, true) }
         // In the IDE, the workspace is in the content of the IDE project. The daemon does not show the schema warnings in other files.
-        PsiTestUtil.addContentRoot(module, rootFile)
-        Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, rootFile) }
+        addContentRoot(root)
         schemas.start()
         service.loadJson(TestData.recorded("query-projects.json"), root)
         return schemas.awaitMapping { it != null && ready(it) }!!
@@ -79,8 +77,16 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
 
     private fun file(path: String): VirtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(root.resolve(path)) ?: error("No file $path")
 
-    private fun schemaFilesFor(path: String): List<String> =
-        JsonSchemaService.Impl.get(project).getSchemaFilesForFile(file(path)).map { it.path }
+    private fun schemaFilesFor(path: String): List<String> = schemaFilesFor(file(path))
+
+    private fun schemaFilesFor(file: VirtualFile): List<String> = JsonSchemaService.Impl.get(project).getSchemaFilesForFile(file).map { it.path }
+
+    /** Adds [dir] to the content of the test project until the end of the test. */
+    private fun addContentRoot(dir: Path) {
+        val dirFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir)!!.also { it.refresh(false, true) }
+        PsiTestUtil.addContentRoot(module, dirFile)
+        Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, dirFile) }
+    }
 
     fun testEachConfigurationFileGetsItsSchema() {
         val mapping = prepareWorkspace()
@@ -143,8 +149,8 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         val mapping = prepareWorkspace(EXTRA_FILES + mapOf("apps/api/moon.json" to "{}\n", ".moon/tasks/extra.jsonc" to "{}\n"))
         assertEquals(listOf(mapping.localSchemaPath(MoonSchema.PROJECT)), schemaFilesFor("apps/api/moon.json"))
         assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TASKS)), schemaFilesFor(".moon/tasks/extra.jsonc"))
-        assertEquals(listOf("\"badProjectKey\""), jsonWarningsIn("apps/api/moon.json", "{\n  \"badProjectKey\": true\n}\n"))
-        assertEquals(listOf("\"badTasksKey\""), jsonWarningsIn(".moon/tasks/extra.jsonc", "{\n  // A comment.\n  \"badTasksKey\": true\n}\n"))
+        assertEquals(listOf("\"badProjectKey\""), warningsIn("apps/api/moon.json", "{\n  \"badProjectKey\": true\n}\n", JSON_INSPECTION))
+        assertEquals(listOf("\"badTasksKey\""), warningsIn(".moon/tasks/extra.jsonc", "{\n  // A comment.\n  \"badTasksKey\": true\n}\n", JSON_INSPECTION))
     }
 
     fun testFailedSyncUsesTheRemoteSchemas() {
@@ -184,7 +190,7 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         // The first load gives no template directories.
         schemas.templates = { CliResult.Success("{}") }
         val mapping = prepareWorkspace { it.root.isNotEmpty() }
-        PlatformTestUtil.waitWithEventsDispatching("The jobs of the schema service did not stop", schemas::jobsCompletedForTests, 10)
+        schemas.awaitJobs()
         assertEquals(emptySet<String>(), schemas.mapping.value!!.templateDirs)
         val path = "templates/package/template.yml"
         assertEquals(listOf<String>(), warningsIn(path, "title: 'Package'\ndescription: 'A package.'\nbadTemplateKey: true\n"))
@@ -195,8 +201,7 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
         assertEquals(file(path), myFixture.file.virtualFile)
         assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TEMPLATE)), schemaFilesFor(path))
-        val warnings = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }
-        assertEquals(listOf("badTemplateKey"), warnings.map { it.text })
+        assertEquals(listOf("badTemplateKey"), warnings())
     }
 
     fun testTemplateOutsideTheWorkspaceGetsTheSchema() {
@@ -205,17 +210,14 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         val template = external.resolve("lib").createDirectories().resolve("template.yml")
         template.writeText("title: 'Library'\ndescription: 'A library.'\nbadTemplateKey: true\n")
         // For example, `generator.templates: ['../shared']` in the workspace configuration.
-        schemas.templates = { CliResult.Success("""{"lib":{"root":"${template.parent.toString().replace("\\", "\\\\")}"}}""") }
+        schemas.templates = { CliResult.Success("""{"lib":{"root":${jsonString(template.parent.toString())}}}""") }
         // The external directory is in the content of the IDE project. Otherwise the daemon does not show the schema warnings.
-        val externalFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(external)!!.also { it.refresh(false, true) }
-        PsiTestUtil.addContentRoot(module, externalFile)
-        Disposer.register(testRootDisposable) { PsiTestUtil.removeContentEntry(module, externalFile) }
+        addContentRoot(external)
         val mapping = prepareWorkspace()
         val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(template)!!
-        assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TEMPLATE)), JsonSchemaService.Impl.get(project).getSchemaFilesForFile(file).map { it.path })
+        assertEquals(listOf(mapping.localSchemaPath(MoonSchema.TEMPLATE)), schemaFilesFor(file))
         myFixture.configureFromExistingVirtualFile(file)
-        val warnings = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }
-        assertEquals(listOf("badTemplateKey"), warnings.map { it.text })
+        assertEquals(listOf("badTemplateKey"), warnings())
     }
 
     fun testFactoryIsRegistered() {
@@ -233,16 +235,14 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
         return file(path).also { it.refresh(false, false) }
     }
 
-    /** Writes [text] to [path], opens the file, and gives the text of each warning of the schema inspection. */
-    private fun warningsIn(path: String, text: String): List<String> {
-        myFixture.configureFromExistingVirtualFile(write(path, text))
-        return myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "YAMLSchemaValidation" }.map { it.text }
-    }
+    /** Gives the text of each warning of the schema inspection [inspectionId] in the open file. */
+    private fun warnings(inspectionId: String = YAML_INSPECTION): List<String> =
+        myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == inspectionId }.map { it.text }
 
-    /** Writes [text] to [path], opens the file, and gives the text of each warning of the JSON schema inspection. */
-    private fun jsonWarningsIn(path: String, text: String): List<String> {
+    /** Writes [text] to [path], opens the file, and gives the text of each warning of the schema inspection [inspectionId]. */
+    private fun warningsIn(path: String, text: String, inspectionId: String = YAML_INSPECTION): List<String> {
         myFixture.configureFromExistingVirtualFile(write(path, text))
-        return myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.inspectionToolId == "JsonSchemaCompliance" }.map { it.text }
+        return warnings(inspectionId)
     }
 
     /** Writes [text] to [path], puts the caret at `<caret>`, and gives the strings of the completion. */
@@ -255,6 +255,9 @@ class MoonJsonSchemaIntegrationTest : MoonTasksServiceTestCase() {
     }
 
     private companion object {
+        const val YAML_INSPECTION = "YAMLSchemaValidation"
+        const val JSON_INSPECTION = "JsonSchemaCompliance"
+
         val EXTRA_FILES = mapOf(
             ".moon/toolchains.yml" to "{}\n",
             ".moon/extensions.yml" to "{}\n",

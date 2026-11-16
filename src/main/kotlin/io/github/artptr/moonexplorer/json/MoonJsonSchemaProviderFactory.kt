@@ -13,6 +13,7 @@ import com.jetbrains.jsonSchema.remote.JsonFileResolver
 import io.github.artptr.moonexplorer.MoonExplorerBundle
 import io.github.artptr.moonexplorer.schema.MoonSchema
 import io.github.artptr.moonexplorer.schema.MoonSchemaService
+import io.github.artptr.moonexplorer.schema.SchemaMapping
 import io.github.artptr.moonexplorer.schema.SchemaSource
 
 /**
@@ -40,32 +41,26 @@ enum class RemoteSchemaPath {
 
     /**
      * The new procedure: the 2026.3 release (build 263.7307.44) and later. The provider gives no file.
-     * Then the JSON plugin gets the URL from [JsonSchemaFileProvider.getRemoteSource] and downloads it with [REMOTE_CONTENT_SERVICE].
+     * Then the JSON plugin gets the URL from [JsonSchemaFileProvider.getRemoteSource] and downloads it with `JsonSchemaRemoteContentService`.
      * If the provider gives the file of the URL, the JSON plugin does not download it.
      */
     REMOTE_SOURCE;
 
     companion object {
         /**
-         * The class that downloads the remote schemas in the new procedure. Only the IDE builds with the new procedure have this class.
+         * The function of [JsonFileResolver] that starts the download in the old procedure. Only the IDE builds with the old procedure have this function.
          * The procedure changed in a build after 263.7031.23. Thus the branch number of the build does not identify the procedure.
          */
-        const val REMOTE_CONTENT_SERVICE = "com.jetbrains.jsonSchema.remote.http.JsonSchemaRemoteContentService"
+        const val START_FETCHING = "startFetchingHttpFileIfNeeded"
 
-        /** Gives the procedure of the IDE. [hasClass] tells if the JSON plugin has the class with the given name. */
-        fun detect(hasClass: (String) -> Boolean): RemoteSchemaPath = if (hasClass(REMOTE_CONTENT_SERVICE)) REMOTE_SOURCE else SCHEMA_FILE
+        /**
+         * Gives the procedure of the JSON plugin with the class [resolver], for example [JsonFileResolver].
+         * The old procedure operates only if [resolver] has the function [START_FETCHING]. Thus without this function, the result is [REMOTE_SOURCE].
+         */
+        fun detect(resolver: Class<*>): RemoteSchemaPath = if (resolver.methods.any { it.name == START_FETCHING }) SCHEMA_FILE else REMOTE_SOURCE
 
         /** The procedure of this IDE. */
-        val current: RemoteSchemaPath by lazy { detect(::jsonPluginHasClass) }
-
-        private fun jsonPluginHasClass(name: String): Boolean = try {
-            Class.forName(name, false, JsonFileResolver::class.java.classLoader)
-            true
-        } catch (_: ClassNotFoundException) {
-            false
-        } catch (_: LinkageError) {
-            false
-        }
+        val current: RemoteSchemaPath by lazy { detect(JsonFileResolver::class.java) }
     }
 }
 
@@ -76,13 +71,15 @@ enum class RemoteSchemaPath {
  */
 class MoonJsonSchemaFileProvider(
     private val service: MoonSchemaService,
-    val schema: MoonSchema,
+    private val schema: MoonSchema,
     private val remotePath: RemoteSchemaPath = RemoteSchemaPath.current,
 ) : JsonSchemaFileProvider {
 
     override fun isAvailable(file: VirtualFile): Boolean {
         // moon reads only the local disk. A file in an archive or in a different file system is not a configuration file of the workspace.
         if (!file.isInLocalFileSystem) return false
+        // The IDE calls each provider for each file. The name check is fast and does not make the path. Most files stop here.
+        if (!SchemaMapping.isSchemaFileName(file.nameSequence)) return false
         return service.mapping.value?.schemaFor(file.path) == schema
     }
 

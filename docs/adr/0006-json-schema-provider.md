@@ -87,7 +87,11 @@ Obey these rules:
     - The new procedure: give no file. Then the JSON plugin downloads the URL of `getRemoteSource()` with `JsonSchemaRemoteContentService`. If the provider gives the file of the URL, the JSON plugin does not download it.
 
     The 2026.2 builds and earlier builds use the old procedure. The 2026.3 EAP build 263.7031.23 also uses the old procedure. The 2026.3 release, build 263.7307.44, uses the new procedure.
-    Thus the branch number 263 does not identify the procedure. Use the new procedure only if the JSON plugin has the class `JsonSchemaRemoteContentService`.
+    Thus the branch number 263 does not identify the procedure.
+
+    The old procedure needs `JsonFileResolver.startFetchingHttpFileIfNeeded`.
+    Use the old procedure only if `JsonFileResolver` has this function. Otherwise use the new procedure.
+
     In each procedure, the JSON plugin downloads the schema only if the IDE can download remote schemas.
 
 ## Consequences
@@ -105,5 +109,5 @@ Obey these rules:
 - The URLs in `https://moonrepo.dev/schemas/v2/` are for moon v2. If moon changes these URLs, the plugin must change them.
 - The tests use build 253. In these tests, the IDE cannot download remote schemas. Thus the tests do a check of the result of `getSchemaFile()` and of the disabled download. They do not do a check of a download.
   The team did a manual test of the download in the new procedure, with build 263.7307.200 and a fake HTTP transport.
-- If the JSON plugin changes the name of `JsonSchemaRemoteContentService`, the plugin uses the old procedure. Then the remote fallback gives no schema. A unit test compares the procedure with a second signal, the function `startFetchingHttpFileIfNeeded`, for the IDE of the build.
+- If a later JSON plugin removes `startFetchingHttpFileIfNeeded`, the plugin uses the new procedure. A unit test compares the procedure with a second signal, the class `JsonSchemaRemoteContentService`, for the IDE of the build.
 - The tests add the copy of the workspace to the content of the test project. Without this step, the daemon does not show the schema warnings.
