@@ -13,14 +13,16 @@ object TasksLoader {
      * Gives the state after a successful load of [tasks] in the workspace [root]. The function finds the configuration files on the disk.
      * [taskGraph] is the result of `moon task-graph`, or null if this command failed.
      * The state contains [root] as an absolute and normalized path. Thus the users of the state do not normalize it again.
-     * If [last] has the same tasks, root, and configuration files, the function gives [last] and does not make a new state.
-     * Thus the state does not make its index again, and the users of the state do not repeat their work for it.
+     * If [last] has the same tasks, root, configuration files, and task graph, the function gives [last] and does not make a new state.
+     * Thus the users of the state do not repeat their work for it. If only the task graph is different, the new state keeps the index of [last].
      * Call this function on a background thread.
      */
     internal fun loadedState(tasks: WorkspaceTasks, root: Path, taskGraph: TaskGraph?, last: TasksState.Loaded? = null): TasksState.Loaded {
         val normalizedRoot = root.toAbsolutePath().normalize()
         val configFiles = findExistingConfigFiles(tasks, normalizedRoot)
-        if (last != null && last.tasks == tasks && last.root == normalizedRoot && last.configFiles == configFiles) return last
+        if (last != null && last.tasks == tasks && last.root == normalizedRoot && last.configFiles == configFiles) {
+            return if (last.taskGraph == taskGraph) last else last.copy(taskGraph = taskGraph)
+        }
         return TasksState.Loaded(tasks, normalizedRoot, configFiles, taskGraph)
     }
 

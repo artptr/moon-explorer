@@ -170,6 +170,21 @@ class InheritanceIndexTest {
     }
 
     @Test
+    fun globalTaskOfOnlyInternalTasksHasNoRunTargets() {
+        // The project web inherits lint, but lint is not in its task list. Thus lint is an internal task of web.
+        val tasks = WorkspaceTasks(
+            projects = listOf(MoonProject("web", listOf(MoonTask("build", "web:build", null)))),
+            sources = listOf(ProjectSource("web", "apps/web")),
+            taskConfigs = mapOf("web" to TaskConfigs(inheritedLayers = mapOf("lint" to listOf(InheritedLayer("lint", ".moon/tasks/all.yml"))))),
+        )
+        val internal = TestData.loadedState(tasks).inheritanceIndex
+        val lint = internal.file(all)!!.tasks.getValue("lint")
+        assertEquals(mapOf("web" to "lint"), lint.inheritedBy)
+        assertEquals(emptyList<String>(), lint.targets)
+        assertNull(internal.targets(all, "lint"))
+    }
+
+    @Test
     fun newTaskGraphKeepsTheIndex() {
         val updated = state.copy(taskGraph = TaskGraph())
         assertSame(index, updated.inheritanceIndex)

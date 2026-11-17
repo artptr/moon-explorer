@@ -10,6 +10,7 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.nio.file.Files
 import java.nio.file.Path
 
 class TasksLoaderTest {
@@ -63,6 +64,40 @@ class TasksLoaderTest {
         val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) } as TasksState.Loaded
         assertNotSame(last, state)
         assertEquals(workspace.toAbsolutePath().normalize(), state.root)
+    }
+
+    @Test
+    fun differentTaskGraphKeepsTheIndexOfTheLastState() {
+        val last = TestData.loadedState(TestData.recordedTasks(), taskGraph = null)
+        val graph = TaskGraph(mapOf("a:b" to setOf("c:d")))
+        val state = TasksLoader.loadedState(TestData.recordedTasks(), workspace, graph, last)
+        assertNotSame(last, state)
+        assertEquals(graph, state.taskGraph)
+        assertSame(last.inheritanceIndex, state.inheritanceIndex)
+    }
+
+    @Test
+    fun newConfigFileGivesANewStateAndANewIndex() {
+        val root = temp.root.toPath()
+        val projectDir = Files.createDirectories(root.resolve("p"))
+        val tasks = WorkspaceTasks(
+            projects = listOf(MoonProject("p", listOf(MoonTask("build", "p:build", null)))),
+            sources = listOf(ProjectSource("p", "p")),
+            taskConfigs = mapOf("p" to TaskConfigs(ownTasks = setOf("build"))),
+        )
+        val first = TasksLoader.loadedState(tasks, root, null)
+        assertSame(first, TasksLoader.loadedState(tasks, root, null, first))
+        val file = Files.writeString(projectDir.resolve("moon.yml"), "").toAbsolutePath().normalize()
+        val second = TasksLoader.loadedState(tasks, root, null, first)
+        assertNotSame(first, second)
+        assertNotSame(first.inheritanceIndex, second.inheritanceIndex)
+        assertNull(first.inheritanceIndex.targets(file, "build"))
+        assertEquals(TaskKeyTargets.Single("p:build"), second.inheritanceIndex.targets(file, "build"))
+        // The file goes away again. Thus the next load gives a new state without the file.
+        Files.delete(file)
+        val third = TasksLoader.loadedState(tasks, root, null, second)
+        assertNotSame(second, third)
+        assertEquals(emptyMap<String, Path>(), third.configFiles.projects)
     }
 
     @Test
