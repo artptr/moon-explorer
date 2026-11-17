@@ -117,15 +117,11 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
                 val last = _state.value.lastLoaded
                 // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
                 watchConfig(root, dir, last)
-                val result = TasksLoader.loadTasksIn(root, queryProjectsFn, last?.taskGraph)
+                // A load with the same result gives the last instance. Thus the users of the state do not repeat their work for it.
+                val result = TasksLoader.loadTasksIn(root, queryProjectsFn, last)
                 // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
                 // NoWorkspace does not keep the last load, because the old tasks are not correct.
-                // A load with the same result keeps the last instance. Thus the users of the state do not repeat their work for it.
-                val state = when {
-                    result is TasksState.Failure && last != null -> TasksState.Stale(last, result)
-                    last != null && result == last -> last
-                    else -> result
-                }
+                val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
                 // A failed load keeps the last successful load. Then the watch does not change.
                 if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
                 state
@@ -138,7 +134,7 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
 
     /**
      * Runs [taskGraph] and adds the result to [loaded]. A new load cancels this function. If the task graph did not change, the state does not change.
-     * The state makes its indexes again. Thus the function does this work on a background thread.
+     * The new state keeps the index of [loaded]. The function runs moon and compares the task graphs. Thus it does this work on a background thread.
      */
     private suspend fun updateTaskGraph(loaded: TasksState.Loaded, taskGraph: suspend (Path) -> CliResult) {
         val updated = withContext(Dispatchers.IO) {

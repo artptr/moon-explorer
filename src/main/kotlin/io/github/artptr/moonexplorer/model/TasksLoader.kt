@@ -11,27 +11,32 @@ object TasksLoader {
 
     /**
      * Gives the state after a successful load of [tasks] in the workspace [root]. The function finds the configuration files on the disk.
-     * [taskGraph] is the result of `moon task-graph`, or null if this command failed.
      * The state contains [root] as an absolute and normalized path. Thus the users of the state do not normalize it again.
+     * [last] is the result of the last successful load, or null. The new state keeps the task graph of [last] until [loadTaskGraph] gives the new task graph.
+     * If [last] has the same tasks, root, and configuration files, the function gives [last] and does not make a new state.
+     * Thus the state does not make its index again, and the users of the state do not repeat their work for it.
      * Call this function on a background thread.
      */
-    internal fun loadedState(tasks: WorkspaceTasks, root: Path, taskGraph: TaskGraph?): TasksState.Loaded {
+    internal fun loadedState(tasks: WorkspaceTasks, root: Path, last: TasksState.Loaded? = null): TasksState.Loaded {
         val normalizedRoot = root.toAbsolutePath().normalize()
-        return TasksState.Loaded(tasks, normalizedRoot, findExistingConfigFiles(tasks, normalizedRoot), taskGraph)
+        val configFiles = findExistingConfigFiles(tasks, normalizedRoot)
+        if (last != null && last.root == normalizedRoot && last.configFiles == configFiles && last.tasks == tasks) return last
+        return TasksState.Loaded(tasks, normalizedRoot, configFiles, last?.taskGraph)
     }
 
     /**
      * Runs [queryProjects] in the workspace [root] and reads the output. If [root] is null, the function gives [TasksState.NoWorkspace].
      * The output of `moon query projects` contains the tasks, the `stack` value, and the `layer` value of each project.
      * After a success, the function finds the configuration files on the disk.
-     * The state keeps [lastGraph], the task graph of the last successful load, until [loadTaskGraph] gives the new task graph.
+     * [last] is the result of the last successful load, or null. If the new result is the same as [last], the function gives [last].
+     * The state keeps the task graph of [last] until [loadTaskGraph] gives the new task graph.
      * Thus the dependents do not go from the state during a refresh. Call this function on a background thread.
      */
-    suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult, lastGraph: TaskGraph? = null): TasksState {
+    suspend fun loadTasksIn(root: Path?, queryProjects: suspend (Path) -> CliResult, last: TasksState.Loaded? = null): TasksState {
         if (root == null) return TasksState.NoWorkspace
         return try {
             when (val result = queryProjects(root)) {
-                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root, lastGraph)
+                is CliResult.Success -> loadedState(QueryProjectsParser.parse(result.stdout), root, last)
                 is CliFailure -> TasksState.MoonFailed(moonFailure(result))
             }
         } catch (e: MoonOutputException) {

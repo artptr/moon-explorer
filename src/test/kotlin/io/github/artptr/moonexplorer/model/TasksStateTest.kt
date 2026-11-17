@@ -1,7 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
 import io.github.artptr.moonexplorer.testData.TestData
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Test
 
 /** The consumers of [lastLoaded], [loadedTasks], and [refreshFailure] only check one state each. This test examines all states. */
@@ -30,5 +30,24 @@ class TasksStateTest {
             assertEquals("loadedTasks of $state", lastLoaded?.tasks, state.loadedTasks)
             assertEquals("refreshFailure of $state", refreshFailure, state.refreshFailure)
         }
+    }
+
+    /** [TasksState.Loaded] is not a data class. This test makes sure that [equals], [hashCode], and [copy] use all four values. */
+    @Test
+    fun loadedComparesItsFourValues() {
+        val other = TestData.loadedState(loaded.tasks, loaded.root, loaded.taskGraph)
+        assertNotSame(loaded, other)
+        assertEquals(loaded, other)
+        assertEquals(loaded.hashCode(), other.hashCode())
+        assertEquals(loaded, loaded.copy())
+        assertEquals(loaded.hashCode(), loaded.copy().hashCode())
+        val changed = listOf(
+            loaded.copy(tasks = WorkspaceTasks(emptyList())),
+            loaded.copy(root = loaded.root.resolve("other")),
+            loaded.copy(configFiles = ExistingConfigFiles(emptyMap(), emptyMap())),
+            loaded.copy(taskGraph = TaskGraph()),
+        )
+        for (state in changed) assertNotEquals(loaded, state)
+        assertTrue(loaded.toString().startsWith("Loaded(tasks="))
     }
 }

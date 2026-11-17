@@ -9,6 +9,7 @@ class InheritanceIndexTest {
 
     private val state = TestData.recordedState()
     private val index = state.inheritanceIndex
+    private val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null)
 
     private fun path(file: String): Path = TestData.workspacePath(file)
 
@@ -51,12 +52,9 @@ class InheritanceIndexTest {
     @Test
     fun localTaskWithTheSameIdMergesWithItsStrategies() {
         val merged = index.project("web")!!.merged.getValue("lint")
-        assertEquals(listOf(InheritedTask("lint", "lint", listOf(all))), merged.globalTasks)
-        assertEquals(mapOf("args" to "prepend", "deps" to "replace"), merged.strategies)
-        assertEquals(
-            listOf(MergingProject("web", "lint", mapOf("args" to "prepend", "deps" to "replace"))),
-            index.file(all)!!.tasks.getValue("lint").mergedIn,
-        )
+        assertEquals(listOf(InheritedTask("lint", "lint", listOf(all))), merged)
+        assertEquals(mapOf("args" to "prepend", "deps" to "replace"), state.mergeStrategies("web", "lint"))
+        assertEquals(listOf(MergingProject("web", "lint")), index.file(all)!!.tasks.getValue("lint").mergedIn)
     }
 
     @Test
@@ -69,29 +67,30 @@ class InheritanceIndexTest {
     @Test
     fun renamedTaskHasItsGlobalIdInTheFileAndItsLocalIdInTheTarget() {
         val typecheck = index.file(frontend)!!.tasks.getValue("typecheck")
-        assertEquals(mapOf("web:tsc" to setOf("web:build")), typecheck.dependents)
+        assertEquals(mapOf("web:tsc" to setOf("web:build")), state.dependents(typecheck))
     }
 
     @Test
     fun dependentsContainInternalTasks() {
         val lint = index.file(all)!!.tasks.getValue("lint")
-        assertEquals(mapOf("ui:lint" to setOf("ui:build", "ui:generate-icons")), lint.dependents)
+        assertEquals(mapOf("ui:lint" to setOf("ui:build", "ui:generate-icons")), state.dependents(lint))
+        assertEquals(2, dependentCount(state.dependents(lint)))
     }
 
     @Test
     fun dependentsAreEmptyWithoutTheTaskGraph() {
-        val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
-        assertEquals(emptyMap<String, Set<String>>(), withoutGraph.file(all)!!.tasks.getValue("lint").dependents)
-        assertEquals(1, withoutGraph.file(all)!!.tasks.getValue("lint").mergedIn.size)
+        val lint = withoutGraph.inheritanceIndex.file(all)!!.tasks.getValue("lint")
+        assertEquals(emptyMap<String, Set<String>>(), withoutGraph.dependents(lint))
+        assertEquals(1, lint.mergedIn.size)
     }
 
     @Test
     fun internalTaskThatMergesHasItsStrategies() {
         val expected = mapOf("args" to "replace")
-        assertEquals(expected, index.project("icons")!!.merged.getValue("format").strategies)
-        val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
-        assertEquals(expected, withoutGraph.project("icons")!!.merged.getValue("format").strategies)
-        assertEquals(listOf("icons", "web"), withoutGraph.file(all)!!.tasks.values.flatMap { it.mergedIn }.map { it.projectId }.sorted())
+        assertTrue("format" in index.project("icons")!!.merged)
+        assertEquals(expected, state.mergeStrategies("icons", "format"))
+        assertEquals(expected, withoutGraph.mergeStrategies("icons", "format"))
+        assertEquals(listOf("icons", "web"), withoutGraph.inheritanceIndex.file(all)!!.tasks.values.flatMap { it.mergedIn }.map { it.projectId }.sorted())
     }
 
     @Test
@@ -100,9 +99,9 @@ class InheritanceIndexTest {
             "args" to "prepend", "checks" to "replace", "deps" to "replace", "env" to "replace",
             "inputs" to "replace", "outputs" to "replace", "tags" to "replace", "toolchains" to "replace",
         )
-        assertEquals(expected, index.project("icons")!!.merged.getValue("typecheck").strategies)
-        val withoutGraph = TestData.loadedState(TestData.recordedTasks(), taskGraph = null).inheritanceIndex
-        assertEquals(expected, withoutGraph.project("icons")!!.merged.getValue("typecheck").strategies)
+        assertTrue("typecheck" in index.project("icons")!!.merged)
+        assertEquals(expected, state.mergeStrategies("icons", "typecheck"))
+        assertEquals(expected, withoutGraph.mergeStrategies("icons", "typecheck"))
     }
 
     @Test
@@ -117,8 +116,8 @@ class InheritanceIndexTest {
     @Test
     fun globalTaskRenamedToALocalIdMerges() {
         val merged = index.project("db")!!.merged.getValue("unit")
-        assertEquals(listOf(InheritedTask("test", "unit", listOf(backend))), merged.globalTasks)
-        assertEquals(listOf(MergingProject("db", "unit", emptyMap())), index.file(backend)!!.tasks.getValue("test").mergedIn)
+        assertEquals(listOf(InheritedTask("test", "unit", listOf(backend))), merged)
+        assertEquals(listOf(MergingProject("db", "unit")), index.file(backend)!!.tasks.getValue("test").mergedIn)
     }
 
     @Test
@@ -151,14 +150,53 @@ class InheritanceIndexTest {
             ),
         )
         val graph = TaskGraph(mergeStrategies = mapOf("web:lint" to mapOf("args" to "replace")))
-        val merged = TestData.loadedState(tasks, taskGraph = graph).inheritanceIndex.project("web")!!.merged.getValue("lint")
-        assertEquals(mapOf("args" to "replace"), merged.strategies)
+        assertEquals(mapOf("args" to "replace"), TestData.loadedState(tasks, taskGraph = graph).mergeStrategies("web", "lint"))
+        assertEquals(mapOf("args" to "prepend"), TestData.loadedState(tasks, taskGraph = null).mergeStrategies("web", "lint"))
     }
 
     @Test
     fun givesTheProjectOfAConfigurationFile() {
         assertEquals("web", index.projectOfFile(path("apps/web/moon.yml")))
         assertNull(index.projectOfFile(all))
+    }
+
+    @Test
+    fun runTargetsAreTheInheritingProjectsWithoutTheInternalTasks() {
+        // The task `icons:typecheck` is internal. Thus the hint shows the project `icons`, but the run icon does not run `icons:typecheck`.
+        val typecheck = index.file(frontend)!!.tasks.getValue("typecheck")
+        assertEquals(listOf("admin", "icons", "ui", "utils", "web"), typecheck.inheritedBy.keys.toList())
+        assertEquals(listOf("admin:typecheck", "ui:typecheck", "utils:typecheck", "web:tsc"), typecheck.targets)
+        assertEquals(TaskKeyTargets.Shared(typecheck.targets), index.targets(frontend, "typecheck"))
+    }
+
+    @Test
+    fun globalTaskOfOnlyInternalTasksHasNoRunTargets() {
+        // The project web inherits lint, but lint is not in its task list. Thus lint is an internal task of web.
+        val tasks = WorkspaceTasks(
+            projects = listOf(MoonProject("web", listOf(MoonTask("build", "web:build", null)))),
+            sources = listOf(ProjectSource("web", "apps/web")),
+            taskConfigs = mapOf("web" to TaskConfigs(inheritedLayers = mapOf("lint" to listOf(InheritedLayer("lint", ".moon/tasks/all.yml"))))),
+        )
+        val internal = TestData.loadedState(tasks).inheritanceIndex
+        val lint = internal.file(all)!!.tasks.getValue("lint")
+        assertEquals(mapOf("web" to "lint"), lint.inheritedBy)
+        assertEquals(emptyList<String>(), lint.targets)
+        assertNull(internal.targets(all, "lint"))
+    }
+
+    @Test
+    fun newTaskGraphKeepsTheIndex() {
+        val updated = state.copy(taskGraph = TaskGraph())
+        assertSame(index, updated.inheritanceIndex)
+        assertEquals(emptyMap<String, Set<String>>(), updated.dependents(index.file(all)!!.tasks.getValue("lint")))
+    }
+
+    @Test
+    fun newTasksMakeANewIndex() {
+        val updated = state.copy(tasks = state.tasks.copy(projects = state.tasks.projects.filter { it.id != "web" }))
+        assertNotSame(index, updated.inheritanceIndex)
+        assertFalse("web:test" in updated.inheritanceIndex.file(frontend)!!.tasks.getValue("test").targets)
+        assertEquals(state, state.copy())
     }
 
     @Test
