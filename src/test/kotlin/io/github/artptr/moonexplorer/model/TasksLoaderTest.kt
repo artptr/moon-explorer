@@ -24,12 +24,12 @@ class TasksLoaderTest {
 
     private val recordedGraph = CliResult.Success(TestData.recorded("task-graph.json"))
 
-    private suspend fun loadTasks(dir: Path?, query: suspend (Path) -> CliResult) =
-        TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query)
+    private suspend fun loadTasks(dir: Path?, last: TasksState.Loaded? = null, query: suspend (Path) -> CliResult) =
+        TasksLoader.loadTasksIn(dir?.let(MoonWorkspaceLocator::findWorkspaceRoot), query, last)
 
     private fun loadGraph(graph: suspend (Path) -> CliResult) = runBlocking { TasksLoader.loadTaskGraph(workspace, graph) }
 
-    private fun load(dir: Path?, result: CliResult) = runBlocking { loadTasks(dir) { result } }
+    private fun load(dir: Path?, result: CliResult, last: TasksState.Loaded? = null) = runBlocking { loadTasks(dir, last) { result } }
 
     @Test
     fun noProjectDirectoryGivesNoWorkspace() {
@@ -45,7 +45,7 @@ class TasksLoaderTest {
     fun newResultKeepsTheLastTaskGraph() {
         val graph = TaskGraph(mapOf("a:b" to setOf("c:d")))
         val last = TestData.loadedState(WorkspaceTasks(emptyList()), taskGraph = graph)
-        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) } as TasksState.Loaded
+        val state = load(workspace, recorded, last) as TasksState.Loaded
         assertNotSame(last, state)
         assertEquals(TestData.recordedTasks(), state.tasks)
         assertEquals(graph, state.taskGraph)
@@ -54,26 +54,16 @@ class TasksLoaderTest {
     @Test
     fun sameResultGivesTheLastInstance() {
         val last = TestData.loadedState(TestData.recordedTasks())
-        assertSame(last, runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) })
+        assertSame(last, load(workspace, recorded, last))
     }
 
     @Test
     fun differentRootGivesANewState() {
         // The tasks are the same, but the root is different. Thus the configuration files are different too.
         val last = TestData.loadedState(TestData.recordedTasks(), temp.root.toPath())
-        val state = runBlocking { TasksLoader.loadTasksIn(workspace, { recorded }, last) } as TasksState.Loaded
+        val state = load(workspace, recorded, last) as TasksState.Loaded
         assertNotSame(last, state)
-        assertEquals(workspace.toAbsolutePath().normalize(), state.root)
-    }
-
-    @Test
-    fun differentTaskGraphKeepsTheIndexOfTheLastState() {
-        val last = TestData.loadedState(TestData.recordedTasks(), taskGraph = null)
-        val graph = TaskGraph(mapOf("a:b" to setOf("c:d")))
-        val state = TasksLoader.loadedState(TestData.recordedTasks(), workspace, graph, last)
-        assertNotSame(last, state)
-        assertEquals(graph, state.taskGraph)
-        assertSame(last.inheritanceIndex, state.inheritanceIndex)
+        assertEquals(TestData.workspaceRoot, state.root)
     }
 
     @Test
@@ -85,17 +75,17 @@ class TasksLoaderTest {
             sources = listOf(ProjectSource("p", "p")),
             taskConfigs = mapOf("p" to TaskConfigs(ownTasks = setOf("build"))),
         )
-        val first = TasksLoader.loadedState(tasks, root, null)
-        assertSame(first, TasksLoader.loadedState(tasks, root, null, first))
+        val first = TasksLoader.loadedState(tasks, root)
+        assertSame(first, TasksLoader.loadedState(tasks, root, first))
         val file = Files.writeString(projectDir.resolve("moon.yml"), "").toAbsolutePath().normalize()
-        val second = TasksLoader.loadedState(tasks, root, null, first)
+        val second = TasksLoader.loadedState(tasks, root, first)
         assertNotSame(first, second)
         assertNotSame(first.inheritanceIndex, second.inheritanceIndex)
         assertNull(first.inheritanceIndex.targets(file, "build"))
         assertEquals(TaskKeyTargets.Single("p:build"), second.inheritanceIndex.targets(file, "build"))
         // The file goes away again. Thus the next load gives a new state without the file.
         Files.delete(file)
-        val third = TasksLoader.loadedState(tasks, root, null, second)
+        val third = TasksLoader.loadedState(tasks, root, second)
         assertNotSame(second, third)
         assertEquals(emptyMap<String, Path>(), third.configFiles.projects)
     }

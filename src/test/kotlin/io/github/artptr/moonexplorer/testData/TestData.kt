@@ -58,5 +58,5 @@ object TestData {
      * [taskGraph] has the value that `prepareForTests` gives to the service.
      */
     fun loadedState(tasks: WorkspaceTasks, root: Path = workspaceRoot, taskGraph: TaskGraph? = recordedTaskGraph()): TasksState.Loaded =
-        TasksLoader.loadedState(tasks, root, taskGraph)
+        TasksLoader.loadedState(tasks, root).copy(taskGraph = taskGraph)
 }

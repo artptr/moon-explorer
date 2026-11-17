@@ -130,12 +130,13 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     private class Merge(val key: ConfigKey, val text: String, val list: HintList, val strategies: Map<String, String>?)
 
     private fun merges(): List<Merge> {
-        val project = projectId
-        val local = project?.let(index::project)?.merged.orEmpty()
-        val localMerges = if (project == null) emptyList() else syntax.taskKeys.mapNotNull { key ->
-            val globalTasks = local[key.id] ?: return@mapNotNull null
-            Merge(key, mergedWithText(globalTasks), globalTaskList(key, globalTasks), state.mergeStrategies(project, key.id))
-        }
+        val localMerges = projectId?.let { project ->
+            val local = index.project(project)?.merged.orEmpty()
+            syntax.taskKeys.mapNotNull { key ->
+                val globalTasks = local[key.id] ?: return@mapNotNull null
+                Merge(key, mergedWithText(globalTasks), globalTaskList(key, globalTasks), state.mergeStrategies(project, key.id))
+            }
+        }.orEmpty()
         return localMerges + mergedInLists().map { (key, list) -> Merge(key, MoonExplorerBundle.message("hint.mergedIn", list.items.size), list, null) }
     }
 
