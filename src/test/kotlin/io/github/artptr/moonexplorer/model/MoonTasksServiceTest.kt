@@ -71,9 +71,48 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
         service.refresh()
         started.awaitWithTimeout()
         // The result of moon query projects did not change. Thus the state is the same instance, with the last task graph.
+        service.awaitState(last)
         assertSame(last, service.state.value)
         finish.complete(Unit)
         service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = TaskGraph()))
+    }
+
+    fun testTwoMoonProcessesRunAtTheSameTime() {
+        // Each command waits until the other command starts. If the commands run one after the other, the load does not complete.
+        val queryStarted = CompletableDeferred<Unit>()
+        val graphStarted = CompletableDeferred<Unit>()
+        service.queryProjects = {
+            queryStarted.complete(Unit)
+            graphStarted.await()
+            CliResult.Success(recorded)
+        }
+        service.taskGraph = {
+            graphStarted.complete(Unit)
+            queryStarted.await()
+            CliResult.Success(TestData.recorded("task-graph.json"))
+        }
+        service.refresh()
+        service.awaitState(loaded)
+    }
+
+    fun testQueryFailureCancelsTheTaskGraph() {
+        val started = CompletableDeferred<Unit>()
+        val cancelled = CompletableDeferred<Unit>()
+        service.taskGraph = {
+            started.complete(Unit)
+            try {
+                awaitCancellation()
+            } finally {
+                cancelled.complete(Unit)
+            }
+        }
+        service.queryProjects = {
+            started.await()
+            CliResult.Failed("bad config")
+        }
+        service.refresh()
+        service.awaitState(TasksState.MoonFailed(MoonFailure.Error("bad config")))
+        cancelled.awaitWithTimeout()
     }
 
     fun testTaskGraphFailureRemovesOnlyTheTaskGraph() {

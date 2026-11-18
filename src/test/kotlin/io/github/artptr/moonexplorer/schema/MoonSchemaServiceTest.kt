@@ -54,7 +54,7 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
         assertEquals(MoonSchema.TEMPLATE, mapping.schemaFor("${mapping.root}/templates/package/template.yml"))
         // The schema files exist. Thus the service does not start moon sync.
         assertEquals(0, syncCalls.get())
-        // The service adds the task graph with a second Loaded state. The service runs moon templates only one time.
+        // The tasks service can add the task graph with a second Loaded state. The schema service runs moon templates only one time.
         assertEquals(1, templateCalls.get())
         // One message for the root, and one for the templates.
         assertEquals(2, messages.get())
