@@ -84,7 +84,7 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
     }
 
     /**
-     * Runs `moon query projects` and `moon task-graph` again. If a load runs now, the function cancels it and starts a new load.
+     * Runs `moon query projects` and `moon task-graph` again. The two commands run at the same time. If a load runs now, the function cancels it and starts a new load.
      * The function also cancels a refresh that [scheduleRefresh] started. Thus a manual refresh does not cause a second refresh.
      */
     @Synchronized
@@ -97,7 +97,7 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
     /** Starts a new load. If a load runs now, the function cancels it. Call this function only with the lock of the service. */
     private fun startLoad() {
         val previous = job
-        // Cancel the previous load now. Thus two moon processes do not run at the same time for long.
+        // Cancel the previous load now. Thus the moon processes of two loads do not run at the same time for a long time.
         previous?.cancel()
         // Show the Loading state before the function returns, not when the new coroutine starts.
         // The state keeps the last successful load. Thus the tree, **Search Everywhere**, and **Run Anything** keep the tasks during the load.
@@ -108,41 +108,44 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
         val projectDirFn = projectDir
         val queryProjectsFn = queryProjects
         val taskGraphFn = taskGraph
-        job = scope.launch {
+        // The load runs moon, reads the disk, and compares the task graphs. Thus it does this work on a background thread.
+        job = scope.launch(Dispatchers.IO) {
             previous?.join()
-            val published = withContext(Dispatchers.IO) {
-                val dir = projectDirFn()
-                val root = project.service<MoonExecutableService>().workspaceRoot(dir)
-                // The code gets the last successful load after the old load stops. The old load can set its result before it stops.
-                val last = _state.value.lastLoaded
-                // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
-                watchConfig(root, dir, last)
-                // A load with the same result gives the last instance. Thus the users of the state do not repeat their work for it.
-                val result = TasksLoader.loadTasksIn(root, queryProjectsFn, last)
-                // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
-                // NoWorkspace does not keep the last load, because the old tasks are not correct.
-                val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
-                // A failed load keeps the last successful load. Then the watch does not change.
-                if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
-                state
+            val dir = projectDirFn()
+            val root = project.service<MoonExecutableService>().workspaceRoot(dir)
+            // The code gets the last successful load after the old load stops. The old load can set its result before it stops.
+            val last = _state.value.lastLoaded
+            // The service gives this root to the listener before moon starts. Thus a change during the load also causes a refresh.
+            watchConfig(root, dir, last)
+            // Start moon task-graph now. Thus the two moon processes run at the same time.
+            // The task graph runs in a child coroutine of the load. Thus a new load also cancels it.
+            val graph = root?.let { async { TasksLoader.loadTaskGraph(it, taskGraphFn) } }
+            // A load with the same result gives the last instance. Thus the users of the state do not repeat their work for it.
+            val result = TasksLoader.loadTasksIn(root, queryProjectsFn, last)
+            // A failure after a successful load gives Stale. Thus the tree keeps the last correct tasks.
+            // NoWorkspace does not keep the last load, because the old tasks are not correct.
+            val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
+            // A failed load keeps the last successful load. Then the watch does not change.
+            if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
+            if (state !is TasksState.Loaded || graph == null) {
+                // A failed load does not change the task graph. Thus the service stops moon task-graph.
+                graph?.cancel()
+                _state.value = state
+                return@launch
             }
-            _state.value = published
             // The tree and the run icons do not use the task graph. Thus the service shows the tasks before this command completes.
-            if (published is TasksState.Loaded) updateTaskGraph(published, taskGraphFn)
+            // If the task graph is available now, the service sets one state. Thus the users of the state do their work only one time.
+            if (!graph.isCompleted) _state.value = state
+            _state.value = state.withTaskGraph(graph.await())
         }
     }
 
     /**
-     * Runs [taskGraph] and adds the result to [loaded]. A new load cancels this function. If the task graph did not change, the state does not change.
-     * The new state keeps the index of [loaded]. The function runs moon and compares the task graphs. Thus it does this work on a background thread.
+     * Gives a copy of this state with [graph]. If the task graph did not change, the function gives this instance.
+     * The copy keeps the index of this state.
      */
-    private suspend fun updateTaskGraph(loaded: TasksState.Loaded, taskGraph: suspend (Path) -> CliResult) {
-        val updated = withContext(Dispatchers.IO) {
-            val graph = TasksLoader.loadTaskGraph(loaded.root, taskGraph)
-            if (graph == loaded.taskGraph) null else loaded.copy(taskGraph = graph)
-        }
-        if (updated != null) _state.value = updated
-    }
+    private fun TasksState.Loaded.withTaskGraph(graph: TaskGraph?): TasksState.Loaded =
+        if (graph == taskGraph) this else copy(taskGraph = graph)
 
     /** Sets [configWatch] for [root] and [projectDir]. The sources come from [last], the result of the last successful load. */
     private fun watchConfig(root: Path?, projectDir: Path?, last: TasksState.Loaded?) {
