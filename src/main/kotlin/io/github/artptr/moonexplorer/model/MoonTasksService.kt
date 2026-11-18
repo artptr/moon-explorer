@@ -127,16 +127,16 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
             val state = if (result is TasksState.Failure && last != null) TasksState.Stale(last, result) else result
             // A failed load keeps the last successful load. Then the watch does not change.
             if (state.lastLoaded !== last) watchConfig(root, dir, state.lastLoaded)
-            if (state !is TasksState.Loaded || graph == null) {
+            if (state is TasksState.Loaded && graph != null) {
+                // The tree and the run icons do not use the task graph. Thus the service shows the tasks before this command completes.
+                // If the task graph is available now, the service sets one state. Thus the users of the state do their work only one time.
+                if (!graph.isCompleted) _state.value = state
+                _state.value = state.withTaskGraph(graph.await())
+            } else {
                 // A failed load does not change the task graph. Thus the service stops moon task-graph.
                 graph?.cancel()
                 _state.value = state
-                return@launch
             }
-            // The tree and the run icons do not use the task graph. Thus the service shows the tasks before this command completes.
-            // If the task graph is available now, the service sets one state. Thus the users of the state do their work only one time.
-            if (!graph.isCompleted) _state.value = state
-            _state.value = state.withTaskGraph(graph.await())
         }
     }
 
