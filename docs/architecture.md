@@ -78,10 +78,10 @@ The `run` package contains the run configuration for moon tasks. The configurati
 ## 3. Data flow
 
 1. The plugin finds the workspace root. It starts at the IDE project directory and goes up through the parent directories. The workspace root has a `.moon/` directory with a `workspace.*` file.
-2. The plugin runs `moon query projects` in the workspace root. In moon v2, the output of this command is always JSON.
+2. The plugin runs `moon query projects` and `moon task-graph --json` in the workspace root at the same time. In moon v2, the output of `moon query projects` is always JSON.
 3. The plugin reads the JSON with Gson. The IntelliJ Platform contains Gson. Thus the plugin has no new dependency.
 4. The service sets the new state. The tool window shows the tree or a message. If the load fails after a successful load, the tree keeps the last tasks. Refer to section 6.
-5. In the same load, the plugin runs `moon task-graph --json` at the same time as `moon query projects`. The tree and the run icons do not use this output. Thus they do not wait for this command.
+5. The tree and the run icons do not use the output of `moon task-graph --json`. Thus they do not wait for this command.
 6. The service adds the task graph to the state. Until the command completes, the state keeps the task graph of the last load. If the command fails, the state has no task graph. The load does not fail.
    If the task graph is available before the tasks, the service sets one state with the tasks and the task graph. If `moon query projects` fails, the plugin stops `moon task-graph`.
 7. When a moon configuration file changes, the plugin starts a new load. Refer to section 6.

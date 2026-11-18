@@ -99,7 +99,8 @@ class MoonSchemaService(private val project: Project, private val scope: Corouti
                 changed = setMapping(newRoot?.let { SchemaMapping.of(it) })
             }
             if (newRoot != null) {
-                // The service adds the task graph with a second Loaded state. This state has the same tasks, thus it is not a new load.
+                // If moon task-graph completes after the tasks, the tasks service adds the task graph with a second Loaded state.
+                // This state has the same tasks, thus it is not a new load.
                 // A StateFlow can skip a state. Thus a new root or new tasks after a Loaded state is also a new load.
                 val newLoad = state is TasksState.Loaded &&
                     (rootChanged || previous !is TasksState.Loaded || previous.tasks !== state.tasks)

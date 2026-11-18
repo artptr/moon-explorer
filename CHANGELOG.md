@@ -10,6 +10,10 @@
 - The schemas come from `.moon/cache/schemas/`. Thus they agree with the moon version of the workspace and operate without a network connection. If the files do not exist, the plugin runs `moon sync config-schemas --force`. If moon fails, the IDE uses the schemas on the moon website until the files exist. The IDE downloads these schemas only if it can download remote schemas. The schemas operate only when the JSON plugin is active. The YAML plugin needs the JSON plugin. Thus if you disable the JSON plugin, the functions for YAML files also stop.
 - After each load of the tasks, the plugin runs `moon templates --json` to find the template directories. If the workspace configuration has a template location in a Git repository or in npm, moon can use the network for this command.
 
+### Changed
+
+- The plugin runs `moon query projects` and `moon task-graph --json` at the same time. Thus the tasks load faster.
+
 ## [0.5.0] - 2026-11-11
 
 ### Added
