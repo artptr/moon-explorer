@@ -50,16 +50,16 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         assertEquals("Inherited by 9 projects", hint.text)
         assertEquals(0, hint.element.textOffset)
         assertEquals("Projects That Inherit .moon/tasks/all.yml", hint.list.title)
-        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), hint.list.items.map { it.text })
+        assertEquals(listOf("admin", "api", "db", "icons", "scripts", "ui", "utils", "web", "worker"), hint.list.items().map { it.text })
     }
 
     fun testItemOfTheInheritedByListOpensTheFileOfTheProject() {
-        val item = insights(".moon/tasks/all.yml").inheritedHints().single().list.items.first { it.text == "web" }
+        val item = insights(".moon/tasks/all.yml").inheritedHints().single().list.items().first { it.text == "web" }
         assertEquals(SourceFile(TestData.workspacePath("apps/web/moon.yml"), null), item.target)
     }
 
     fun testItemOfTheInheritedByListShowsTheTaskIdsInTheProject() {
-        val items = insights(".moon/tasks/frontend.yml").inheritedHints().single().list.items.associate { it.text to it.secondary }
+        val items = insights(".moon/tasks/frontend.yml").inheritedHints().single().list.items().associate { it.text to it.secondary }
         // The project web renames typecheck to tsc. The task icons:typecheck is internal, but icons inherits it.
         assertEquals("test, tsc", items["web"])
         assertEquals("test, typecheck", items["icons"])
@@ -67,7 +67,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
 
     fun testCountUsesTheFiltersOfTheProjects() {
         // The project web inherits frontend.yml through its stack. Only frontend projects are in the list.
-        val items = insights(".moon/tasks/frontend.yml").inheritedHints().single().list.items.map { it.text }
+        val items = insights(".moon/tasks/frontend.yml").inheritedHints().single().list.items().map { it.text }
         assertEquals(listOf("admin", "icons", "ui", "utils", "web"), items)
     }
 
@@ -75,7 +75,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val hint = insights(".moon/tasks/all.yml").mergedHints().single { it.element.text == "lint" }
         assertEquals("Merged in 1 project", hint.text)
         assertEquals("lint", hint.element.text)
-        val item = hint.list.items.single()
+        val item = hint.list.items().single()
         assertEquals("web (args: prepend, deps: replace)", item.text)
         assertEquals(SourceFile(TestData.workspacePath("apps/web/moon.yml"), "lint"), item.target)
     }
@@ -83,14 +83,16 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
     fun testExcludedTaskWithALocalTaskOfTheSameIdIsNotInTheList() {
         // The project web excludes format and has a local task format. The internal task icons:format merges.
         val hint = insights(".moon/tasks/all.yml").mergedHints().single { it.element.text == "format" }
-        assertEquals(listOf("icons (args: replace)"), hint.list.items.map { it.text })
+        assertEquals(listOf("icons (args: replace)"), hint.list.items().map { it.text })
     }
 
     fun testGutterMarkHasTheSameList() {
         val insights = insights(".moon/tasks/all.yml")
         val mark = insights.gutterMarks().single { it.element.text == "lint" }
         assertEquals("Merged in 1 project", mark.tooltip)
-        assertEquals(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
+        val hint = insights.mergedHints().single { it.element.text == "lint" }
+        assertEquals(hint.list.title, mark.list.title)
+        assertEquals(hint.list.items(), mark.list.items())
     }
 
     fun testProjectFileHasTheNumberOfInheritedTasksAboveTheTasksKey() {
@@ -98,7 +100,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         assertEquals("3 inherited tasks", hint.text)
         assertEquals("tasks", hint.element.text)
         // The group is the local ID. The secondary text gives the global ID, because web renames typecheck to tsc.
-        val typecheck = hint.list.items.single { it.group == "tsc" }
+        val typecheck = hint.list.items().single { it.group == "tsc" }
         assertEquals(".moon/tasks/frontend.yml", typecheck.text)
         assertEquals("typecheck", typecheck.secondary)
         assertEquals(SourceFile(TestData.workspacePath(".moon/tasks/frontend.yml"), "typecheck"), typecheck.target)
@@ -117,12 +119,12 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val hint = insights.mergedHints().single()
         assertEquals("Merged with all.yml", hint.text)
         assertEquals("lint", hint.element.text)
-        assertEquals(SourceFile(TestData.workspacePath(".moon/tasks/all.yml"), "lint"), hint.list.items.single().target)
+        assertEquals(SourceFile(TestData.workspacePath(".moon/tasks/all.yml"), "lint"), hint.list.items().single().target)
         val mark = insights.gutterMarks().single()
         assertTrue(mark.local)
         assertEquals("Merged with all.yml (args: prepend, deps: replace)", mark.tooltip)
         // The list of the icon has one target. Thus a click on the icon opens the global task directly.
-        assertEquals(listOf(SourceFile(TestData.workspacePath(".moon/tasks/all.yml"), "lint")), mark.list.items.map { it.target })
+        assertEquals(listOf(SourceFile(TestData.workspacePath(".moon/tasks/all.yml"), "lint")), mark.list.items().map { it.target })
     }
 
     fun testListOfARenamedLocalTaskHasTheGlobalId() {
@@ -130,15 +132,15 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val hint = insights("packages/db/moon.yml").mergedHints().single()
         assertEquals("unit", hint.element.text)
         assertEquals("Global Task 'test'", hint.list.title)
-        assertEquals(listOf(SourceFile(TestData.workspacePath(".moon/tasks/backend.yml"), "test")), hint.list.items.map { it.target })
+        assertEquals(listOf(SourceFile(TestData.workspacePath(".moon/tasks/backend.yml"), "test")), hint.list.items().map { it.target })
     }
 
     fun testListHasAGroupForEachInheritedTask() {
         // The project api inherits lint from all.yml and from backend.yml. The list opens the two files.
         val api = insights("apps/api/moon.yml").inheritedHints().first()
         assertEquals("4 inherited tasks", api.text)
-        assertEquals(4, api.list.items.mapTo(HashSet()) { it.group }.size)
-        val lint = api.list.items.filter { it.group == "lint" }.map { it.target }
+        assertEquals(4, api.list.items().mapTo(HashSet()) { it.group }.size)
+        val lint = api.list.items().filter { it.group == "lint" }.map { it.target }
         assertEquals(listOf(SourceFile(TestData.workspacePath(".moon/tasks/all.yml"), "lint"), SourceFile(TestData.workspacePath(".moon/tasks/backend.yml"), "lint")), lint)
     }
 
@@ -146,8 +148,8 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         // The project worker renames format and test to check.
         val worker = insights("apps/worker/moon.yml").inheritedHints().first()
         assertEquals("3 inherited tasks", worker.text)
-        assertEquals(3, worker.list.items.mapTo(HashSet()) { it.group }.size)
-        val check = worker.list.items.filter { it.group == "check" }
+        assertEquals(3, worker.list.items().mapTo(HashSet()) { it.group }.size)
+        val check = worker.list.items().filter { it.group == "check" }
         assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.target?.taskId })
         assertEquals(setOf("format", "test"), check.mapTo(HashSet()) { it.secondary })
     }
@@ -159,9 +161,11 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val insights = insightsOf("tasks:\n  check:\n    command: 'check'\n", "apps/worker/moon.yml", state)
         val list = insights.mergedHints().single().list
         assertEquals("Global Tasks That Merge with 'check'", list.title)
-        assertEquals(setOf("format", "test"), list.items.mapTo(HashSet()) { it.group })
+        assertEquals(setOf("format", "test"), list.items().mapTo(HashSet()) { it.group })
         assertNull("A click on the icon shows the list", directTarget(insights.gutterMarks().single()))
     }
+
+    private fun directTarget(mark: ConfigGutterMark) = directTarget(mark.local, mark.list.items())
 
     fun testClickOnTheIconOfALocalTaskWithOneGlobalTaskOpensTheGlobalTask() {
         val local = insights("apps/web/moon.yml").gutterMarks().single()
@@ -182,9 +186,9 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val hint = insights(".moon/tasks/all.yml").dependentsHints().single()
         assertEquals("2 dependents", hint.text)
         assertEquals("lint", hint.element.text)
-        assertEquals(listOf("ui:build", "ui:generate-icons"), hint.list.items.map { it.text })
-        assertEquals(setOf("ui:lint"), hint.list.items.mapTo(HashSet()) { it.group })
-        val internal = hint.list.items[1]
+        assertEquals(listOf("ui:build", "ui:generate-icons"), hint.list.items().map { it.text })
+        assertEquals(setOf("ui:lint"), hint.list.items().mapTo(HashSet()) { it.group })
+        val internal = hint.list.items()[1]
         assertEquals(SourceFile(TestData.workspacePath("packages/ui/moon.yml"), "generate-icons"), internal.target)
         assertEquals("packages/ui/moon.yml", internal.secondary)
     }
@@ -193,7 +197,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val hint = insights(".moon/tasks/frontend.yml").dependentsHints().single { it.element.text == "typecheck" }
         assertEquals("1 dependent", hint.text)
         // The dependent web:build depends on the renamed task web:tsc. The item opens the task key build in the file of web.
-        val item = hint.list.items.single()
+        val item = hint.list.items().single()
         assertEquals("web:tsc", item.group)
         assertEquals("web:build", item.text)
         assertEquals("apps/web/moon.yml", item.secondary)
@@ -208,13 +212,13 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         )
         val hint = insights(ALL, state).dependentsHints().single()
         assertEquals("2 dependents", hint.text)
-        assertEquals(listOf("a:lint" to "c:x", "b:lint" to "c:x", "b:lint" to "c:y"), hint.list.items.map { it.group to it.text })
+        assertEquals(listOf("a:lint" to "c:x", "b:lint" to "c:x", "b:lint" to "c:y"), hint.list.items().map { it.group to it.text })
     }
 
     /** Gives the items of the dependents hint of `lint` in `all.yml`. The project `a` in [root] inherits `lint`, and its task `fmt` is `format` of `all.yml`. */
     private fun inheritedDependentItems(root: String): List<HintItem> {
         val state = inheritingState(mapOf("a" to root), mapOf("a" to mapOf("lint" to "lint", "fmt" to "format")), mapOf("a:lint" to setOf("a:fmt")))
-        return insights(ALL, state).dependentsHints().single().list.items
+        return insights(ALL, state).dependentsHints().single().list.items()
     }
 
     fun testInheritedDependentOpensItsGlobalTaskKey() {
@@ -254,7 +258,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         assertEquals("lint: 1 dependent; format: 1 dependent", joined.text)
         assertEquals("lint", joined.element.text)
         assertEquals("Hints on This Line", joined.list.title)
-        assertEquals(listOf("lint: a:lint" to "a:x", "format: a:format" to "a:y"), joined.list.items.map { it.group to it.text })
+        assertEquals(listOf("lint: a:lint" to "a:x", "format: a:format" to "a:y"), joined.list.items().map { it.group to it.text })
     }
 
     fun testHintsOnDifferentLinesAreNotJoined() {
@@ -265,9 +269,40 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
     fun testJoinedHintWithAnEmptyListHasAnItemThatCannotBeSelected() {
         val hints = dependentsHintsOf("tasks: {lint: {command: 'x'}, format: {command: 'y'}}\n")
         val withEmpty = listOf(hints[0], ConfigHint(hints[1].element, hints[1].text, HintList("title", emptyList())))
-        val items = joinedOnEditorLines(withEmpty).single().list.items
+        val items = joinedOnEditorLines(withEmpty).single().list.items()
         assertEquals(HintItem("format: 1 dependent", null), items.last())
         assertEquals("lint: a:lint", items.first().group)
+    }
+
+    fun testJoinedListMakesTheItemsOnlyWhenItIsShown() {
+        val hints = dependentsHintsOf("tasks: {lint: {command: 'x'}, format: {command: 'y'}}\n")
+        var calls = 0
+        val counted = hints.map { hint -> ConfigHint(hint.element, hint.text, HintList(hint.list.title, false) { calls++; hint.list.items() }, hint.label) }
+        val joined = joinedOnEditorLines(counted).single()
+        codeVisionEntry(joined.text, joined.list, MoonDependentsCodeVisionProvider.ID)
+        assertEquals(0, calls)
+        assertEquals(2, joined.list.items().size)
+        assertEquals(2, calls)
+    }
+
+    fun testListsOfAFileWithoutItemsAreEmpty() {
+        // A project without inherited files gives no items, but the hint has a count. The list must tell that it is empty without the items.
+        val list = HintList("title", true) { error("A check of an empty list must not make the items") }
+        assertFalse(codeVisionEntry("0 dependents", list, MoonDependentsCodeVisionProvider.ID) is ClickableTextCodeVisionEntry)
+        assertFalse(HintList("title", listOf(HintItem("web", null))).empty)
+        assertTrue(HintList("title", emptyList()).empty)
+    }
+
+    fun testInsightsAreCachedUntilTheNextLoad() {
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile(ALL))
+        val first = configInsights(myFixture.file)!!
+        assertSame(first, configInsights(myFixture.file))
+        service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+        val second = configInsights(myFixture.file)!!
+        assertNotSame(first, second)
+        assertEmpty(second.dependentsHints())
     }
 
     fun testNoHintAndOtherHintsStayIfTheTaskGraphFails() {
@@ -280,7 +315,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         assertEquals(listOf("lint", "format"), insights.mergedHints().map { it.element.text })
         // The internal task keeps its merge strategies from the output of moon query projects.
         val format = insights.mergedHints().single { it.element.text == "format" }
-        assertEquals("icons (args: replace)", format.list.items.single().text)
+        assertEquals("icons (args: replace)", format.list.items().single().text)
     }
 
     fun testProjectFileHasNoDependentsHint() {
@@ -290,7 +325,7 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
     fun testItemOfARenamedTaskOpensTheLocalTaskKey() {
         // The project db renames the global task test to unit and has a local task unit.
         val hint = insights(".moon/tasks/backend.yml").mergedHints().single { it.element.text == "test" }
-        assertEquals(SourceFile(TestData.workspacePath("packages/db/moon.yml"), "unit"), hint.list.items.single { it.text == "db" }.target)
+        assertEquals(SourceFile(TestData.workspacePath("packages/db/moon.yml"), "unit"), hint.list.items().single { it.text == "db" }.target)
     }
 
     fun testHintTextsHavePluralForms() {
