@@ -23,15 +23,21 @@ import kotlinx.coroutines.withContext
 import java.awt.event.MouseEvent
 import java.util.*
 
-/** The list of a hint or of a gutter icon. The IDE calls [choose] with the [SourceFile] of the item that the user selects. */
-internal class HintListStep(list: HintList, private val choose: (SourceFile) -> Unit) :
-    BaseListPopupStep<HintItem>(list.title, list.items), ListPopupStepEx<HintItem> {
+/**
+ * The list of a hint or of a gutter icon with the title [title] and the items [items].
+ * The IDE calls [choose] with the [SourceFile] of the item that the user selects.
+ */
+internal class HintListStep(title: String, items: List<HintItem>, private val choose: (SourceFile) -> Unit) :
+    BaseListPopupStep<HintItem>(title, items), ListPopupStepEx<HintItem> {
+
+    /** Makes the step of [list]. The constructor makes the items of [list] one time. */
+    constructor(list: HintList, choose: (SourceFile) -> Unit) : this(list.title, list.items(), choose)
 
     /** The first item of each group. The set compares the items by identity, because two items can be equal. */
     private val groupStarts: MutableSet<HintItem> = Collections.newSetFromMap(IdentityHashMap())
 
     init {
-        list.items.forEachIndexed { i, item -> if (item.group != null && (i == 0 || list.items[i - 1].group != item.group)) groupStarts += item }
+        items.forEachIndexed { i, item -> if (item.group != null && (i == 0 || items[i - 1].group != item.group)) groupStarts += item }
     }
 
     override fun getTextFor(value: HintItem): String = value.text

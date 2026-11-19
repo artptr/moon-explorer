@@ -3,6 +3,8 @@ package io.github.artptr.moonexplorer.model
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.util.SimpleModificationTracker
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.cli.MoonCli
 import io.github.artptr.moonexplorer.settings.MoonExecutableService
@@ -27,6 +29,21 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
 
     /** The current state. The tool window shows this state. */
     val state: StateFlow<TasksState> = _state.asStateFlow()
+
+    private val _loadTracker = SimpleModificationTracker()
+
+    /**
+     * Changes when the last successful load of [state] changes. The cached values of the configuration files use it as a dependency.
+     * The tracker changes after the state changes. Thus a cached value can contain the old load. Refer to [io.github.artptr.moonexplorer.config.configInsights].
+     */
+    val loadTracker: ModificationTracker get() = _loadTracker
+
+    /** Sets the state. If the last successful load changes, the function also changes [loadTracker]. */
+    private fun setState(state: TasksState) {
+        val old = _state.value
+        _state.value = state
+        if (state.lastLoaded !== old.lastLoaded) _loadTracker.incModificationCount()
+    }
 
     private var job: Job? = null
 
@@ -103,7 +120,7 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
         // The state keeps the last successful load. Thus the tree, **Search Everywhere**, and **Run Anything** keep the tasks during the load.
         // The state also keeps the failure of the last refresh. Thus the user can see the error during the load.
         val current = _state.value
-        _state.value = TasksState.Loading(current.lastLoaded, current.refreshFailure)
+        setState(TasksState.Loading(current.lastLoaded, current.refreshFailure))
         // Read the inputs now. Thus a later change of these values does not go into this load.
         val projectDirFn = projectDir
         val queryProjectsFn = queryProjects
@@ -130,12 +147,12 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
             if (state is TasksState.Loaded && graph != null) {
                 // The tree and the run icons do not use the task graph. Thus the service shows the tasks before this command completes.
                 // If the task graph is available now, the service sets one state. Thus the users of the state do their work only one time.
-                if (!graph.isCompleted) _state.value = state
-                _state.value = state.withTaskGraph(graph.await())
+                if (!graph.isCompleted) setState(state)
+                setState(state.withTaskGraph(graph.await()))
             } else {
                 // A failed load does not change the task graph. Thus the service stops moon task-graph.
                 graph?.cancel()
-                _state.value = state
+                setState(state)
             }
         }
     }
@@ -188,7 +205,7 @@ class MoonTasksService(internal val project: Project, val scope: CoroutineScope)
         }
         previous?.cancelAndJoin()
         configWatch = ConfigWatch(null, null)
-        _state.value = TasksState.Loading(null)
+        setState(TasksState.Loading(null))
     }
 
     internal companion object {
