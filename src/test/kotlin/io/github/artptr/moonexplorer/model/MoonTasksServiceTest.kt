@@ -256,6 +256,19 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
         assertSame(first, service.state.value)
     }
 
+    fun testLoadTrackerChangesOnlyWhenTheLastLoadChanges() {
+        service.loadRecorded()
+        val count = service.loadTracker.modificationCount
+        // The Loading state keeps the last load, and a load with the same result keeps the instance. Thus the tracker does not change.
+        service.refresh()
+        service.awaitState(loaded)
+        assertEquals(count, service.loadTracker.modificationCount)
+        service.taskGraph = { CliResult.Failed("moon cannot make the graph") }
+        service.refresh()
+        service.awaitState(TestData.loadedState(TestData.recordedTasks(), taskGraph = null))
+        assertTrue(service.loadTracker.modificationCount > count)
+    }
+
     fun testNoWorkspaceRemovesTheLastSuccessfulLoad() {
         service.loadRecorded()
         val empty = FileUtil.createTempDirectory("no-workspace", null, true).toPath()

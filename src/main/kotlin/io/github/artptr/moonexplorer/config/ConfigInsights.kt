@@ -19,11 +19,13 @@ import java.nio.file.Path
 data class HintItem(val text: String, val target: SourceFile?, val group: String? = null, val secondary: String? = null)
 
 /**
- * The list that a hint or a gutter icon opens. [items] makes the items each time that you call it. Thus a pass of the analysis does not make the items.
- * The hints call [items] only when the user clicks a hint. [empty] is true if [items] gives no items.
+ * The list that a hint or a gutter icon opens. The function [items] makes the items each time the IDE calls it.
+ * Thus a pass of the analysis does not make the items. The hints call [items] only when the user clicks a hint.
+ * [empty] is true if [items] gives no items. The caller of the primary constructor must make sure that [empty] is correct.
+ * Thus only this module can use the primary constructor.
  * The class contains no PSI. Thus the IDE can keep it after the file changes. The function [makeItems] must not keep PSI.
  */
-class HintList(val title: String, val empty: Boolean, private val makeItems: () -> List<HintItem>) {
+class HintList internal constructor(val title: String, val empty: Boolean, private val makeItems: () -> List<HintItem>) {
 
     /** Makes a list with the items [items]. */
     constructor(title: String, items: List<HintItem>) : this(title, items.isEmpty(), { items })
@@ -124,8 +126,8 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         if (inherited.isEmpty() || element == null) return null
         val state = state
         val count = inherited.mapTo(HashSet()) { it.localId }.size
-        val empty = inherited.all { it.files.isEmpty() }
-        val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), empty) { inheritedTaskItems(state, project) }
+        // Each inherited task has one or more files. Thus the list is not empty.
+        val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), false) { inheritedTaskItems(state, project) }
         return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", count), list)
     }
 
@@ -150,7 +152,8 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
             syntax.taskKeys.mapNotNull { key ->
                 val globalTasks = local[key.id] ?: return@mapNotNull null
                 val localId = key.id
-                val list = HintList(globalTaskListTitle(localId, globalTasks), globalTasks.all { it.files.isEmpty() }) { globalTaskItems(state, project, localId) }
+                // Each inherited task has one or more files. Thus the list is not empty.
+                val list = HintList(globalTaskListTitle(localId, globalTasks), false) { globalTaskItems(state, project, localId) }
                 Merge(key, mergedWithText(globalTasks), list, state.mergeStrategies(project, localId))
             }
         }.orEmpty()
@@ -175,7 +178,7 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     /**
      * The task keys of a file in `.moon/tasks/` with the inheritance of each global task. A key without data is not in the list.
-     * The merged hints and the dependents hints use the same keys. Thus the insights find them one time.
+     * The merged hints and the dependents hints use the same keys. Thus the insights calculate them one time.
      */
     private val globalTaskKeys: List<Pair<ConfigKey, GlobalTaskInheritance>> by lazy {
         val inheritance = global ?: return@lazy emptyList()
@@ -274,22 +277,28 @@ private val INSIGHTS_KEY = Key.create<CachedValue<CachedInsights>>("io.github.ar
  * Gives the insights of [file] from the last successful load. Gives null if the load does not contain the file, or if no converter can read the file.
  * The IDE calls this function for all files. Thus it examines the converter before it reads the cache. Call this function in a read action.
  *
- * The function keeps the result in a cached value of the file. Thus the providers, the line markers, and the inspection of one pass use one instance.
+ * The function keeps the result in a cached value of the file. Thus the providers, the line markers, and the inspection of one pass use the same instance.
  * The cached value becomes incorrect when the PSI of the file, the loaded data, or the paths of the files change.
  */
 fun configInsights(file: PsiFile): ConfigInsights? {
     // Most files of the IDE have no converter. This check is cheaper than the cache.
     if (!hasConfigConverter(file)) return null
-    val service = file.project.service<MoonTasksService>()
-    val state = service.state.value.lastLoaded
+    // The IDE keeps the provider of the first call and uses it for all later calculations. Thus the provider must read the state itself.
+    // It must not use a value of this call.
     val cached = CachedValuesManager.getCachedValue(file, INSIGHTS_KEY) {
+        val service = file.project.service<MoonTasksService>()
+        val loaded = service.state.value.lastLoaded
         CachedValueProvider.Result.create(
-            CachedInsights(state, state?.let { insightsOf(file, it) }),
+            CachedInsights(loaded, loaded?.let { insightsOf(file, it) }),
             file, service.loadTracker, VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
         )
     }
-    // A new load can occur while the IDE calculates the cached value. Then the cached value has the old load, and the function does not use it.
+    val state = file.project.service<MoonTasksService>().state.value.lastLoaded
     if (cached.state === state) return cached.insights
+    // A new load can occur after the provider reads the state, but before the IDE records the value of the tracker.
+    // Then the cached value has the old load, and the tracker does not show the change. Thus the function removes the cached value.
+    // The next call calculates it again with the current load.
+    file.putUserData(INSIGHTS_KEY, null)
     return state?.let { insightsOf(file, it) }
 }
 

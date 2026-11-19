@@ -90,9 +90,8 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val insights = insights(".moon/tasks/all.yml")
         val mark = insights.gutterMarks().single { it.element.text == "lint" }
         assertEquals("Merged in 1 project", mark.tooltip)
-        val hint = insights.mergedHints().single { it.element.text == "lint" }
-        assertEquals(hint.list.title, mark.list.title)
-        assertEquals(hint.list.items(), mark.list.items())
+        // The hints and the icons use the same merges. Thus the lists are the same instance.
+        assertSame(insights.mergedHints().single { it.element.text == "lint" }.list, mark.list)
     }
 
     fun testProjectFileHasTheNumberOfInheritedTasksAboveTheTasksKey() {
@@ -303,6 +302,16 @@ class ConfigInsightsTest : MoonTasksServiceTestCase() {
         val second = configInsights(myFixture.file)!!
         assertNotSame(first, second)
         assertEmpty(second.dependentsHints())
+        assertSame("The cached value uses the new load", second, configInsights(myFixture.file))
+    }
+
+    fun testInsightsOfAFileOpenedBeforeTheFirstLoadAreCachedAfterTheLoad() {
+        service.prepareForTests()
+        myFixture.openFileInEditor(TestData.workspaceVirtualFile(ALL))
+        assertNull(configInsights(myFixture.file))
+        service.loadRecorded()
+        val first = configInsights(myFixture.file)!!
+        assertSame(first, configInsights(myFixture.file))
     }
 
     fun testNoHintAndOtherHintsStayIfTheTaskGraphFails() {
