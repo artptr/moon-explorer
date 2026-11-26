@@ -278,6 +278,8 @@ private val INSIGHTS_KEY = Key.create<CachedValue<CachedInsights>>("io.github.ar
  * The IDE calls this function for all files. Thus it examines the converter before it reads the cache. Call this function in a read action.
  *
  * The function keeps the result in a cached value of the file. Thus the providers, the line markers, and the inspection of one pass use the same instance.
+ * Exception: if a load occurs during the calculation of the cached value, the function gives an instance that it does not keep.
+ * Then two calls in one pass can give different instances. The two instances use the current load.
  * The cached value becomes incorrect when the PSI of the file, the loaded data, or the paths of the files change.
  */
 fun configInsights(file: PsiFile): ConfigInsights? {

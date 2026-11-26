@@ -18,7 +18,7 @@ import io.github.artptr.moonexplorer.MoonIcons
  * Opens the global task of an entry of `workspace.inheritedTasks`, for example with **Go to Declaration**.
  * If more than one inherited file contains the global task, the IDE shows a list of the files.
  * The handler gives the task key in each file. If the file has no converter or does not contain the key, it gives the file.
- * The IDE calls the handler for all files. Thus [configInsights] examines the path before it reads the PSI.
+ * The IDE calls the handler for all files. Thus [configInsights] examines the converter of the file before it reads the cache.
  */
 class MoonInheritedTasksGotoDeclarationHandler : GotoDeclarationHandler, DumbAware {
 
