@@ -15,6 +15,10 @@
 - The plugin runs `moon query projects` and `moon task-graph --json` at the same time. Thus the tasks load faster.
 - The Code Vision hints and the gutter icons in the moon configuration files make their lists only when you click them. The IDE also keeps the data of the hints of each file until the file or the loaded tasks change. Thus the editor does less work while you type, also in a file in `.moon/tasks/` that many projects inherit.
 
+### Fixed
+
+- The run icons, the inheritance icons, and the Code Vision hints in the open moon configuration files change after each load of the tasks. Before this change, after one error, the plugin did not update these items until you opened the project again. Now the plugin writes a warning to the log and continues.
+
 ## [0.5.0] - 2026-11-11
 
 ### Added
