@@ -21,14 +21,10 @@ data class HintItem(val text: String, val target: SourceFile?, val group: String
 /**
  * The list that a hint or a gutter icon opens. The function [items] makes the items each time the IDE calls it.
  * Thus a pass of the analysis does not make the items. The hints call [items] only when the user clicks a hint.
- * [empty] is true if [items] gives no items. The caller of the primary constructor must make sure that [empty] is correct.
- * Thus only this module can use the primary constructor.
  * The class contains no PSI. Thus the IDE can keep it after the file changes. The function [makeItems] must not keep PSI.
+ * Thus the lists of [ConfigInsights] come from the top-level functions of this file. These functions cannot keep the insights.
  */
-class HintList internal constructor(val title: String, val empty: Boolean, private val makeItems: () -> List<HintItem>) {
-
-    /** Makes a list with the items [items]. */
-    constructor(title: String, items: List<HintItem>) : this(title, items.isEmpty(), { items })
+class HintList(val title: String, private val makeItems: () -> List<HintItem>) {
 
     /** Makes the items of the list. */
     fun items(): List<HintItem> = makeItems()
@@ -37,8 +33,9 @@ class HintList internal constructor(val title: String, val empty: Boolean, priva
 /**
  * A Code Vision hint on the line of [element]. [label] is the name of the hint when the IDE joins it with other hints on one line.
  * The label of a hint on a task key is the task ID, without the quotes of the key.
+ * If [list] is null, the hint has no items, and the user cannot click it.
  */
-class ConfigHint(val element: PsiElement, val text: String, val list: HintList, val label: String = element.text)
+class ConfigHint(val element: PsiElement, val text: String, val list: HintList?, val label: String = element.text)
 
 /**
  * A gutter icon on [element], a leaf of a task key. If [local] is true, the key is a local task that merges with a global task.
@@ -113,10 +110,8 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         if (project != null) return listOfNotNull(inheritedTasksHint(project))
         val inheritance = global ?: return emptyList()
         val element = syntax.firstElement ?: return emptyList()
-        val state = state
-        val file = file
         val count = inheritance.projects.size
-        val list = HintList(MoonExplorerBundle.message("hint.inheritedBy.title", state.workspacePath(file)), count == 0) { inheritedByItems(state, file) }
+        val list = if (count == 0) null else inheritedByList(state, file)
         return listOf(ConfigHint(element, MoonExplorerBundle.message("hint.inheritedBy", count), list))
     }
 
@@ -124,11 +119,8 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
         val inherited = index.project(project)?.inherited.orEmpty()
         val element = syntax.tasksKey ?: syntax.firstElement
         if (inherited.isEmpty() || element == null) return null
-        val state = state
         val count = inherited.mapTo(HashSet()) { it.localId }.size
-        // Each inherited task has one or more files. Thus the list is not empty.
-        val list = HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project), false) { inheritedTaskItems(state, project) }
-        return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", count), list)
+        return ConfigHint(element, MoonExplorerBundle.message("hint.inheritedTasks", count), inheritedTasksList(state, project))
     }
 
     /** The hint above each global task that merges with one or more local tasks, or above each local task that merges with a global task. */
@@ -145,23 +137,17 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
 
     /** The hints and the gutter icons use the same merges. Thus the insights calculate them one time. */
     private val merges: List<Merge> by lazy {
-        val state = state
-        val file = file
         val localMerges = projectId?.let { project ->
             val local = index.project(project)?.merged.orEmpty()
             syntax.taskKeys.mapNotNull { key ->
                 val globalTasks = local[key.id] ?: return@mapNotNull null
-                val localId = key.id
-                // Each inherited task has one or more files. Thus the list is not empty.
-                val list = HintList(globalTaskListTitle(localId, globalTasks), false) { globalTaskItems(state, project, localId) }
-                Merge(key, mergedWithText(globalTasks), list, state.mergeStrategies(project, localId))
+                val list = globalTasksList(state, project, key.id, globalTasks)
+                Merge(key, mergedWithText(globalTasks), list, state.mergeStrategies(project, key.id))
             }
         }.orEmpty()
         val globalMerges = globalTaskKeys.mapNotNull { (key, task) ->
             if (task.mergedIn.isEmpty()) return@mapNotNull null
-            val globalId = key.id
-            val list = HintList(MoonExplorerBundle.message("hint.mergedIn.title", globalId), false) { mergedInItems(state, file, globalId) }
-            Merge(key, MoonExplorerBundle.message("hint.mergedIn", task.mergedIn.size), list, null)
+            Merge(key, MoonExplorerBundle.message("hint.mergedIn", task.mergedIn.size), mergedInList(state, file, key.id), null)
         }
         localMerges + globalMerges
     }
@@ -169,12 +155,6 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
     /** The text gives only the file names. The list gives the paths from the workspace root. */
     private fun mergedWithText(globalTasks: List<InheritedTask>): String =
         MoonExplorerBundle.message("hint.mergedWith", globalTasks.flatMap { it.files }.distinct().joinToString(", ") { it.fileName.toString() })
-
-    /** The title of the list of the global tasks [globalTasks] that merge with the local task [localId]. Refer to [globalTaskItems]. */
-    private fun globalTaskListTitle(localId: String, globalTasks: List<InheritedTask>): String {
-        val globalIds = globalTasks.map { it.globalId }.distinct()
-        return if (globalIds.size > 1) MoonExplorerBundle.message("hint.globalTasks.title", localId) else MoonExplorerBundle.message("hint.globalTask.title", globalIds.single())
-    }
 
     /**
      * The task keys of a file in `.moon/tasks/` with the inheritance of each global task. A key without data is not in the list.
@@ -189,23 +169,42 @@ class ConfigInsights internal constructor(private val syntax: ConfigSyntax, priv
      * The hint above each global task with one or more direct dependents. The hint counts each dependent one time.
      * The list has one group for each inherited target. If `moon task-graph` failed in the load, the file has no hints of this kind.
      */
-    fun dependentsHints(): List<ConfigHint> {
-        val state = state
-        val file = file
-        return globalTaskKeys.mapNotNull { (key, task) ->
+    fun dependentsHints(): List<ConfigHint> = dependentsHints
+
+    /** The count of the dependents reads all projects that inherit the task. Thus the insights calculate the hints one time. */
+    private val dependentsHints: List<ConfigHint> by lazy {
+        globalTaskKeys.mapNotNull { (key, task) ->
             val count = dependentCount(state.dependents(task))
             if (count == 0) return@mapNotNull null
-            val globalId = key.id
-            val list = HintList(MoonExplorerBundle.message("hint.dependents.title", globalId), false) { dependentItems(state, file, globalId) }
-            ConfigHint(key.element, MoonExplorerBundle.message("hint.dependents", count), list, globalId)
+            ConfigHint(key.element, MoonExplorerBundle.message("hint.dependents", count), dependentsList(state, file, key.id), key.id)
         }
     }
 }
 
 /*
- * The functions below make the items of the hint lists. A hint calls them only when the user clicks it.
- * They get only the state, a path or a project ID, and a task ID. Thus the click lambdas do not keep PSI or the lists.
+ * The functions below make the hint lists and their items. A list calls its function of items only when the user clicks the hint.
+ * The functions get only the state, a path or a project ID, and a task ID. They are not members of [ConfigInsights].
+ * Thus the click lambdas cannot keep the insights, the PSI, or the lists.
  */
+
+private fun inheritedByList(state: TasksState.Loaded, file: Path) =
+    HintList(MoonExplorerBundle.message("hint.inheritedBy.title", state.workspacePath(file))) { inheritedByItems(state, file) }
+
+private fun inheritedTasksList(state: TasksState.Loaded, project: String) =
+    HintList(MoonExplorerBundle.message("hint.inheritedTasks.title", project)) { inheritedTaskItems(state, project) }
+
+/** The list of the global tasks [globalTasks] that merge with the local task [localId]. The title gives the global ID, because a project can rename the task. */
+private fun globalTasksList(state: TasksState.Loaded, project: String, localId: String, globalTasks: List<InheritedTask>): HintList {
+    val globalIds = globalTasks.mapTo(LinkedHashSet()) { it.globalId }
+    val title = if (globalIds.size > 1) MoonExplorerBundle.message("hint.globalTasks.title", localId) else MoonExplorerBundle.message("hint.globalTask.title", globalIds.single())
+    return HintList(title) { globalTaskItems(state, project, localId) }
+}
+
+private fun mergedInList(state: TasksState.Loaded, file: Path, globalId: String) =
+    HintList(MoonExplorerBundle.message("hint.mergedIn.title", globalId)) { mergedInItems(state, file, globalId) }
+
+private fun dependentsList(state: TasksState.Loaded, file: Path, globalId: String) =
+    HintList(MoonExplorerBundle.message("hint.dependents.title", globalId)) { dependentItems(state, file, globalId) }
 
 /** The items of the projects that inherit tasks from the file [file]. The secondary text of an item gives the task IDs in the project. */
 private fun inheritedByItems(state: TasksState.Loaded, file: Path): List<HintItem> =
@@ -238,13 +237,13 @@ private fun globalTaskItems(state: TasksState.Loaded, project: String, localId: 
 
 /** The items of the projects that merge a local task with the global task [globalId] of the file [file]. The text also gives the merge strategies. */
 private fun mergedInItems(state: TasksState.Loaded, file: Path, globalId: String): List<HintItem> =
-    state.inheritanceIndex.file(file)?.tasks?.get(globalId)?.mergedIn.orEmpty().map {
+    state.inheritanceIndex.globalTask(file, globalId)?.mergedIn.orEmpty().map {
         HintItem(withStrategies(it.projectId, state.mergeStrategies(it.projectId, it.localId)), projectSourceFile(state, it.projectId, it.localId))
     }
 
 /** The items of the direct dependents of the global task [globalId] of the file [file]. The list has one group for each inherited target. */
 private fun dependentItems(state: TasksState.Loaded, file: Path, globalId: String): List<HintItem> {
-    val task = state.inheritanceIndex.file(file)?.tasks?.get(globalId) ?: return emptyList()
+    val task = state.inheritanceIndex.globalTask(file, globalId) ?: return emptyList()
     return state.dependents(task).flatMap { (target, tasks) -> tasks.map { dependentItem(state, target, it) } }
 }
 
@@ -285,17 +284,17 @@ private val INSIGHTS_KEY = Key.create<CachedValue<CachedInsights>>("io.github.ar
 fun configInsights(file: PsiFile): ConfigInsights? {
     // Most files of the IDE have no converter. This check is cheaper than the cache.
     if (!hasConfigConverter(file)) return null
+    val service = file.project.service<MoonTasksService>()
     // The IDE keeps the provider of the first call and uses it for all later calculations. Thus the provider must read the state itself.
-    // It must not use a value of this call.
+    // It must not use a value of this call. The service is the same for all calls.
     val cached = CachedValuesManager.getCachedValue(file, INSIGHTS_KEY) {
-        val service = file.project.service<MoonTasksService>()
         val loaded = service.state.value.lastLoaded
         CachedValueProvider.Result.create(
             CachedInsights(loaded, loaded?.let { insightsOf(file, it) }),
             file, service.loadTracker, VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
         )
     }
-    val state = file.project.service<MoonTasksService>().state.value.lastLoaded
+    val state = service.state.value.lastLoaded
     if (cached.state === state) return cached.insights
     // A new load can occur after the provider reads the state, but before the IDE records the value of the tracker.
     // Then the cached value has the old load, and the tracker does not show the change. Thus the function removes the cached value.

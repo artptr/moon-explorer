@@ -48,7 +48,7 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
             }
             // Use the editor of the file of the icon. The selected editor can show a different file.
             val editor = PsiEditorUtil.findEditor(target) ?: return@GutterIconNavigationHandler
-            showHintList(editor, HintList(list.title, items), mouse)
+            showHintList(editor, list.title, items, mouse)
         }
         val markIcon = if (mark.local) AllIcons.Gutter.OverridingMethod else AllIcons.Gutter.OverridenMethod
         return LineMarkerInfo(element, element.textRange, markIcon, { tooltip }, navigation, GutterIconRenderer.Alignment.RIGHT, { tooltip })

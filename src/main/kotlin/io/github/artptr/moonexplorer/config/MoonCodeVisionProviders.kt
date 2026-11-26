@@ -52,7 +52,7 @@ internal fun hintLine(editor: Editor, hint: ConfigHint): Int = editor.document.g
  * Joins the hints with the same value of [lineOf] into one hint. The joined hint is on the element of the first hint.
  * The text contains the text of each hint after its [ConfigHint.label], for example `a: 8 dependents; b: 8 dependents`.
  * The list has a group for each hint. The text of the group starts with the label of the hint.
- * A hint with an empty list has an item that the user cannot select. A line with one hint keeps the hint.
+ * A hint without a list has an item that the user cannot select. A line with one hint keeps the hint.
  * The joined list makes the items of the lists only when the user clicks the hint.
  */
 internal fun joinHintsOnOneLine(hints: List<ConfigHint>, lineOf: (ConfigHint) -> Int): List<ConfigHint> {
@@ -63,9 +63,9 @@ internal fun joinHintsOnOneLine(hints: List<ConfigHint>, lineOf: (ConfigHint) ->
         val text = parts.reduce { joined, next -> MoonExplorerBundle.message("hint.joined", joined, next) }
         // The lambda of the list must not keep PSI. Thus it keeps only the lists, the labels, and the parts, not the hints.
         val pieces = line.zip(parts) { hint, part -> Triple(hint.list, hint.label, part) }
-        val list = HintList(MoonExplorerBundle.message("hint.joined.title"), false) {
+        val list = HintList(MoonExplorerBundle.message("hint.joined.title")) {
             pieces.flatMap { (list, label, part) ->
-                if (list.empty) {
+                if (list == null) {
                     listOf(HintItem(part, null))
                 } else {
                     list.items().map { item ->
@@ -78,12 +78,12 @@ internal fun joinHintsOnOneLine(hints: List<ConfigHint>, lineOf: (ConfigHint) ->
     }
 }
 
-/** Gives the entry of a hint with [text] and [list]. The click handler must not keep PSI. [HintList] contains no PSI. */
-internal fun codeVisionEntry(text: String, list: HintList, providerId: String): CodeVisionEntry =
-    if (list.empty) {
+/** Gives the entry of a hint with [text] and [list]. If [list] is null, the entry has no click action. The click handler must not keep PSI. [HintList] contains no PSI. */
+internal fun codeVisionEntry(text: String, list: HintList?, providerId: String): CodeVisionEntry =
+    if (list == null) {
         TextCodeVisionEntry(text, providerId)
     } else {
-        ClickableTextCodeVisionEntry(text, providerId, { mouse, clicked -> showHintList(clicked, list, mouse) })
+        ClickableTextCodeVisionEntry(text, providerId, { mouse, clicked -> showHintList(clicked, list.title, list.items(), mouse) })
     }
 
 /** The hint with the number of projects that inherit tasks from the file. */

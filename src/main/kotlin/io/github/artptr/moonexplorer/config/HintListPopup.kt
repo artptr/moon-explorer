@@ -30,9 +30,6 @@ import java.util.*
 internal class HintListStep(title: String, items: List<HintItem>, private val choose: (SourceFile) -> Unit) :
     BaseListPopupStep<HintItem>(title, items), ListPopupStepEx<HintItem> {
 
-    /** Makes the step of [list]. The constructor makes the items of [list] one time. */
-    constructor(list: HintList, choose: (SourceFile) -> Unit) : this(list.title, list.items(), choose)
-
     /** The first item of each group. The set compares the items by identity, because two items can be equal. */
     private val groupStarts: MutableSet<HintItem> = Collections.newSetFromMap(IdentityHashMap())
 
@@ -62,10 +59,13 @@ internal class HintListStep(title: String, items: List<HintItem>, private val ch
     }
 }
 
-/** Shows [list] at the position of [mouse]. If [mouse] is null, the function shows the list at the caret of [editor]. Call this function on the EDT. */
-internal fun showHintList(editor: Editor, list: HintList, mouse: MouseEvent?) {
+/**
+ * Shows a list with [title] and [items] at the position of [mouse]. If [mouse] is null, the function shows the list at the caret of [editor].
+ * Call this function on the EDT.
+ */
+internal fun showHintList(editor: Editor, title: String, items: List<HintItem>, mouse: MouseEvent?) {
     val project = editor.project ?: return
-    val popup = JBPopupFactory.getInstance().createListPopup(HintListStep(list) { openConfigTarget(project, it) })
+    val popup = JBPopupFactory.getInstance().createListPopup(HintListStep(title, items) { openConfigTarget(project, it) })
     if (mouse != null) popup.show(RelativePoint(mouse)) else popup.showInBestPositionFor(editor)
 }
 
