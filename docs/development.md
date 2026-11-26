@@ -206,7 +206,7 @@ GitHub Actions runs these workflows:
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| `Build` | Push to `main`, pull request. A change to documentation only does not start the workflow. | Build, test, verification of the plugin, draft release |
+| `Build` | Push to `main`, pull request. A change to documentation only does not start the workflow. | Build, tests on Linux and on Windows, verification of the plugin, draft release |
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Moon output` | Each Monday, manual start | Record of the output of the newest moon 2.x, tests, issue for a change. Refer to section 4.3. |

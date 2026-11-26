@@ -1,6 +1,9 @@
 # Build, test, and do a check of the plugin. Then prepare a draft release.
+#
 # - The job 'build' makes the plugin ZIP file with the 'buildPlugin' task. The job uploads the file as a workflow artifact.
-# - The job 'test' runs the 'check' task. If a test fails, the job uploads the test reports.
+#
+# - The job 'test' runs the 'check' task on Linux and on Windows. Some code of the plugin operates in a different way on Windows. If a test fails, the job uploads the test reports.
+#
 # - The Plugin Verifier job runs the 'verifyPlugin' task and uploads the Plugin Verifier reports.
 #   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
 #
@@ -87,10 +90,20 @@ jobs:
         if: ${{ always() }}
         run: df -h /
 
-  # Run the tests.
+  # Run the tests on Linux and on Windows.
+  # The 'build' job and the Plugin Verifier job do not use the matrix. Their results do not change with the operating system.
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }})
+    strategy:
+      # If the tests fail on one operating system, the tests on the other operating system continue. Thus the reports show all failures.
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    # On Windows, the default shell is PowerShell. Use Bash on all runners. Then the steps are the same on each operating system.
+    defaults:
+      run:
+        shell: bash
     steps:
 
       - name: Fetch Sources
@@ -113,7 +126,8 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: tests-result
+          # Each runner of the matrix uploads a separate artifact. The name of an artifact must be unique in the workflow run.
+          name: tests-result-${{ matrix.os }}
           path: ${{ github.workspace }}/build/reports/tests
 
       # Show the available disk space. The job does not remove files to get more disk space before the tests.

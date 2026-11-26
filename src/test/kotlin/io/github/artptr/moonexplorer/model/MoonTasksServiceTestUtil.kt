@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.model
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.artptr.moonexplorer.cli.CliResult
 import io.github.artptr.moonexplorer.schema.MoonSchemaService
@@ -25,6 +26,9 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
+        // The tests open the files of the test workspace. The test framework permits only some directories, for example the home directory of the user.
+        // On a Windows CI runner, the repository is not in the home directory.
+        VfsRootAccess.allowRootAccess(testRootDisposable, TestData.workspaceRoot.toString())
         service = project.service<MoonTasksService>()
         service.prepareForTests()
     }
