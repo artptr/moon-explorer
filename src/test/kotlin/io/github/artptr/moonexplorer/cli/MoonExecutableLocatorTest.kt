@@ -1,6 +1,7 @@
 package io.github.artptr.moonexplorer.cli
 
 import com.intellij.openapi.util.SystemInfo
+import io.github.artptr.moonexplorer.testData.FAKE_MOON_NAME
 import io.github.artptr.moonexplorer.testData.fakeMoonExecutable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -9,7 +10,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.nio.file.Path
 
 class MoonExecutableLocatorTest {
 
@@ -17,6 +17,9 @@ class MoonExecutableLocatorTest {
     val temp = TemporaryFolder()
 
     private val isWindows = SystemInfo.isWindows
+
+    /** The first name that the search examines in each directory on this operating system. */
+    private val firstName = if (isWindows) "moon.exe" else "moon"
 
     private val home by lazy { temp.newFolder("home").toPath() }
     private val workspace by lazy { temp.newFolder("workspace").toPath() }
@@ -103,10 +106,12 @@ class MoonExecutableLocatorTest {
 
     @Test
     fun notFoundGivesTheExaminedLocationsInSequence() {
-        val result = MoonExecutableLocator.find("/custom/moon", workspace, env(windows = false))
+        // Use an absolute path. On Windows, a path such as '/custom/moon' has no drive and is not absolute.
+        val custom = temp.root.toPath().resolve("custom/moon")
+        val result = MoonExecutableLocator.find(custom.toString(), workspace, env(windows = false))
         assertNull(result.executable)
         val expected = listOf(
-            Path.of("/custom/moon"),
+            custom,
             workspace.resolve("node_modules/.bin/moon"),
             home.resolve(".proto/shims/moon"),
             home.resolve(".proto/bin/moon"),
@@ -137,9 +142,9 @@ class MoonExecutableLocatorTest {
 
     @Test
     fun directoryIsSkipped() {
-        workspace.resolve("node_modules/.bin/moon").toFile().mkdirs()
+        workspace.resolve("node_modules/.bin/$FAKE_MOON_NAME").toFile().mkdirs()
         val shim = fakeMoonExecutable(home.resolve(".proto/shims"))
-        assertEquals(shim, MoonExecutableLocator.find(null, workspace, env(windows = false)).executable)
+        assertEquals(shim, MoonExecutableLocator.find(null, workspace, env()).executable)
     }
 
     @Test
@@ -160,7 +165,7 @@ class MoonExecutableLocatorTest {
         val moon = fakeMoonExecutable(workspace.resolve("node_modules/.bin"))
         val result = MoonExecutableLocator.find("bad\u0000path", workspace, env())
         assertEquals(moon, result.executable)
-        assertEquals(workspace.resolve("node_modules/.bin").resolve(moon.fileName), result.examined.first())
+        assertEquals(workspace.resolve("node_modules/.bin/$firstName"), result.examined.first())
     }
 
     @Test
@@ -212,9 +217,9 @@ class MoonExecutableLocatorTest {
     @Test
     fun relativeSettingsPathWithoutWorkspaceIsSkipped() {
         val shim = fakeMoonExecutable(home.resolve(".proto/shims"))
-        val result = MoonExecutableLocator.find("tools/moon", null, env(windows = false))
+        val result = MoonExecutableLocator.find("tools/moon", null, env())
         assertEquals(shim, result.executable)
-        assertEquals(home.resolve(".proto/shims/moon"), result.examined.first())
+        assertEquals(home.resolve(".proto/shims/$firstName"), result.examined.first())
     }
 
     @Test
