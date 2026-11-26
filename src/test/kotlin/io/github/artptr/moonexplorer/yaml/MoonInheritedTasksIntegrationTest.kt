@@ -2,13 +2,16 @@ package io.github.artptr.moonexplorer.yaml
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiNamedElement
 import io.github.artptr.moonexplorer.config.MoonInheritedTasksGotoDeclarationHandler
 import io.github.artptr.moonexplorer.config.MoonInheritedTasksInspection
+import io.github.artptr.moonexplorer.config.configInsights
 import io.github.artptr.moonexplorer.model.MoonTasksServiceTestCase
 import io.github.artptr.moonexplorer.model.loadJson
 import io.github.artptr.moonexplorer.testData.TestData
@@ -124,6 +127,19 @@ class MoonInheritedTasksIntegrationTest : MoonTasksServiceTestCase() {
         val ids = myFixture.completeBasic()?.map { it.lookupString }.orEmpty()
         assertTrue(ids.toString(), "clean" in ids)
         assertFalse(ids.toString(), "check" in ids)
+    }
+
+    fun testChangeOfTheFileMakesNewInsights() {
+        open("workspace:\n  inheritedTasks:\n    include: [check]\n")
+        val first = configInsights(myFixture.file)!!
+        assertSame(first, configInsights(myFixture.file))
+        assertEmpty(first.unknownInheritedTasks())
+        val offset = myFixture.editor.document.text.indexOf("check")
+        WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.replaceString(offset, offset + "check".length, "chek") }
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+        val second = configInsights(myFixture.file)!!
+        assertNotSame(first, second)
+        assertEquals(listOf("chek"), second.unknownInheritedTasks().map { it.globalId })
     }
 
     fun testNoCompletionOutsideTheEntries() {

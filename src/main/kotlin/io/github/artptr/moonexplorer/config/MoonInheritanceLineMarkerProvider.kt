@@ -38,15 +38,17 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
         val tooltip = mark.tooltip
         // The handler must not keep PSI of the mark. The IDE gives the element to the handler.
         val list = mark.list
-        val single = directTarget(mark)
+        val local = mark.local
         val navigation = GutterIconNavigationHandler<PsiElement> { mouse, target ->
-            single?.let {
+            // The handler makes the items only after a click.
+            val items = list.items()
+            directTarget(local, items)?.let {
                 openConfigTarget(target.project, it)
                 return@GutterIconNavigationHandler
             }
             // Use the editor of the file of the icon. The selected editor can show a different file.
             val editor = PsiEditorUtil.findEditor(target) ?: return@GutterIconNavigationHandler
-            showHintList(editor, list, mouse)
+            showHintList(editor, list.title, items, mouse)
         }
         val markIcon = if (mark.local) AllIcons.Gutter.OverridingMethod else AllIcons.Gutter.OverridenMethod
         return LineMarkerInfo(element, element.textRange, markIcon, { tooltip }, navigation, GutterIconRenderer.Alignment.RIGHT, { tooltip })
@@ -54,7 +56,8 @@ class MoonInheritanceLineMarkerProvider : LineMarkerProviderDescriptor(), DumbAw
 }
 
 /**
- * Gives the target that a click on [mark] opens without a list, or null if the click shows the list.
- * A local task with one global task in one file opens the global task. Then the user has no selection to make.
+ * Gives the target that a click on an icon with the list [items] opens without a list, or null if the click shows the list.
+ * [local] is the value of [ConfigGutterMark.local]. A local task with one global task in one file opens the global task.
+ * Then the user has no selection to make.
  */
-internal fun directTarget(mark: ConfigGutterMark): SourceFile? = mark.list.items.singleOrNull()?.target?.takeIf { mark.local }
+internal fun directTarget(local: Boolean, items: List<HintItem>): SourceFile? = items.singleOrNull()?.target?.takeIf { local }

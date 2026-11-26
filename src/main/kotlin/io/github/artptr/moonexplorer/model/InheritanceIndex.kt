@@ -62,6 +62,9 @@ internal class InheritanceIndex private constructor(
     /** Gives the inheritance of the inherited file [file], or null if no project of the load has this file in `inherited.layers`. */
     fun file(file: Path): FileInheritance? = files[file]
 
+    /** Gives the inheritance of the global task [taskId] in the inherited file [file], or null if the index has no data for it. */
+    fun globalTask(file: Path, taskId: String): GlobalTaskInheritance? = files[file]?.tasks?.get(taskId)
+
     /**
      * Gives the targets of the task key [taskId] in the configuration file [file]. [file] must be absolute and normalized.
      * Gives null if [file] is not a configuration file of the load, or if no project has a task with this key that the user can run.
@@ -71,7 +74,7 @@ internal class InheritanceIndex private constructor(
     fun targets(file: Path, taskId: String): TaskKeyTargets? {
         val projectId = projectFiles[file]
         if (projectId != null) return projectTargets[projectId]?.get(taskId)?.let(TaskKeyTargets::Single)
-        return files[file]?.tasks?.get(taskId)?.targets?.takeIf { it.isNotEmpty() }?.let(TaskKeyTargets::Shared)
+        return globalTask(file, taskId)?.targets?.takeIf { it.isNotEmpty() }?.let(TaskKeyTargets::Shared)
     }
 
     companion object {
