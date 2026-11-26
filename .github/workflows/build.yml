@@ -1,6 +1,9 @@
 # Build, test, and do a check of the plugin. Then prepare a draft release.
+#
 # - The job 'build' makes the plugin ZIP file with the 'buildPlugin' task. The job uploads the file as a workflow artifact.
+#
 # - The job 'test' runs the 'check' task on Linux and on Windows. Some code of the plugin operates in a different way on Windows. If a test fails, the job uploads the test reports.
+#
 # - The Plugin Verifier job runs the 'verifyPlugin' task and uploads the Plugin Verifier reports.
 #   A pull request does a check against two IDEs only: the IDE of the build and the newest released IDE. A push to 'main' does a check against all recommended IDEs.
 #
