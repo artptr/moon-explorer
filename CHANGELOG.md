@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-27
+
 ### Added
 
 - The moon configuration files get JSON schemas without a manual step. These files are `moon.yml`, `.moon/workspace.yml`, `.moon/toolchains.yml`, `.moon/extensions.yml`, all YAML and JSON files in `.moon/tasks/`, and `template.yml` in the template directories, also outside the workspace root. An incorrect key gives a warning, and code completion shows the keys. The same applies to the JSON forms of these files.
@@ -111,7 +113,8 @@
 - **Group By** control in the toolbar of the **Moon** tool window. The tree puts the tasks into groups by project, by task name, or by `stack`. The plugin keeps the selected mode.
 - Speed search in the tree of the **Moon** tool window. Select the tree. Then type text to find a task by its ID, its project, or its description.
 
-[Unreleased]: https://github.com/artptr/moon-explorer/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/artptr/moon-explorer/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/artptr/moon-explorer/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/artptr/moon-explorer/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/artptr/moon-explorer/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/artptr/moon-explorer/compare/0.2.0...0.3.0
