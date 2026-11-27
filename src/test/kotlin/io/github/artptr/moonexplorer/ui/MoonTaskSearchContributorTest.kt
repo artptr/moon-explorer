@@ -9,7 +9,6 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.components.JBList
 import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertNotEquals
 
 class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
@@ -71,7 +70,7 @@ class MoonTaskSearchContributorTest : MoonTasksServiceTestCase() {
     }
 
     fun testSearchFindsNothingDuringTheFirstLoad() {
-        runBlocking { service.resetForTests() }
+        resetWithTimeout { service.resetForTests() }
         assertEquals(TasksState.Loading(null), service.state.value)
         assertEmpty(search("build"))
     }

@@ -160,24 +160,31 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
                 oldJobDone.complete(Unit)
             }
         }
-        schemas.update(TasksState.Loading(null), first)
-        started.awaitWithTimeout()
-        schemas.update(TasksState.Loading(null), second)
-        release.complete(Unit)
-        oldJobDone.awaitWithTimeout()
-        schemas.awaitJobs()
-        val mapping = schemas.mapping.value!!
-        assertEquals(vfsPath(second), mapping.root)
-        assertEquals(SchemaSource.LOCAL, mapping.source)
-        assertEquals(1, syncCalls.get())
+        try {
+            schemas.update(TasksState.Loading(null), first)
+            started.awaitWithTimeout()
+            schemas.update(TasksState.Loading(null), second)
+            release.complete(Unit)
+            oldJobDone.awaitWithTimeout()
+            schemas.awaitJobs()
+            val mapping = schemas.mapping.value!!
+            assertEquals(vfsPath(second), mapping.root)
+            assertEquals(SchemaSource.LOCAL, mapping.source)
+            assertEquals(1, syncCalls.get())
+        } finally {
+            // If the test fails before this step, tearDown must not wait for the old job without end.
+            release.complete(Unit)
+        }
     }
 
     fun testOldTemplatesJobDoesNotChangeTheMapping() {
         copyWorkspace(root)
+        val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         val oldJobDone = CompletableDeferred<Unit>()
         schemas.templates = {
             if (templateCalls.incrementAndGet() == 1) {
+                started.complete(Unit)
                 // A moon process that completes after the cancellation of its job. The cancellation stops the job at the end of withContext.
                 // testOnlyAnActiveJobChangesTheMapping does a check of a cancelled job that did not stop.
                 try {
@@ -190,15 +197,23 @@ class MoonSchemaServiceTest : MoonTasksServiceTestCase() {
                 CliResult.Success(recordedTemplates(it))
             }
         }
-        val loaded = TestData.loadedState(TestData.recordedTasks(), root)
-        schemas.update(loaded, root)
-        schemas.update(TasksState.Loading(loaded), root)
-        schemas.update(loaded, root)
-        val expected = setOf(vfsPath(root.resolve("templates/package")))
-        schemas.awaitMapping { it?.templateDirs?.toSet() == expected }
-        release.complete(Unit)
-        oldJobDone.awaitWithTimeout()
-        assertEquals(expected, schemas.awaitMapping { true }!!.templateDirs.toSet())
+        try {
+            val loaded = TestData.loadedState(TestData.recordedTasks(), root)
+            schemas.update(loaded, root)
+            // The second load must cancel the first job after the first call of the fake. If the cancellation occurs before the call,
+            // the first job does not call the fake. Then the job of the second load gets the first call, and the mapping does not change.
+            started.awaitWithTimeout()
+            schemas.update(TasksState.Loading(loaded), root)
+            schemas.update(loaded, root)
+            val expected = setOf(vfsPath(root.resolve("templates/package")))
+            schemas.awaitMapping { it?.templateDirs?.toSet() == expected }
+            release.complete(Unit)
+            oldJobDone.awaitWithTimeout()
+            assertEquals(expected, schemas.awaitMapping { true }!!.templateDirs.toSet())
+        } finally {
+            // If the test fails before this step, tearDown must not wait for the old job without end.
+            release.complete(Unit)
+        }
     }
 
     fun testSyncWithoutAllFilesUsesRemoteSchemas() {

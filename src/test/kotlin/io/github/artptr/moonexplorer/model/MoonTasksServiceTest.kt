@@ -35,7 +35,7 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
         )
         project.service<MoonSettings>().executablePath = moon.toString()
         // Use the default query, not the fake from setUp.
-        runBlocking { service.resetForTests() }
+        resetWithTimeout { service.resetForTests() }
         service.projectDir = { TestData.workspace.toPath() }
         service.refresh()
         val expected = MoonProject("query-projects", listOf(MoonTask("t", "query-projects:t", null)))
@@ -146,7 +146,7 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
         settings.executablePath = moon.toString()
         settings.timeoutSeconds = 1
         // Use the default query, not the fake from setUp.
-        runBlocking { service.resetForTests() }
+        resetWithTimeout { service.resetForTests() }
         service.projectDir = { TestData.workspace.toPath() }
         service.refresh()
         service.awaitState(TasksState.MoonFailed(MoonFailure.TimedOut))
@@ -181,6 +181,17 @@ class MoonTasksServiceTest : MoonTasksServiceTestCase() {
         service.loadNoWorkspace()
         service.projectDir = { TestData.workspace.toPath() }
         assertEquals(TasksState.Loading(null), service.startEndlessRefresh())
+    }
+
+    fun testResetWithTimeoutFailsIfAJobDoesNotStop() {
+        val release = CompletableDeferred<Unit>()
+        try {
+            val error = runCatching { resetWithTimeout(100.milliseconds) { withContext(NonCancellable) { release.await() } } }.exceptionOrNull()
+            assertInstanceOf(error, AssertionError::class.java)
+            assertTrue(error!!.message!!.startsWith("The reset did not complete"))
+        } finally {
+            release.complete(Unit)
+        }
     }
 
     fun testRefreshUsesTheInputsOfTheCall() {

@@ -1,5 +1,8 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.models.ProductRelease
+import java.time.Duration
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -114,6 +117,16 @@ tasks.test {
     inputs.dir(mainSources).withPropertyName("moonExplorerMainSources").withPathSensitivity(PathSensitivity.RELATIVE)
     // The test data is an input of the task. Thus Gradle runs the tests again when the test data changes.
     inputs.files(testDataFiles).withPropertyName("moonExplorerTestData").withPathSensitivity(PathSensitivity.RELATIVE)
+    // All tests complete in approximately 5 minutes. If a test does not stop, the task fails after this time. Then the reports show the tests that completed.
+    timeout = Duration.ofMinutes(15)
+    // On CI, the log shows the start of each test. If a test does not stop, the last test in the log is the test that did not stop.
+    // GitHub Actions sets the environment variable CI.
+    if (providers.environmentVariable("CI").isPresent) {
+        testLogging {
+            events(TestLogEvent.STARTED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
+            exceptionFormat = TestExceptionFormat.FULL
+        }
+    }
 }
 
 changelog {

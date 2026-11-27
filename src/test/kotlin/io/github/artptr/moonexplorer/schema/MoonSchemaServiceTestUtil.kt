@@ -4,8 +4,8 @@ import com.google.gson.JsonPrimitive
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.PlatformTestUtil
 import io.github.artptr.moonexplorer.cli.CliResult
+import io.github.artptr.moonexplorer.model.resetWithTimeout
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.file.Path
 
@@ -14,7 +14,7 @@ import java.nio.file.Path
  * The tests of the schemas call [MoonSchemaService.start]. Call [MoonSchemaService.resetForTests] in tearDown.
  */
 fun MoonSchemaService.prepareForTests() {
-    runBlocking { resetForTests() }
+    resetWithTimeout { resetForTests() }
     templates = { CliResult.Success("{}") }
     syncSchemas = { CliResult.Failed("The tests do not start moon") }
 }
