@@ -206,14 +206,20 @@ GitHub Actions runs these workflows:
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| `Build` | Push to `main`, pull request. A change to documentation only does not start the workflow. | Build, tests on Linux and on Windows, verification of the plugin, draft release |
+| `Build` | Push to `main`, pull request. A push that changes only documentation does not start the workflow. | Changed files, build, tests on Linux and on Windows, verification of the plugin, result, draft release |
 | `Docs` | Push to `main`, pull request | STE check with Vale |
 | `Labels` | Change to `.github/labels.yml` on `main` | Sync of the GitHub labels |
 | `Moon output` | Each Monday, manual start | Record of the output of the newest moon 2.x, tests, issue for a change. Refer to section 4.3. |
 | `Version check` | Each Monday, manual start, pull request that changes `version-check.yml` | Check of the IntelliJ IDEA version and the Vale version, issue for a new version. Refer to section 7.1. |
 | `Release` | Publication of a GitHub release | Publication to JetBrains Marketplace, pull request for `CHANGELOG.md` |
 
-**NOTE:** The `paths` filter in `build.yml` gives the list of files that do not start the workflow. If `Build` becomes a status check that must pass before a merge, a pull request that changes only documentation cannot merge. GitHub does not start the workflow, thus the status stays pending. In that case, replace the filter with a job that always runs and gives the status.
+The ruleset `main` on GitHub has these necessary checks: `Build result` and `STE check (Vale)`. A pull request can merge only after these checks pass.
+
+Each pull request starts the `Build` workflow. The job `Changes` finds the changed files. If all files are documentation, the jobs `Build`, `Test`, and `Verify plugin` do not run. The job `Build result` always runs. It passes if each of the other jobs passed or did not run.
+
+**NOTE:** The `paths` filter for `push` in `build.yml` and the job `Changes` use the same list of documentation files. If you change one list, also change the other list.
+
+**NOTE:** From the `Build` workflow, make only `Build result` a necessary check. If a pull request changes only documentation, the `Test` matrix job does not run. Then it gives one check with an incorrect name, `Test (${{ matrix.os }})`. A necessary check `Test (ubuntu-latest)` stays pending, and the pull request cannot merge. With one check, you can also add or remove jobs without a change to the ruleset.
 
 The `Build` workflow uses `version` in `gradle.properties` for the draft release.
 If a published release has this version, the workflow stops with an error before it changes the draft releases.

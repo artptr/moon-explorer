@@ -10,7 +10,9 @@
 # The jobs 'build' and 'test' and the Plugin Verifier job run in parallel. On a push to 'main', the job 'releaseDraft' creates a draft GitHub release after these three jobs pass.
 #
 # A push to 'main' and a pull request start the workflow.
-# A change to documentation only does not start the workflow. Refer to the 'paths' filters below.
+# A push that changes only documentation does not start the workflow. Refer to the 'paths' filter below.
+# Each pull request starts the workflow. If the pull request changes only documentation, the other jobs do not run.
+# The job 'result' gives one result for the workflow. This job is a necessary check in the ruleset of 'main'. Refer to section 7 of docs/development.md.
 #
 # GitHub Actions reference: https://docs.github.com/actions
 #
@@ -33,18 +35,9 @@ on:
       - '!.claude/**'
       - 'CHANGELOG.md'
       - 'src/**'
-  # A pull request starts the workflow if it changes a file in the 'paths' filter.
+  # Each pull request starts the workflow. A necessary check that does not start stays pending, and the pull request cannot merge.
+  # Thus the job 'changes' uses the patterns of the 'paths' filter, not a filter of the workflow.
   pull_request:
-    # Use the same 'paths' filter as for 'push'.
-    paths:
-      - '**'
-      - '!docs/**'
-      - '!**/*.md'
-      - '!.vale/**'
-      - '!.vale.ini'
-      - '!.claude/**'
-      - 'CHANGELOG.md'
-      - 'src/**'
 
 # Give the GITHUB_TOKEN read access only. Jobs that write data set their own permissions.
 permissions:
@@ -58,9 +51,47 @@ concurrency:
 
 jobs:
 
+  # Find the changed files of a pull request. If all files are documentation, the output 'code' is false. Then the jobs below do not run.
+  # The patterns are the same as in the 'paths' filter for 'push'. If you change one list, also change the other list.
+  # On a push to 'main', the 'paths' filter does this work. Then the output is true.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.files.outputs.code }}
+    steps:
+
+      - name: Find Changed Files
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          code=true
+          if [ -n "$PR" ]; then
+            code=false
+            # The list also contains the old name of a renamed file.
+            files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)')
+            while IFS= read -r file; do
+              # In a 'case' pattern, '*' also matches '/'.
+              case "$file" in
+                src/*|CHANGELOG.md) code=true ;;
+                docs/*|*.md|.vale/*|.vale.ini|.claude/*) ;;
+                *) code=true ;;
+              esac
+            done <<< "$files"
+          fi
+          echo "Code changed: $code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   # Make the plugin ZIP file.
   build:
     name: Build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
 
@@ -94,6 +125,8 @@ jobs:
   # The 'build' job and the Plugin Verifier job do not use the matrix. Their results do not change with the operating system.
   test:
     name: Test (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       # If the tests fail on one operating system, the tests on the other operating system continue. Thus the reports show all failures.
       fail-fast: false
@@ -144,6 +177,8 @@ jobs:
   # Use the IntelliJ Plugin Verifier to do a check of the plugin structure and of the compatibility with IDE versions.
   verify:
     name: Verify plugin
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
 
@@ -250,6 +285,28 @@ jobs:
       - name: Show Available Disk Space
         if: ${{ always() }}
         run: df -h /
+
+  # Give one result for the workflow. This job is a necessary check in the ruleset of 'main'. Because of the job 'changes', the jobs above possibly do not run.
+  # A matrix job that does not run gives one check with the name 'Test (${{ matrix.os }})'. Thus the 'test' jobs cannot be necessary checks.
+  # A job that did not run because of the job 'changes' has the result 'skipped'. This result is correct.
+  result:
+    name: Build result
+    if: always()
+    needs: [ changes, build, test, verify ]
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Examine the Results of the Jobs
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for result in $RESULTS; do
+            case "$result" in
+              success|skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
 
   # Create a draft release on the GitHub Releases page. A maintainer examines the draft and publishes it.
   # Then the 'Release' workflow starts.
