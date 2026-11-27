@@ -7,7 +7,6 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import io.github.artptr.moonexplorer.model.*
 import io.github.artptr.moonexplorer.testData.TestData
-import kotlinx.coroutines.runBlocking
 
 class MoonRunAnythingProviderTest : MoonTasksServiceTestCase() {
 
@@ -57,7 +56,7 @@ class MoonRunAnythingProviderTest : MoonTasksServiceTestCase() {
     }
 
     fun testDuringTheFirstLoadTheProviderRunsCommandsButHasNoTargets() {
-        runBlocking { service.resetForTests() }
+        resetWithTimeout { service.resetForTests() }
         assertEquals(TasksState.Loading(null), service.state.value)
         assertSameElements(provider.getValues(context, "moon "), "moon run")
         assertEmpty(provider.getValues(context, "moon run "))

@@ -13,6 +13,7 @@ import io.github.artptr.moonexplorer.ui.awaitRunMarkersRefresher
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import java.nio.file.Path
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -36,14 +37,32 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
     override fun tearDown() {
         try {
             project.service<MoonSettings>().resetForTests()
-            runBlocking { project.service<MoonSchemaService>().resetForTests() }
-            if (::service.isInitialized) {
-                runBlocking { service.resetForTests() }
-                service.awaitRunMarkersRefresher()
+            // If the reset of the schema service fails, also reset the tasks service. Thus the next test does not get the data that this test loaded.
+            try {
+                resetWithTimeout { project.service<MoonSchemaService>().resetForTests() }
+            } finally {
+                if (::service.isInitialized) {
+                    resetWithTimeout { service.resetForTests() }
+                    service.awaitRunMarkersRefresher()
+                }
             }
         } finally {
             super.tearDown()
         }
+    }
+}
+
+/**
+ * Runs [reset], for example `resetForTests` of a service. If [reset] does not complete in [timeout], the test fails.
+ * A reset waits until the jobs of the service stop. If a job does not stop, the test must fail. It must not stop the test run.
+ */
+fun resetWithTimeout(timeout: Duration = 10.seconds, reset: suspend () -> Unit) {
+    // The reset is not a child of runBlocking. withTimeoutOrNull waits until its block stops, and a block in NonCancellable code does not stop.
+    // Thus the reset runs in a different scope, and the function waits only for the result.
+    val result = CoroutineScope(Dispatchers.Default).async { reset() }
+    if (runBlocking { withTimeoutOrNull(timeout) { result.await() } } == null) {
+        result.cancel()
+        throw AssertionError("The reset did not complete in $timeout. A job of the service did not stop.")
     }
 }
 
@@ -55,7 +74,7 @@ abstract class MoonTasksServiceTestCase : BasePlatformTestCase() {
 fun MoonTasksService.prepareForTests() {
     // Stop the schema service first. Thus it does not start moon for the test workspace. The tests of the schemas start it again.
     project.service<MoonSchemaService>().prepareForTests()
-    runBlocking { resetForTests() }
+    resetWithTimeout { resetForTests() }
     awaitRunMarkersRefresher()
     projectDir = { TestData.workspace.toPath() }
     queryProjects = { CliResult.Success(TestData.recorded("query-projects.json")) }
